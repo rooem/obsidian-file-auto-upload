@@ -1,0 +1,61 @@
+import { App, Modal, Plugin } from "obsidian";
+import { BaseModalComponent } from "./BaseUIComponent";
+import { t } from "../i18n";
+
+interface ObsidianApp extends App {
+  setting?: {
+    open(): void;
+    openTabById(id: string): void;
+  };
+}
+
+/**
+ * Modal dialog for storage configuration prompt
+ * Shown when user attempts upload without configured storage
+ */
+export class StorageConfigModal extends BaseModalComponent {
+  private plugin: Plugin;
+
+  constructor(plugin: Plugin) {
+    const modal = new Modal(plugin.app);
+    super(plugin.app, null, modal);
+    this.plugin = plugin;
+  }
+
+  /**
+   * Render the modal content
+   */
+  render() {
+    const contentEl = this.getModalContent();
+    contentEl.createEl("h2", { text: t("modal.storageConfig.title") });
+
+    const messageDiv = contentEl.createDiv();
+    messageDiv.createEl("p", { text: t("modal.storageConfig.message") });
+
+    const buttonDiv = contentEl.createDiv();
+    buttonDiv.style.textAlign = "center";
+    buttonDiv.style.marginTop = "20px";
+
+    const openSettingsBtn = buttonDiv.createEl("button", {
+      text: t("modal.storageConfig.openSettings"),
+      cls: "mod-cta",
+    });
+    openSettingsBtn.onclick = () => {
+      this.closeModal();
+      const app = this.plugin.app as ObsidianApp;
+      if (app.setting) {
+        app.setting.open();
+        app.setting.openTabById(this.plugin.manifest.id);
+      }
+    };
+  }
+
+  /**
+   * Clean up when modal is closed
+   */
+  protected onModalClose(): void {
+    super.onModalClose();
+    const contentEl = this.getModalContent();
+    contentEl.empty();
+  }
+}

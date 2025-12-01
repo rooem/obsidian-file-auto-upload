@@ -1,0 +1,89 @@
+export default {
+  // Settings
+  "settings.plugin": "插件设置",
+  "settings.storage": "存储服务",
+  "settings.storage.desc": "选择文件上传的存储服务",
+  "settings.storage.config": "存储服务配置",
+  "settings.endpoint": "端点",
+  "settings.endpoint.desc": "API 端点",
+  "settings.accessKeyId": "访问密钥 ID",
+  "settings.accessKeyId.desc": "API 访问密钥 ID",
+  "settings.secretAccessKey": "密钥",
+  "settings.secretAccessKey.desc": "API 密钥",
+  "settings.region": "区域",
+  "settings.region.desc": "存储区域",
+  "settings.bucketName": "存储桶名称",
+  "settings.bucketName.desc": "存储桶名称",
+  "settings.publicUrl": "公共 URL",
+  "settings.publicUrl.desc": "公共访问 URL",
+  "settings.testConnection": "测试连接",
+  "settings.testing": "测试中...",
+  "settings.testSuccess": "连接成功！",
+  "settings.testFailed": "连接失败：{error}",
+  "settings.testError": "错误：{error}",
+
+  // Auto Upload Settings
+  "settings.autoUpload": "自动上传设置",
+  "settings.clipboardAutoUpload": "剪贴板自动上传",
+  "settings.clipboardAutoUpload.desc": "从剪贴板粘贴时自动上传文件",
+  "settings.dragAutoUpload": "拖放自动上传",
+  "settings.dragAutoUpload.desc": "拖动文件到 Obsidian 时自动上传",
+  "settings.fileTypes": "文件类型",
+  "settings.fileTypes.desc": "自动上传的文件类型，多个类型用逗号分隔",
+  "settings.fileTypes.empty": "请输入文件类型",
+  "settings.applyNetworkFiles": "应用于网络文件",
+  "settings.applyNetworkFiles.desc": "将上传规则应用于剪贴板中的网络文件链接",
+  "settings.language": "语言",
+  "settings.language.desc": "选择界面语言",
+
+  // Modal
+  "modal.storageConfig.title": "存储服务未配置",
+  "modal.storageConfig.message": "使用文件上传功能前，请先配置存储服务。",
+  "modal.storageConfig.openSettings": "打开设置",
+
+  // Developer Mode
+  "settings.developer": "开发者模式",
+  "settings.developer.name": "关闭开发者模式菜单",
+  "settings.developer.desc": "关闭开发者模式菜单（重启后自动关闭）",
+  "settings.developer.enabled": "开发者模式已开启",
+  "settings.developer.disabled": "开发者模式已关闭",
+  "settings.developer.debugLogging.name": "调试日志",
+  "settings.developer.debugLogging.desc": "启用调试日志输出",
+
+  // Notices
+  "notice.queueClosing":
+    "插件正在关闭，但仍有 {count} 个文件在队列中{processing}。正在尝试等待完成...",
+  "notice.queueCompleted": "所有队列任务已完成。",
+  "notice.queueLost": "插件关闭时有未完成的任务。{count} 个文件可能丢失。",
+  "notice.processing": "或正在处理",
+
+  // Connection Config Errors
+  "error.missingEndpoint": "缺少端点配置",
+  "error.missingRegion": "缺少区域配置",
+  "error.missingAccessKeyId": "缺少访问密钥 ID 配置",
+  "error.missingSecretAccessKey": "缺少密钥配置",
+  "error.missingBucketName": "缺少存储桶名称配置",
+  "error.missingPublicUrl": "缺少公共 URL 配置",
+
+  // Operation Errors
+  "error.uploadError": "上传错误",
+  "error.uploadFailed": "上传失败",
+  "error.deleteError": "删除错误",
+  "error.deleteFailed": "删除失败",
+  "error.fileDeletionFailed": "文件删除失败",
+  "error.fileExistenceCheckFailed": "文件存在性检查失败",
+  "error.getFileInfoFailed": "获取文件信息失败",
+
+  // Upload Progress
+  "upload.progressing": "处理中",
+  "upload.progrefailed": "处理失败",
+  "upload.uploading": "上传中",
+  "upload.failed": "上传失败",
+
+  // Delete Operations
+  "delete.menuTitle": "删除已上传文件",
+  "delete.success": "文件删除成功：{fileLink}",
+  "delete.failed": "文件删除失败：{fileLink} - {error}",
+  "delete.error": "删除文件时发生错误：{fileLink}",
+  "delete.unknownError": "未知错误",
+};

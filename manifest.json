@@ -1,0 +1,11 @@
+{
+	"id": "file-auto-upload",
+	"name": "File Auto Upload",
+	"version": "1.0.0",
+	"minAppVersion": "1.0.0",
+	"description": "Automatically upload files to external storage services",
+	"author": "rooecm",
+	"authorUrl": "",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}
