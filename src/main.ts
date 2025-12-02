@@ -18,11 +18,11 @@ export default class FileAutoUploadPlugin extends Plugin {
    * Sets up managers, event handlers, and settings tab
    */
   async onload() {
-    logger.info("FileAutoUploadPlugin", "Plugin loading started");
+    logger.debug("FileAutoUploadPlugin", "Plugin loading started");
     await this.initialize();
     this.registerEvents();
     this.addSettingTab(new FileAutoUploadSettingTab(this.app, this));
-    logger.info("FileAutoUploadPlugin", "Plugin loaded successfully");
+    logger.debug("FileAutoUploadPlugin", "Plugin loaded successfully");
   }
 
   /**
@@ -30,10 +30,10 @@ export default class FileAutoUploadPlugin extends Plugin {
    * Checks for pending uploads and waits for completion
    */
   onunload(): void {
-    logger.info("FileAutoUploadPlugin", "Plugin unloading started");
+    logger.debug("FileAutoUploadPlugin", "Plugin unloading started");
     // Check upload queue before unload
     this.eventHandlerManager.checkQueueStatusOnUnload();
-    logger.info("FileAutoUploadPlugin", "Plugin unloading successfully");
+    logger.debug("FileAutoUploadPlugin", "Plugin unloading successfully");
   }
 
   /**

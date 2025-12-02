@@ -79,7 +79,7 @@ export class EventHandlerManager {
       return false;
     }
 
-    logger.info("EventHandlerManager", "File upload event triggered", {
+    logger.debug("EventHandlerManager", "File upload event triggered", {
       itemCount: items.length,
     });
 

@@ -73,7 +73,7 @@ export class ConfigurationManager {
   removeConfigChangeListener(listener: ConfigChangeListener): boolean {
     const removed = this.configChangeListeners.delete(listener);
     if (removed) {
-      logger.info("ConfigurationManager", "Config change listener removed");
+      logger.debug("ConfigurationManager", "Config change listener removed");
     }
     return removed;
   }

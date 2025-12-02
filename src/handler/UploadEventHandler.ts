@@ -35,7 +35,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     items: DataTransferItemList,
   ): Promise<void> {
     const queue = await this.getFileQueue(items);
-    logger.info("BaseUploadEventHandler", "Files queued for upload", {
+    logger.debug("BaseUploadEventHandler", "Files queued for upload", {
       queueLength: queue.length,
     });
 
@@ -72,7 +72,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
       }
 
       if (item.type === "text" && typeof item.value === "string") {
-        logger.info("BaseUploadEventHandler", "Processing text item");
+        logger.debug("BaseUploadEventHandler", "Processing text item");
         activeView.editor.replaceSelection(item.value);
         return;
       }
@@ -81,7 +81,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
         const file = item.value;
         const extension = file.name.split(".").pop()?.toLowerCase();
 
-        logger.info("BaseUploadEventHandler", "Processing file item", {
+        logger.debug("BaseUploadEventHandler", "Processing file item", {
           fileName: file.name,
           fileSize: file.size,
           extension,
@@ -120,7 +120,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
         this.progressDebouncers.delete(placeholderPosition.id);
 
         if (result.success && result.url) {
-          logger.info("BaseUploadEventHandler", "File processed successfully", {
+          logger.debug("BaseUploadEventHandler", "File processed successfully", {
             fileName: file.name,
           });
           this.replacePlaceholderWithLink(
@@ -168,7 +168,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
 
     const editor = activeView.editor;
     const cursor = editor.getCursor();
-    const uploadId = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const uploadId = `upload-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
     const fileName = file.name;
     const extension = file.name.split(".").pop()?.toLowerCase();
@@ -353,7 +353,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
   ) {
     const extension = file.name.split(".").pop()?.toLowerCase();
 
-    logger.info(
+    logger.debug(
       "BaseUploadEventHandler",
       "File type not supported for upload, saving to vault",
       { extension },
@@ -431,7 +431,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
       if (item.kind === "file") {
         const entry = item.webkitGetAsEntry();
         if (entry?.isDirectory) {
-          logger.info("UploadEventHandler", "Detected directory drop", {
+          logger.debug("UploadEventHandler", "Detected directory drop", {
             name: entry.name,
           });
           continue;

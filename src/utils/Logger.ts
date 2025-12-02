@@ -1,7 +1,7 @@
 import { DeveloperSettings } from "../components/DeveloperSettings";
 
 export enum LogLevel {
-  INFO = 1,
+  DEBUG = 1,
   WARN = 2,
   ERROR = 3,
   NONE = 4,
@@ -9,7 +9,7 @@ export enum LogLevel {
 
 class Logger {
   private static instance: Logger;
-  private level: LogLevel = LogLevel.INFO;
+  private level: LogLevel = LogLevel.DEBUG;
 
   private constructor() {}
 
@@ -84,16 +84,16 @@ class Logger {
     const timestamp = new Date().toISOString();
     const prefix = `[${timestamp}] [${level}] [${context}]`;
     const sanitizedArgs = args.map((arg) => this.sanitize(arg));
-    console[level.toLowerCase() as "log" | "warn" | "error"](
+    console[level.toLowerCase() as "debug" | "warn" | "error"](
       prefix,
       message,
       ...sanitizedArgs,
     );
   }
 
-  info(context: string, message: string, ...args: unknown[]): void {
-    if (this.shouldLog(LogLevel.INFO)) {
-      this.format("INFO", context, message, ...args);
+  debug(context: string, message: string, ...args: unknown[]): void {
+    if (this.shouldLog(LogLevel.DEBUG)) {
+      this.format("DEBUG", context, message, ...args);
     }
   }
 

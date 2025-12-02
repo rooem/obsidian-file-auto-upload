@@ -51,7 +51,7 @@ export class SecureStorage {
 
     await this.plugin.saveData(savedData);
 
-    logger.info("SecureStorage", "Data saved successfully");
+    logger.debug("SecureStorage", "Data saved successfully");
   }
 
   /**
@@ -70,12 +70,12 @@ export class SecureStorage {
     const loadedData: unknown = await this.plugin.loadData();
 
     if (!loadedData || typeof loadedData !== "object") {
-      logger.info("SecureStorage", "No data found or invalid format");
+      logger.debug("SecureStorage", "No data found or invalid format");
       return {};
     }
 
     if (!("salt" in loadedData) || !("data" in loadedData)) {
-      logger.info("SecureStorage", "Data not encrypted, returning as-is");
+      logger.debug("SecureStorage", "Data not encrypted, returning as-is");
       return loadedData;
     }
 
@@ -93,7 +93,7 @@ export class SecureStorage {
           this.plugin,
           encryptedData.salt,
         );
-        logger.info("SecureStorage", "Data decrypted successfully");
+        logger.debug("SecureStorage", "Data decrypted successfully");
         return JSON.parse(decrypted) as object;
       } catch (error) {
         logger.error("SecureStorage", "Failed to decrypt settings", error);

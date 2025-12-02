@@ -92,7 +92,7 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
 
     const { fileLink, fileKey, editor, originalSelection } = item.value;
 
-    logger.info("DeleteEventHandler", "Processing delete item", {
+    logger.debug("DeleteEventHandler", "Processing delete item", {
       fileLink,
       fileKey,
     });
@@ -101,7 +101,7 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
       const result = await this.uploadServiceManager.deleteFile(fileKey);
 
       if (result.success) {
-        logger.info(
+        logger.debug(
           "DeleteEventHandler",
           "File deleted and link removed from editor",
           { fileLink },
@@ -230,7 +230,7 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
       return;
     }
 
-    logger.info("DeleteEventHandler", "Delete operation initiated", {
+    logger.debug("DeleteEventHandler", "Delete operation initiated", {
       fileCount: fileLinks.length,
     });
 
@@ -260,7 +260,7 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
       },
     }));
 
-    logger.info("DeleteEventHandler", "Files queued for deletion", {
+    logger.debug("DeleteEventHandler", "Files queued for deletion", {
       queueLength: queue.length,
     });
     void this.addToProcessingQueue(queue);

@@ -45,7 +45,7 @@ export class UploadServiceManager {
       }
     });
     this.uploaderInstances.clear();
-    logger.info(
+    logger.debug(
       "UploaderManager",
       "All uploader instance caches cleared, will be recreated on next use",
     );
@@ -59,13 +59,13 @@ export class UploadServiceManager {
     const serviceType = this.configurationManager.getCurrentStorageService();
     const cached = this.uploaderInstances.get(serviceType);
     if (cached) {
-      logger.info("UploaderManager", "Using cached uploader instance", {
+      logger.debug("UploaderManager", "Using cached uploader instance", {
         serviceType,
       });
       return cached;
     }
 
-    logger.info("UploaderManager", "Creating new uploader instance", {
+    logger.debug("UploaderManager", "Creating new uploader instance", {
       serviceType,
     });
 
@@ -77,7 +77,7 @@ export class UploadServiceManager {
     ) as IUploader;
     this.uploaderInstances.set(serviceType, uploader);
 
-    logger.info("UploaderManager", "Uploader instance created", {
+    logger.debug("UploaderManager", "Uploader instance created", {
       serviceType,
     });
     return uploader;
@@ -93,7 +93,7 @@ export class UploadServiceManager {
       const result = uploader.checkConnectionConfig();
 
       if (result.success) {
-        logger.info("UploaderManager", "Check Connection config successful");
+        logger.debug("UploaderManager", "Check Connection config successful");
       } else {
         logger.error(
           "UploaderManager",
@@ -120,7 +120,7 @@ export class UploadServiceManager {
       const result = await uploader.testConnection();
 
       if (result.success) {
-        logger.info("UploaderManager", "Connection test successful");
+        logger.debug("UploaderManager", "Connection test successful");
       } else {
         logger.error("UploaderManager", "Connection test failed", result.error);
       }
@@ -145,7 +145,7 @@ export class UploadServiceManager {
     key?: string,
     onProgress?: (progress: number) => void,
   ): Promise<import("../types").UploadResult> {
-    logger.info("UploaderManager", "Starting file upload", {
+    logger.debug("UploaderManager", "Starting file upload", {
       fileName: file.name,
       fileSize: file.size,
       key,
@@ -155,7 +155,7 @@ export class UploadServiceManager {
     const result = await uploader.uploadFile(file, key, onProgress);
 
     if (result.success) {
-      logger.info("UploaderManager", "File upload successful", {
+      logger.debug("UploaderManager", "File upload successful", {
         fileName: file.name,
         url: result.url,
       });
@@ -175,14 +175,14 @@ export class UploadServiceManager {
    * @returns Result with success status and optional error
    */
   async deleteFile(key: string): Promise<{ success: boolean; error?: string }> {
-    logger.info("UploaderManager", "Starting file deletion", { key });
+    logger.debug("UploaderManager", "Starting file deletion", { key });
 
     try {
       const uploader = this.getUploader();
       const result = await uploader.deleteFile(key);
 
       if (result.success) {
-        logger.info("UploaderManager", "File deletion successful", { key });
+        logger.debug("UploaderManager", "File deletion successful", { key });
       } else {
         logger.error("UploaderManager", "File deletion failed", {
           key,

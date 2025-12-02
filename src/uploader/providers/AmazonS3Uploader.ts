@@ -63,7 +63,7 @@ export class AmazonS3Uploader implements IUploader {
   public dispose(): void {
     if (this.s3Client) {
       this.s3Client.destroy();
-      logger.info("AmazonS3Uploader", "S3 client disposed");
+      logger.debug("AmazonS3Uploader", "S3 client disposed");
     }
   }
 
@@ -166,7 +166,7 @@ export class AmazonS3Uploader implements IUploader {
     key?: string,
     onProgress?: UploadProgressCallback,
   ): Promise<UploadResult> {
-    logger.info("AmazonS3Uploader", "Starting S3 upload", {
+    logger.debug("AmazonS3Uploader", "Starting S3 upload", {
       fileName: file.name,
       fileSize: file.size,
       key: key || "auto-generated",
@@ -178,7 +178,7 @@ export class AmazonS3Uploader implements IUploader {
 
       // Use multipart upload for files > 5MB with progress tracking
       if (onProgress && file.size > MULTIPART_UPLOAD_THRESHOLD) {
-        logger.info("AmazonS3Uploader", "Using multipart upload", {
+        logger.debug("AmazonS3Uploader", "Using multipart upload", {
           fileSize: file.size,
         });
         const upload = new Upload({
@@ -202,9 +202,9 @@ export class AmazonS3Uploader implements IUploader {
         );
 
         await upload.done();
-        logger.info("AmazonS3Uploader", "Multipart upload completed");
+        logger.debug("AmazonS3Uploader", "Multipart upload completed");
       } else {
-        logger.info("AmazonS3Uploader", "Using simple upload", {
+        logger.debug("AmazonS3Uploader", "Using simple upload", {
           fileSize: file.size,
         });
         // Use simple PutObject for small files (faster, no progress tracking)
@@ -232,7 +232,7 @@ export class AmazonS3Uploader implements IUploader {
       }
 
       const publicUrl = this.getPublicUrl(fileKey);
-      logger.info("AmazonS3Uploader", "S3 upload successful", {
+      logger.debug("AmazonS3Uploader", "S3 upload successful", {
         fileKey,
         url: publicUrl,
       });
@@ -250,7 +250,7 @@ export class AmazonS3Uploader implements IUploader {
   public async deleteFile(
     key: string,
   ): Promise<{ success: boolean; error?: string }> {
-    logger.info("AmazonS3Uploader", "Starting S3 delete", { key });
+    logger.debug("AmazonS3Uploader", "Starting S3 delete", { key });
 
     try {
       const deleteParams = {
@@ -262,7 +262,7 @@ export class AmazonS3Uploader implements IUploader {
       const result = await this.s3Client.send(command);
 
       if (result.$metadata.httpStatusCode === 204) {
-        logger.info("AmazonS3Uploader", "S3 delete successful", { key });
+        logger.debug("AmazonS3Uploader", "S3 delete successful", { key });
         return { success: true };
       } else {
         logger.error("AmazonS3Uploader", "S3 delete failed", {
