@@ -52,12 +52,12 @@ export abstract class BaseEventHandler<T = unknown> {
 
     this.isProcessing = true;
 
-    // 处理所有当前及新增的项目，直到队列为空一段时间
+    // Process all current and new items until queue is empty
     while (this.processingQueue.length > 0) {
-      // 取出一个项目进行处理
+      // Get next item to process
       const item = this.processingQueue.shift();
       if (item) {
-        // 并发处理该项目，不等待完成
+        // Process item concurrently without waiting
         this.processItem(item, this.processingQueue.length).catch(error => {
           logger.error('BaseEventHandler processing item:', error);
         });
