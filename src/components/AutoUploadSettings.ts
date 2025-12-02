@@ -1,6 +1,7 @@
 import { CustomSetting} from "./CustomSetting";
 import FileAutoUploadPlugin from "../main";
 import { t } from "../i18n";
+import { Setting } from "obsidian";
 
 /**
  * Auto upload settings UI component
@@ -13,7 +14,9 @@ export class AutoUploadSettings {
    * @param plugin - Plugin instance
    */
   static render(containerEl: HTMLElement, plugin: FileAutoUploadPlugin): void {
-    containerEl.createEl("h6", { text: t("settings.autoUpload") });
+    new Setting(containerEl)
+      .setName(t("settings.autoUpload"))
+      .setHeading();
     const settings = plugin.configurationManager.getSettings();
 
     new CustomSetting(containerEl)

@@ -3,6 +3,7 @@ import FileAutoUploadPlugin from "../main";
 import { UploaderType } from "../uploader/UploaderType";
 import { UploaderTypeInfo } from "../uploader/UploaderRegistry";
 import { t } from "../i18n";
+import { Setting } from "obsidian";
 
 /**
  * Storage service settings UI component
@@ -41,7 +42,9 @@ export class StorageServiceSettings {
           });
       });
 
-    containerEl.createEl("h6", { text: t("settings.storage.config") });
+    new Setting(containerEl)
+      .setName(t("settings.storage.config"))
+      .setHeading();
     new CustomSetting(containerEl)
       .setName(t("settings.endpoint"))
       .setDesc(t("settings.endpoint.desc"))

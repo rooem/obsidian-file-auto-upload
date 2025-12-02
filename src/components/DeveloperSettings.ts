@@ -68,7 +68,9 @@ export class DeveloperSettings {
     plugin: FileAutoUploadPlugin,
     onToggle: () => void,
   ): void {
-    containerEl.createEl("h6", { text: t("settings.developer") });
+    new Setting(containerEl)
+      .setName(t("settings.developer"))
+      .setHeading();
 
     new Setting(containerEl)
       .setName(t("settings.developer.name"))

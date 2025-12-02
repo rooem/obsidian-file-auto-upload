@@ -1,4 +1,4 @@
-import { App, PluginSettingTab} from "obsidian";
+import { App, PluginSettingTab, Setting } from "obsidian";
 import FileAutoUploadPlugin from "./main";
 import { UploaderType } from "./uploader/UploaderType";
 import { AutoUploadSettings } from "./components/AutoUploadSettings";
@@ -73,9 +73,11 @@ export class FileAutoUploadSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    const titleEl = containerEl.createEl("h5", { text: t("settings.plugin") });
+    const titleSetting = new Setting(containerEl)
+      .setName(t("settings.plugin"))
+      .setHeading();
 
-    DeveloperSettings.setupTripleClickListener(titleEl, () => this.display());
+    DeveloperSettings.setupTripleClickListener(titleSetting.nameEl, () => this.display());
 
     StorageServiceSettings.render(containerEl, this.plugin);
     AutoUploadSettings.render(containerEl, this.plugin);

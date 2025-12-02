@@ -1,4 +1,4 @@
-import { App, Modal, Plugin } from "obsidian";
+import { App, Modal, Plugin, Setting } from "obsidian";
 import { BaseModalComponent } from "./BaseUIComponent";
 import { t } from "../i18n";
 
@@ -27,7 +27,9 @@ export class StorageConfigModal extends BaseModalComponent {
    */
   render() {
     const contentEl = this.getModalContent();
-    contentEl.createEl("h2", { text: t("modal.storageConfig.title") });
+    new Setting(contentEl)
+      .setName(t("modal.storageConfig.title"))
+      .setHeading();
 
     const messageDiv = contentEl.createDiv();
     messageDiv.createEl("p", { text: t("modal.storageConfig.message") });
