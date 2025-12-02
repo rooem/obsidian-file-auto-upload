@@ -1,4 +1,4 @@
-import { App, PluginSettingTab } from "obsidian";
+import { App, PluginSettingTab} from "obsidian";
 import FileAutoUploadPlugin from "./main";
 import { UploaderType } from "./uploader/UploaderType";
 import { AutoUploadSettings } from "./components/AutoUploadSettings";

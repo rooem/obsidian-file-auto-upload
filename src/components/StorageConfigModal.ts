@@ -33,8 +33,7 @@ export class StorageConfigModal extends BaseModalComponent {
     messageDiv.createEl("p", { text: t("modal.storageConfig.message") });
 
     const buttonDiv = contentEl.createDiv();
-    buttonDiv.style.textAlign = "center";
-    buttonDiv.style.marginTop = "20px";
+    buttonDiv.setCssStyles({textAlign:"center",marginTop:"20px"});
 
     const openSettingsBtn = buttonDiv.createEl("button", {
       text: t("modal.storageConfig.openSettings"),

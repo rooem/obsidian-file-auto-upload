@@ -48,21 +48,21 @@ export class StorageServiceSettings {
       .required()
       .addText(
         (text) =>
-          (text
-            .setPlaceholder("https://xxxxxx.com")
-            .setValue(settings.uploaderConfig.endpoint as string)
-            .onChange(async (value: string) => {
-              const currentSettings = plugin.configurationManager.getSettings();
-              await plugin.configurationManager.updateSettings(
-                {
-                  uploaderConfig: {
-                    ...currentSettings.uploaderConfig,
-                    endpoint: value,
-                  },
+        (text
+          .setPlaceholder("https://xxxxxx.com")
+          .setValue(settings.uploaderConfig.endpoint as string)
+          .onChange(async (value: string) => {
+            const currentSettings = plugin.configurationManager.getSettings();
+            await plugin.configurationManager.updateSettings(
+              {
+                uploaderConfig: {
+                  ...currentSettings.uploaderConfig,
+                  endpoint: value,
                 },
-                true,
-              );
-            }).inputEl.style.width = "300px"),
+              },
+              true,
+            );
+          }).inputEl.setCssStyles({ width: "300px" })),
       );
 
     new CustomSetting(containerEl)
@@ -71,20 +71,20 @@ export class StorageServiceSettings {
       .required()
       .addText(
         (text) =>
-          (text
-            .setValue(settings.uploaderConfig.access_key_id as string)
-            .onChange(async (value: string) => {
-              const currentSettings = plugin.configurationManager.getSettings();
-              await plugin.configurationManager.updateSettings(
-                {
-                  uploaderConfig: {
-                    ...currentSettings.uploaderConfig,
-                    access_key_id: value,
-                  },
+        (text
+          .setValue(settings.uploaderConfig.access_key_id as string)
+          .onChange(async (value: string) => {
+            const currentSettings = plugin.configurationManager.getSettings();
+            await plugin.configurationManager.updateSettings(
+              {
+                uploaderConfig: {
+                  ...currentSettings.uploaderConfig,
+                  access_key_id: value,
                 },
-                true,
-              );
-            }).inputEl.style.width = "300px"),
+              },
+              true,
+            );
+          }).inputEl.setCssStyles({ width: "300px" })),
       );
 
     new CustomSetting(containerEl)
@@ -93,20 +93,20 @@ export class StorageServiceSettings {
       .required()
       .addText(
         (text) =>
-          (text
-            .setValue(settings.uploaderConfig.secret_access_key as string)
-            .onChange(async (value: string) => {
-              const currentSettings = plugin.configurationManager.getSettings();
-              await plugin.configurationManager.updateSettings(
-                {
-                  uploaderConfig: {
-                    ...currentSettings.uploaderConfig,
-                    secret_access_key: value,
-                  },
+        (text
+          .setValue(settings.uploaderConfig.secret_access_key as string)
+          .onChange(async (value: string) => {
+            const currentSettings = plugin.configurationManager.getSettings();
+            await plugin.configurationManager.updateSettings(
+              {
+                uploaderConfig: {
+                  ...currentSettings.uploaderConfig,
+                  secret_access_key: value,
                 },
-                true,
-              );
-            }).inputEl.style.width = "300px"),
+              },
+              true,
+            );
+          }).inputEl.setCssStyles({ width: "300px" })),
       );
 
     const regionSetting = new CustomSetting(containerEl)
@@ -115,20 +115,20 @@ export class StorageServiceSettings {
       .required(StorageServiceSettings.regionRequired(settings.uploaderType))
       .addText(
         (text) =>
-          (text
-            .setValue((settings.uploaderConfig.region as string) || "")
-            .onChange(async (value: string) => {
-              const currentSettings = plugin.configurationManager.getSettings();
-              await plugin.configurationManager.updateSettings(
-                {
-                  uploaderConfig: {
-                    ...currentSettings.uploaderConfig,
-                    region: value,
-                  },
+        (text
+          .setValue((settings.uploaderConfig.region as string) || "")
+          .onChange(async (value: string) => {
+            const currentSettings = plugin.configurationManager.getSettings();
+            await plugin.configurationManager.updateSettings(
+              {
+                uploaderConfig: {
+                  ...currentSettings.uploaderConfig,
+                  region: value,
                 },
-                true,
-              );
-            }).inputEl.style.width = "300px"),
+              },
+              true,
+            );
+          }).inputEl.setCssStyles({ width: "300px" })),
       );
 
     new CustomSetting(containerEl)
@@ -137,20 +137,20 @@ export class StorageServiceSettings {
       .required()
       .addText(
         (text) =>
-          (text
-            .setValue(settings.uploaderConfig.bucket_name as string)
-            .onChange(async (value: string) => {
-              const currentSettings = plugin.configurationManager.getSettings();
-              await plugin.configurationManager.updateSettings(
-                {
-                  uploaderConfig: {
-                    ...currentSettings.uploaderConfig,
-                    bucket_name: value,
-                  },
+        (text
+          .setValue(settings.uploaderConfig.bucket_name as string)
+          .onChange(async (value: string) => {
+            const currentSettings = plugin.configurationManager.getSettings();
+            await plugin.configurationManager.updateSettings(
+              {
+                uploaderConfig: {
+                  ...currentSettings.uploaderConfig,
+                  bucket_name: value,
                 },
-                true,
-              );
-            }).inputEl.style.width = "300px"),
+              },
+              true,
+            );
+          }).inputEl.setCssStyles({ width: "300px" })),
       );
 
     new CustomSetting(containerEl)
@@ -159,21 +159,21 @@ export class StorageServiceSettings {
       .required(StorageServiceSettings.publicUrlRequired(settings.uploaderType))
       .addText(
         (text) =>
-          (text
-            .setPlaceholder("https://your-domain.com")
-            .setValue((settings.uploaderConfig.public_url as string) || "")
-            .onChange(async (value: string) => {
-              const currentSettings = plugin.configurationManager.getSettings();
-              await plugin.configurationManager.updateSettings(
-                {
-                  uploaderConfig: {
-                    ...currentSettings.uploaderConfig,
-                    public_url: value,
-                  },
+        (text
+          .setPlaceholder("https://your-domain.com")
+          .setValue((settings.uploaderConfig.public_url as string) || "")
+          .onChange(async (value: string) => {
+            const currentSettings = plugin.configurationManager.getSettings();
+            await plugin.configurationManager.updateSettings(
+              {
+                uploaderConfig: {
+                  ...currentSettings.uploaderConfig,
+                  public_url: value,
                 },
-                true,
-              );
-            }).inputEl.style.width = "300px"),
+              },
+              true,
+            );
+          }).inputEl.setCssStyles({ width: "300px" })),
       );
 
     let testResultEl: HTMLElement;
@@ -183,12 +183,14 @@ export class StorageServiceSettings {
         button.setDisabled(true);
         button.setButtonText(t("settings.testing"));
         testResultEl.setText("");
-        testResultEl.style.fontSize = "15px";
+        testResultEl.setCssStyles({fontSize:"15px"});
         try {
           const result = await plugin.uploadServiceManager.testConnection();
           if (result.success) {
             testResultEl.setText(t("settings.testSuccess"));
-            testResultEl.style.color = "green";
+            testResultEl.setCssStyles({
+              color: "green",
+            });
           } else {
             testResultEl.setText(
               t("settings.testFailed").replace(
@@ -196,7 +198,9 @@ export class StorageServiceSettings {
                 result.error || "Unknown error",
               ),
             );
-            testResultEl.style.color = "red";
+            testResultEl.setCssStyles({
+              color: "red",
+            });
           }
         } catch (error) {
           const errorMessage =
@@ -204,7 +208,9 @@ export class StorageServiceSettings {
           testResultEl.setText(
             t("settings.testError").replace("{error}", errorMessage),
           );
-          testResultEl.style.color = "red";
+          testResultEl.setCssStyles({
+            color: "red",
+          });
         } finally {
           button.setDisabled(false);
           button.setButtonText(t("settings.testConnection"));
@@ -217,9 +223,7 @@ export class StorageServiceSettings {
           text: "",
         });
 
-        testResultEl.style.marginRight = "12px";
-        testResultEl.style.fontSize = "12px";
-        testResultEl.style.whiteSpace = "nowrap";
+        testResultEl.setCssStyles({ marginRight: "12px", fontSize: "12px", whiteSpace: "nowrap" });
 
         parentElement.insertBefore(testResultEl, button.buttonEl);
       }

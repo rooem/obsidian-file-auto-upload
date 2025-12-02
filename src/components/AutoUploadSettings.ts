@@ -1,4 +1,4 @@
-import { CustomSetting } from "./CustomSetting";
+import { CustomSetting} from "./CustomSetting";
 import FileAutoUploadPlugin from "../main";
 import { t } from "../i18n";
 
@@ -81,7 +81,9 @@ export class AutoUploadSettings {
             if (!value || value.trim() === "") {
               notEmptyEl?.setText(t("settings.fileTypes.empty"));
               if (notEmptyEl) {
-                notEmptyEl.style.color = "red";
+                notEmptyEl.setCssStyles({
+                  color: "red",
+                });
               }
             } else {
               notEmptyEl?.setText("");
@@ -97,17 +99,20 @@ export class AutoUploadSettings {
             });
           });
 
-        toggle.inputEl.style.width = "300px";
-        toggle.inputEl.style.height = "100px";
+        toggle.inputEl.setCssStyles({
+          width: "300px",
+          height: "100px",
+        });
 
         const container = toggle.inputEl.parentElement;
         if (container) {
           notEmptyEl = container.createEl("span", { text: "" });
-
-          notEmptyEl.style.marginRight = "12px";
-          notEmptyEl.style.fontSize = "15px";
-          notEmptyEl.style.whiteSpace = "nowrap";
-          notEmptyEl.style.color = "var(--text-muted)";
+          notEmptyEl.setCssStyles({
+            color: "var(--text-muted)",
+            marginRight:"12px",
+            fontSize: "15px",
+            whiteSpace: "nowrap",
+          });
 
           container.insertBefore(notEmptyEl, toggle.inputEl);
         }

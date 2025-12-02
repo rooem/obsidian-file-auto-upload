@@ -14,8 +14,10 @@ export class CustomSetting extends Setting {
     let star = this.nameEl.querySelector("span");
     if (value && !star) {
       star = this.nameEl.createSpan({ text: "*" });
-      star.style.color = "red";
-      star.style.marginRight = "4px";
+      star.setCssStyles({
+                  color: "red",
+                  marginRight: "4px",
+                });
       this.nameEl.prepend(star);
     } else if (star) {
       star.remove();
