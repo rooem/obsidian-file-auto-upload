@@ -17,8 +17,13 @@ export default {
   external: ["obsidian"],
   plugins: [
     typescript({
-      sourceMap: !production,
-      inlineSources: !production,
+      compilerOptions: {
+        outDir: ".",
+        declaration: false,
+        sourceMap: false,
+        inlineSourceMap: !production,
+        inlineSources: !production,
+      },
     }),
     nodeResolve({
       browser: false,
@@ -31,5 +36,9 @@ export default {
     moduleSideEffects: false,
     propertyReadSideEffects: false,
     unknownGlobalSideEffects: false,
+  },
+  onwarn(warning, warn) {
+    if (warning.code === "CIRCULAR_DEPENDENCY") return;
+    warn(warning);
   },
 };

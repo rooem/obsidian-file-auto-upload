@@ -18,7 +18,8 @@
     "moduleResolution": "node",
     "importHelpers": true,
     "skipLibCheck": true,
-    "lib": ["dom", "es5", "scripthost", "es2015", "es2020", "ESNext"]
+    "lib": ["dom", "es5", "scripthost", "es2015", "es2020", "ESNext"],
+    "noEmit": true
   },
   "include": ["src/**/*.ts"]
 }
