@@ -41,14 +41,14 @@ export default {
   "settings.language.desc": "Select interface language",
 
   // Modal
-  "modal.storageConfig.title": "Storage service Not configured",
+  "modal.storageConfig.title": "Storage service not configured",
   "modal.storageConfig.message":
     "Please configure the storage service before using the file upload feature.",
   "modal.storageConfig.openSettings": "Open settings",
 
   // Developer Mode
   "settings.developer": "Developer mode",
-  "settings.developer.name": "Close developer Mode Menu",
+  "settings.developer.name": "Close developer mode menu",
   "settings.developer.desc":
     "Close developer mode menu (auto-disabled on restart)",
   "settings.developer.enabled": "Developer mode enabled",
@@ -84,7 +84,7 @@ export default {
   "upload.failed": "Upload failed",
 
   // Delete Operations
-  "delete.menuTitle": "Delete uploaded Files",
+  "delete.menuTitle": "Delete uploaded files",
   "delete.success": "File deleted successfully: {fileLink}",
   "delete.failed": "File deletion failed: {fileLink} - {error}",
   "delete.error": "Error occurred while deleting file: {fileLink}",
