@@ -55,7 +55,7 @@ export abstract class BaseEventHandler<T = unknown> {
     while (this.processingQueue.length > 0) {
       const item = this.processingQueue.shift();
       if (item) {
-        await this.processItem(item, index);
+        this.processItem(item, index);
         index++;
       }
     }

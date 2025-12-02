@@ -53,31 +53,6 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
   }
 
   /**
-   * Process all items in the queue concurrently (up to 3 at a time)
-   */
-  protected async processQueue(): Promise<void> {
-    if (this.isProcessing || this.processingQueue.length === 0) {
-      return;
-    }
-
-    this.isProcessing = true;
-
-    const items = [...this.processingQueue];
-    this.processingQueue = [];
-
-    await Promise.all(
-      items.map((item, index) => this.processItem(item, index)),
-    );
-
-    this.isProcessing = false;
-
-    // Check if new items were added during processing
-    if (this.processingQueue.length > 0) {
-      void this.processQueue();
-    }
-  }
-
-  /**
    * Process a single upload item (file or text)
    * @param item - Item containing type and value
    */
