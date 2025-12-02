@@ -23,34 +23,6 @@ export class EncryptionHelper {
   private static readonly ITERATIONS = 100000;
 
   /**
-   * Get or create persistent salt for encryption
-   * Salt is stored in plugin data file alongside encrypted data
-   */
-  private static async getOrCreateSalt(
-    pluginInstance: PluginInstance,
-  ): Promise<string> {
-    try {
-      const data = await pluginInstance.loadData();
-      if (
-        data &&
-        typeof data === "object" &&
-        "_encryption_salt" in data &&
-        typeof data._encryption_salt === "string"
-      ) {
-        return data._encryption_salt;
-      }
-    } catch {
-      // First time use, will generate new salt
-    }
-
-    // Generate cryptographically secure random salt
-    const saltArray = crypto.getRandomValues(new Uint8Array(32));
-    const salt = btoa(String.fromCharCode(...saltArray));
-
-    return salt;
-  }
-
-  /**
    * Generate encryption key using plugin-specific entropy
    * Combines multiple sources that are unique to this plugin:
    * - Plugin manifest ID
@@ -62,11 +34,9 @@ export class EncryptionHelper {
     pluginId: string,
     vaultPath: string,
     pluginInstance: PluginInstance,
+    salt: string
   ): Promise<CryptoKey> {
     const encoder = new TextEncoder();
-
-    // Get persistent salt
-    const salt = await this.getOrCreateSalt(pluginInstance);
 
     // Combine multiple entropy sources (all fixed/persistent)
     const keyMaterial = encoder.encode(
@@ -104,6 +74,7 @@ export class EncryptionHelper {
    * @param pluginId - Plugin ID for key derivation
    * @param vaultPath - Vault path for additional entropy
    * @param pluginInstance - Plugin instance reference
+   * @param salt - Optional salt to use for encryption
    * @returns Encrypted data as base64 string
    */
   static async encrypt(
@@ -111,6 +82,7 @@ export class EncryptionHelper {
     pluginId: string,
     vaultPath: string,
     pluginInstance: PluginInstance,
+    salt: string
   ): Promise<string> {
     try {
       const encoder = new TextEncoder();
@@ -120,6 +92,7 @@ export class EncryptionHelper {
         pluginId,
         vaultPath,
         pluginInstance,
+        salt
       );
       const iv = crypto.getRandomValues(new Uint8Array(this.IV_LENGTH));
 
@@ -146,6 +119,7 @@ export class EncryptionHelper {
    * @param pluginId - Plugin ID for key derivation
    * @param vaultPath - Vault path for additional entropy
    * @param pluginInstance - Plugin instance reference
+   * @param salt - Optional salt to use for decryption
    * @returns Decrypted data
    */
   static async decrypt(
@@ -153,6 +127,7 @@ export class EncryptionHelper {
     pluginId: string,
     vaultPath: string,
     pluginInstance: PluginInstance,
+    salt: string
   ): Promise<string> {
     try {
       const combined = Uint8Array.from(atob(encryptedData), (c) =>
@@ -166,6 +141,7 @@ export class EncryptionHelper {
         pluginId,
         vaultPath,
         pluginInstance,
+        salt
       );
 
       const decryptedBuffer = await crypto.subtle.decrypt(

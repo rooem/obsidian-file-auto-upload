@@ -11,7 +11,7 @@ interface VaultAdapter {
 }
 
 interface EncryptedData {
-  encrypted: boolean;
+  salt: string;
   data: string;
 }
 
@@ -33,29 +33,23 @@ export class SecureStorage {
     const vaultPath =
       (this.app.vault.adapter as VaultAdapter).basePath ||
       this.app.vault.getName();
+    
+    // Generate a new salt for each encryption
+    const salt = this.generateSalt();
     const encrypted = await EncryptionHelper.encrypt(
       jsonString,
       this.plugin.manifest.id,
       vaultPath,
       this.plugin,
+      salt
     );
 
-    // Load existing data to preserve salt
-    const existingData = (await this.plugin.loadData()) as {
-      _encryption_salt?: string;
-    } | null;
-    const salt =
-      existingData &&
-      typeof existingData === "object" &&
-      "_encryption_salt" in existingData
-        ? (existingData._encryption_salt as string)
-        : this.generateSalt();
-
-    await this.plugin.saveData({
-      encrypted: true,
+    const savedData: EncryptedData = {
+      salt: salt,
       data: encrypted,
-      _encryption_salt: salt,
-    });
+    };
+
+    await this.plugin.saveData(savedData);
 
     logger.info("SecureStorage", "Data saved successfully");
   }
@@ -72,22 +66,22 @@ export class SecureStorage {
    * Load and decrypt data
    * @returns Decrypted data or empty object if failed
    */
-  async load(): Promise<unknown> {
-    const data: unknown = await this.plugin.loadData();
+  async load(): Promise<Object> {
+    const loadedData = await this.plugin.loadData();
 
-    if (!data || typeof data !== "object") {
+    if (!loadedData || typeof loadedData !== "object") {
       logger.info("SecureStorage", "No data found or invalid format");
       return {};
     }
 
-    if (!("encrypted" in data) || !("data" in data)) {
+    if (!("salt" in loadedData) || !("data" in loadedData)) {
       logger.info("SecureStorage", "Data not encrypted, returning as-is");
-      return data;
+      return loadedData;
     }
 
-    const encryptedData = data as EncryptedData;
+    const encryptedData = loadedData as EncryptedData;
 
-    if (encryptedData.encrypted) {
+    if (encryptedData.salt) {
       try {
         const vaultPath =
           (this.app.vault.adapter as VaultAdapter).basePath ||
@@ -97,9 +91,10 @@ export class SecureStorage {
           this.plugin.manifest.id,
           vaultPath,
           this.plugin,
+          encryptedData.salt
         );
         logger.info("SecureStorage", "Data decrypted successfully");
-        return JSON.parse(decrypted) as unknown;
+        return JSON.parse(decrypted) as Object;
       } catch (error) {
         logger.error("SecureStorage", "Failed to decrypt settings", error);
         logger.warn(
