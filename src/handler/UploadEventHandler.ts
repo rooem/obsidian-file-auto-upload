@@ -369,7 +369,10 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     }
 
     try {
-      const vault: any = this.app.vault;
+      const vault = this.app.vault as unknown as {
+        config?: { attachmentFolderPath?: string };
+        adapter: { exists: (path: string) => Promise<boolean> };
+      };
       const currentFolder = activeView.file?.parent?.path || "";
       let attachmentFolder = vault.config?.attachmentFolderPath || "./";
 
@@ -380,10 +383,10 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
       }
 
       if (!(await vault.adapter.exists(attachmentFolder))) {
-        await vault.createFolder(attachmentFolder);
+        await this.app.vault.createFolder(attachmentFolder);
       }
 
-      const uniqueName = await this.getUniqueFileNameInFolder(
+      const uniqueName = this.getUniqueFileNameInFolder(
         file.name,
         attachmentFolder,
       );

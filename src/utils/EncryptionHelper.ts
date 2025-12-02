@@ -34,7 +34,7 @@ export class EncryptionHelper {
     pluginId: string,
     vaultPath: string,
     pluginInstance: PluginInstance,
-    salt: string
+    salt: string,
   ): Promise<CryptoKey> {
     const encoder = new TextEncoder();
 
@@ -82,7 +82,7 @@ export class EncryptionHelper {
     pluginId: string,
     vaultPath: string,
     pluginInstance: PluginInstance,
-    salt: string
+    salt: string,
   ): Promise<string> {
     try {
       const encoder = new TextEncoder();
@@ -92,7 +92,7 @@ export class EncryptionHelper {
         pluginId,
         vaultPath,
         pluginInstance,
-        salt
+        salt,
       );
       const iv = crypto.getRandomValues(new Uint8Array(this.IV_LENGTH));
 
@@ -127,7 +127,7 @@ export class EncryptionHelper {
     pluginId: string,
     vaultPath: string,
     pluginInstance: PluginInstance,
-    salt: string
+    salt: string,
   ): Promise<string> {
     try {
       const combined = Uint8Array.from(atob(encryptedData), (c) =>
@@ -141,7 +141,7 @@ export class EncryptionHelper {
         pluginId,
         vaultPath,
         pluginInstance,
-        salt
+        salt,
       );
 
       const decryptedBuffer = await crypto.subtle.decrypt(

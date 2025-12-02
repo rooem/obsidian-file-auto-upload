@@ -37,7 +37,7 @@ export abstract class BaseEventHandler<T = unknown> {
     this.processingQueue.push(...queue);
 
     if (!this.isProcessing) {
-      void this.processQueue();
+      this.processQueue().catch(console.error);
     }
   }
 
@@ -55,7 +55,7 @@ export abstract class BaseEventHandler<T = unknown> {
     while (this.processingQueue.length > 0) {
       const item = this.processingQueue.shift();
       if (item) {
-        this.processItem(item, index);
+        await this.processItem(item, index);
         index++;
       }
     }

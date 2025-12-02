@@ -51,11 +51,7 @@ export default {
   "settings.developer.debugLogging.desc": "启用调试日志输出",
 
   // Notices
-  "notice.queueClosing":
-    "插件正在关闭，但仍有 {count} 个文件在队列中{processing}。正在尝试等待完成...",
-  "notice.queueCompleted": "所有队列任务已完成。",
   "notice.queueLost": "插件关闭时有未完成的任务。{count} 个文件可能丢失。",
-  "notice.processing": "或正在处理",
 
   // Connection Config Errors
   "error.missingEndpoint": "缺少端点配置",

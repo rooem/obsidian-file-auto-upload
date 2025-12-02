@@ -33,7 +33,7 @@ export class SecureStorage {
     const vaultPath =
       (this.app.vault.adapter as VaultAdapter).basePath ||
       this.app.vault.getName();
-    
+
     // Generate a new salt for each encryption
     const salt = this.generateSalt();
     const encrypted = await EncryptionHelper.encrypt(
@@ -41,7 +41,7 @@ export class SecureStorage {
       this.plugin.manifest.id,
       vaultPath,
       this.plugin,
-      salt
+      salt,
     );
 
     const savedData: EncryptedData = {
@@ -66,8 +66,8 @@ export class SecureStorage {
    * Load and decrypt data
    * @returns Decrypted data or empty object if failed
    */
-  async load(): Promise<Object> {
-    const loadedData = await this.plugin.loadData();
+  async load(): Promise<object> {
+    const loadedData: unknown = await this.plugin.loadData();
 
     if (!loadedData || typeof loadedData !== "object") {
       logger.info("SecureStorage", "No data found or invalid format");
@@ -91,10 +91,10 @@ export class SecureStorage {
           this.plugin.manifest.id,
           vaultPath,
           this.plugin,
-          encryptedData.salt
+          encryptedData.salt,
         );
         logger.info("SecureStorage", "Data decrypted successfully");
-        return JSON.parse(decrypted) as Object;
+        return JSON.parse(decrypted) as object;
       } catch (error) {
         logger.error("SecureStorage", "Failed to decrypt settings", error);
         logger.warn(

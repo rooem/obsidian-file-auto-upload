@@ -25,7 +25,11 @@ class Logger {
   }
 
   private shouldLog(level: LogLevel): boolean {
-    return DeveloperSettings.isEnabled() && DeveloperSettings.isDebugLoggingEnabled() && level >= this.level;
+    return (
+      DeveloperSettings.isEnabled() &&
+      DeveloperSettings.isDebugLoggingEnabled() &&
+      level >= this.level
+    );
   }
 
   /**

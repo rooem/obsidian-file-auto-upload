@@ -34,8 +34,8 @@ export class EventHandlerManager {
 
   public handleClipboardPaste(
     evt: ClipboardEvent,
-    editor: Editor,
-    view: MarkdownView,
+    _editor: Editor,
+    _view: MarkdownView,
   ): void {
     const settings = this.configurationManager.getSettings();
     if (!settings.clipboardAutoUpload || !evt.clipboardData) {
@@ -51,8 +51,8 @@ export class EventHandlerManager {
 
   public handleFileDrop(
     evt: DragEvent,
-    editor: Editor,
-    view: MarkdownView,
+    _editor: Editor,
+    _view: MarkdownView,
   ): void {
     const settings = this.configurationManager.getSettings();
     if (!settings.dragAutoUpload || !evt.dataTransfer) {
@@ -102,7 +102,7 @@ export class EventHandlerManager {
    * Check upload queue status and wait for completion before unload
    * Shows notices to user about pending uploads
    */
-  public async checkQueueStatusOnUnload(): Promise<void> {
+  public checkQueueStatusOnUnload(): void {
     const handlers = [this.uploadEventHandler, this.deleteEventHandler];
     const statuses = handlers.map((handler) => handler.getQueueStatus());
 
@@ -114,9 +114,8 @@ export class EventHandlerManager {
 
     if (totalQueueLength > 0 || isProcessing) {
       new Notice(
-        t("notice.queueClosing")
-          .replace("{count}", totalQueueLength.toString())
-          .replace("{processing}", isProcessing ? t("notice.processing") : ""),
+        t("notice.queueLost")
+          .replace("{count}", totalQueueLength.toString()),
         3000,
       );
     }

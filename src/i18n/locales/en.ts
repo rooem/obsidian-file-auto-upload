@@ -57,12 +57,8 @@ export default {
   "settings.developer.debugLogging.desc": "Enable debug log output",
 
   // Notices
-  "notice.queueClosing":
-    "Plugin is closing but {count} files are still in queue{processing}. Attempting to wait for completion...",
-  "notice.queueCompleted": "All queue tasks have been completed.",
   "notice.queueLost":
     "Plugin closed with unfinished tasks. {count} files may be lost.",
-  "notice.processing": " or being processed",
 
   // Connection Config Errors
   "error.missingEndpoint": "Missing endpoint configuration",
