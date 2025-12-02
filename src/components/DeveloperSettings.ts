@@ -65,30 +65,39 @@ export class DeveloperSettings {
    */
   static render(
     containerEl: HTMLElement,
+    titleEl: HTMLElement,
     plugin: FileAutoUploadPlugin,
     onToggle: () => void,
   ): void {
-    new Setting(containerEl)
-      .setName(t("settings.developer"))
-      .setHeading();
 
-    new Setting(containerEl)
-      .setName(t("settings.developer.name"))
-      .setDesc(t("settings.developer.desc"))
-      .addToggle((toggle) =>
-        toggle.setValue(this.developerMode).onChange((value: boolean) => {
-          this.developerMode = value;
-          onToggle();
-        }),
-      );
+    this.setupTripleClickListener(titleEl, onToggle);
 
-    new Setting(containerEl)
-      .setName(t("settings.developer.debugLogging.name"))
-      .setDesc(t("settings.developer.debugLogging.desc"))
-      .addToggle((toggle) =>
-        toggle.setValue(this.debugLogging).onChange((value: boolean) => {
-          this.debugLogging = value;
-        }),
-      );
+
+    if (this.developerMode) {
+      new Setting(containerEl)
+        .setName(t("settings.developer"))
+        .setHeading();
+
+      new Setting(containerEl)
+        .setName(t("settings.developer.name"))
+        .setDesc(t("settings.developer.desc"))
+        .addToggle((toggle) =>
+          toggle.setValue(this.developerMode).onChange((value: boolean) => {
+            this.developerMode = value;
+            onToggle();
+          }),
+        );
+
+      new Setting(containerEl)
+        .setName(t("settings.developer.debugLogging.name"))
+        .setDesc(t("settings.developer.debugLogging.desc"))
+        .addToggle((toggle) =>
+          toggle.setValue(this.debugLogging).onChange((value: boolean) => {
+            this.debugLogging = value;
+          }),
+        );
+    }
+
+
   }
 }

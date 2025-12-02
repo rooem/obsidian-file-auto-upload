@@ -76,14 +76,9 @@ export class FileAutoUploadSettingTab extends PluginSettingTab {
     const titleSetting = new Setting(containerEl)
       .setName(t("settings.plugin"))
       .setHeading();
-
-    DeveloperSettings.setupTripleClickListener(titleSetting.nameEl, () => this.display());
-
+      
     StorageServiceSettings.render(containerEl, this.plugin);
     AutoUploadSettings.render(containerEl, this.plugin);
-
-    if (DeveloperSettings.isEnabled()) {
-      DeveloperSettings.render(containerEl, this.plugin, () => this.display());
-    }
+    DeveloperSettings.render(containerEl,titleSetting.nameEl,this.plugin, () => this.display());
   }
 }
