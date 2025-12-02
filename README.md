@@ -1,166 +1,189 @@
-# File Auto Upload Plugin for Obsidian
+# File Auto Upload
 
-一个功能强大的 Obsidian 插件，支持自动将文件上传到多种云存储服务。
+Automatically upload files to cloud storage services when pasting or dragging files into Obsidian.
 
-## ✨ 功能特性
+## Features
 
-- 🚀 **多云存储支持**: 支持 Amazon S3、阿里云 OSS、腾讯云 COS、Cloudflare R2 等主流云存储服务
-- 🔄 **自动上传**: 拖拽、粘贴文件时自动上传到云端
-- 🔐 **安全加密**: 支持敏感信息加密存储
-- 📊 **上传进度**: 实时显示上传进度和状态
-- 🎯 **灵活配置**: 每个存储服务独立配置，支持多账号
-- 🗑️ **同步删除**: 删除本地文件时可选择同时删除云端文件
-- ⚡ **并发控制**: 智能控制并发上传数量，避免资源占用过高
+- **Multi-Cloud Support**: Amazon S3, Cloudflare R2, Alibaba Cloud OSS, Tencent Cloud COS
+- **Auto Upload**: Automatically upload files on paste and drag-drop
+- **Secure Storage**: Encrypted storage for sensitive credentials
+- **Progress Tracking**: Real-time upload progress indicators
+- **Sync Delete**: Optionally delete cloud files when removing local references
+- **File Type Filtering**: Configure which file types to auto-upload
 
-## 📦 安装方法
+## Supported Storage Services
 
-### 从 Obsidian 社区插件安装（推荐）
+### Amazon S3
+Compatible with Amazon S3 and S3-compatible services (MinIO, DigitalOcean Spaces, etc.)
 
-1. 打开 Obsidian 设置
-2. 进入「第三方插件」
-3. 关闭「安全模式」
-4. 点击「浏览」搜索 "File Auto Upload"
-5. 点击安装并启用插件
+**Required Configuration:**
+- Access Key ID
+- Secret Access Key
+- Bucket Name
+- Region
+- Endpoint (optional)
+- Public URL (optional)
 
-### 手动安装
+### Cloudflare R2
+Cloudflare's S3-compatible object storage
 
-1. 从 [Releases](https://github.com/yourusername/file-auto-upload/releases) 下载最新版本
-2. 解压到 Obsidian 插件目录：`{vault}/.obsidian/plugins/file-auto-upload/`
-3. 重启 Obsidian
-4. 在设置中启用插件
+**Required Configuration:**
+- Access Key ID
+- Secret Access Key
+- Bucket Name
+- Account ID
+- Public URL (optional)
 
-## 🔧 配置说明
+### Alibaba Cloud OSS
+Alibaba Cloud Object Storage Service
 
-### 支持的存储服务
+**Required Configuration:**
+- Access Key ID
+- Secret Access Key
+- Bucket Name
+- Region
+- Endpoint (optional)
+- Public URL (optional)
 
-#### Amazon S3
-- 支持标准 S3 和兼容 S3 协议的服务
-- 需要配置：Access Key、Secret Key、Bucket、Region、Endpoint（可选）
+### Tencent Cloud COS
+Tencent Cloud Object Storage
 
-#### 阿里云 OSS
-- 支持阿里云对象存储服务
-- 需要配置：Access Key、Secret Key、Bucket、Region、Endpoint（可选）
+**Required Configuration:**
+- Secret ID
+- Secret Key
+- Bucket Name
+- Region
+- Public URL (optional)
 
-#### 腾讯云 COS
-- 支持腾讯云对象存储服务
-- 需要配置：Secret ID、Secret Key、Bucket、Region
+## Installation
 
-#### Cloudflare R2
-- 支持 Cloudflare R2 存储服务
-- 需要配置：Access Key、Secret Key、Bucket、Account ID
+### From Obsidian Community Plugins
 
-### 基本设置
+1. Open Settings → Community Plugins
+2. Disable Safe Mode
+3. Browse and search for "File Auto Upload"
+4. Install and enable the plugin
 
-1. 打开插件设置
-2. 选择存储服务类型
-3. 填写对应的配置信息
-4. 启用自动上传功能
-5. 配置其他选项（可选）
+### Manual Installation
 
-### 高级选项
+1. Download the latest release from [GitHub Releases](https://github.com/rooem/obsidian-file-auto-upload/releases)
+2. Extract files to `{vault}/.obsidian/plugins/file-auto-upload/`
+3. Reload Obsidian
+4. Enable the plugin in Settings → Community Plugins
 
-- **自定义路径前缀**: 为上传的文件添加路径前缀
-- **自定义域名**: 使用自定义域名访问上传的文件
-- **并发上传数**: 控制同时上传的文件数量（默认 3）
-- **同步删除**: 删除本地文件时同时删除云端文件
+## Configuration
 
-## 📖 使用方法
+1. Open plugin settings
+2. Select your storage service type
+3. Enter your service credentials
+4. Click "Test Connection" to verify configuration
+5. Enable auto-upload features as needed
 
-### 自动上传
+### Auto Upload Settings
 
-启用自动上传后，以下操作会自动触发上传：
+- **Clipboard Auto Upload**: Upload files when pasting from clipboard
+- **Drag & Drop Auto Upload**: Upload files when dragging into editor
+- **File Types**: Comma-separated list of file extensions to auto-upload (e.g., `jpg,png,pdf`)
 
-1. **拖拽文件**: 将文件拖拽到编辑器中
-2. **粘贴文件**: 从剪贴板粘贴图片或文件
-3. **粘贴截图**: 直接粘贴截图
 
-上传成功后，插件会自动将本地文件路径替换为云端 URL。
+## Usage
 
-### 手动操作
+### Automatic Upload
 
-- **测试连接**: 在设置页面点击「测试连接」验证配置是否正确
-- **查看日志**: 在设置页面查看上传历史和错误日志
+When auto-upload is enabled:
 
-## 🔒 安全说明
+1. **Paste**: Copy and paste images or files - they'll upload automatically
+2. **Drag & Drop**: Drag files into the editor - they'll upload automatically
+3. **Screenshots**: Paste screenshots directly - they'll upload automatically
 
-- 所有敏感信息（如 Access Key、Secret Key）都经过加密存储
-- 插件不会收集或上传任何用户数据
-- 建议使用具有最小权限的 API 密钥
+The plugin automatically replaces local file paths with cloud URLs after successful upload.
 
-## 🛠️ 开发
+### Manual Operations
 
-### 环境要求
+- **Test Connection**: Verify your storage configuration in settings
+- **Delete Cloud Files**: Right-click on uploaded file links to delete from cloud storage
+
+## Security
+
+- All credentials are encrypted using Obsidian's secure storage
+- No data is collected or transmitted to third parties
+- Use API keys with minimal required permissions
+
+## Development
+
+### Requirements
 
 - Node.js 18+
 - pnpm 8+
 
-### 开发步骤
+### Setup
 
 ```bash
-# 安装依赖
+# Install dependencies
 pnpm install
 
-# 开发模式（自动编译）
+# Development mode (watch)
 pnpm run dev
 
-# 构建生产版本
+# Build production
 pnpm run build
 
-# 代码检查
+# Lint code
 pnpm run lint
 
-# 代码格式化
+# Format code
 pnpm run format
 ```
 
-### 项目结构
+### Project Structure
 
 ```
-file-auto-upload/
-├── src/
-│   ├── components/      # UI 组件
-│   ├── handler/         # 事件处理器
-│   ├── manager/         # 管理器
-│   ├── uploader/        # 上传器实现
-│   ├── utils/           # 工具函数
-│   └── main.ts          # 插件入口
-├── manifest.json        # 插件清单
-├── package.json         # 依赖配置
-└── README.md           # 说明文档
+src/
+├── components/      # UI components and settings
+├── handler/         # Event handlers (paste, drop, delete)
+├── manager/         # Service managers (config, upload, events)
+├── uploader/        # Storage provider implementations
+│   └── providers/   # S3, R2, OSS, COS uploaders
+├── utils/           # Utilities (logger, encryption)
+├── i18n/            # Internationalization
+└── main.ts          # Plugin entry point
 ```
 
-## 🤝 贡献
+## Troubleshooting
 
-欢迎提交 Issue 和 Pull Request！
+### Upload Fails
 
-在提交 PR 前，请确保：
-- 代码通过 ESLint 检查
-- 代码已格式化（使用 Prettier）
-- 添加了必要的测试
+1. Verify credentials in settings
+2. Click "Test Connection" to check configuration
+3. Check bucket permissions and CORS settings
+4. Review console logs (Ctrl+Shift+I)
 
-## 📝 更新日志
+### Files Not Auto-Uploading
 
-### v1.0.0 (2024-12-01)
+1. Ensure auto-upload is enabled in settings
+2. Check file type is in allowed list
+3. Verify storage service is configured
+4. Check for error notifications
 
-- 🎉 初始版本发布
-- ✅ 支持 Amazon S3、阿里云 OSS、腾讯云 COS、Cloudflare R2
-- ✅ 自动上传功能
-- ✅ 加密存储敏感信息
-- ✅ 上传进度显示
-- ✅ 同步删除功能
+## Contributing
 
-## 📄 许可证
+Contributions are welcome! Please:
 
-[MIT License](LICENSE)
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run linting and formatting
+5. Submit a pull request
 
-## 💬 支持
+## License
 
-如果你觉得这个插件有用，欢迎：
+MIT License - see [LICENSE](LICENSE) file for details
 
-- ⭐ 给项目点个 Star
-- 🐛 报告 Bug 或提出建议
-- 💡 贡献代码或文档
+## Support
+
+- Report bugs: [GitHub Issues](https://github.com/rooem/obsidian-file-auto-upload/issues)
+- Feature requests: [GitHub Discussions](https://github.com/rooem/obsidian-file-auto-upload/discussions)
 
 ---
 
-**注意**: 使用前请确保你有合适的云存储服务账号，并了解相关的费用和使用限制。
+**Note**: Ensure you understand your cloud storage provider's pricing and usage limits before use.
