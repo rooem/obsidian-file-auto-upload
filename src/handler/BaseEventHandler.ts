@@ -1,5 +1,6 @@
 import { App } from "obsidian";
 import { ConfigurationManager } from "../manager/ConfigurationManager";
+import { logger } from "../utils/Logger";
 
 /**
  * Base class for all event handlers
@@ -37,7 +38,7 @@ export abstract class BaseEventHandler<T = unknown> {
     this.processingQueue.push(...queue);
 
     if (!this.isProcessing) {
-      this.processQueue().catch(console.error);
+      this.processQueue().catch(error=>logger.error("BaseEventHandler addToProcessingQueue:",error));
     }
   }
 
@@ -45,18 +46,21 @@ export abstract class BaseEventHandler<T = unknown> {
    * Process all items in the queue sequentially
    */
   protected async processQueue(): Promise<void> {
-    if (this.isProcessing || this.processingQueue.length === 0) {
+    if (this.isProcessing) {
       return;
     }
 
     this.isProcessing = true;
 
-    let index = 0;
+    // 处理所有当前及新增的项目，直到队列为空一段时间
     while (this.processingQueue.length > 0) {
+      // 取出一个项目进行处理
       const item = this.processingQueue.shift();
       if (item) {
-        await this.processItem(item, index);
-        index++;
+        // 并发处理该项目，不等待完成
+        this.processItem(item, this.processingQueue.length).catch(error => {
+          logger.error('BaseEventHandler processing item:', error);
+        });
       }
     }
 
