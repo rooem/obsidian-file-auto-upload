@@ -3,9 +3,9 @@
 	"name": "File Auto Upload",
 	"version": "1.0.0",
 	"minAppVersion": "1.0.0",
-	"description": "Automatically upload files to storage services when pasting or dragging files into Obsidian.",
+	"description": "Automatically upload files to storage services when pasting or dragging files.",
 	"author": "rooecm",
-	"authorUrl": "https://github.com/rooem/obsidian-file-auto-upload",
+	"authorUrl": "https://github.com/rooem",
 	"fundingUrl": "",
 	"isDesktopOnly": false
 }
