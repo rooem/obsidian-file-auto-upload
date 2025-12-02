@@ -38,14 +38,14 @@ export abstract class BaseEventHandler<T = unknown> {
     this.processingQueue.push(...queue);
 
     if (!this.isProcessing) {
-      this.processQueue().catch(error=>logger.error("BaseEventHandler addToProcessingQueue:",error));
+      this.processQueue();
     }
   }
 
   /**
    * Process all items in the queue sequentially
    */
-  protected async processQueue(): Promise<void> {
+  protected processQueue():void {
     if (this.isProcessing) {
       return;
     }
