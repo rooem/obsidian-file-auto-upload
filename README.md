@@ -1,6 +1,6 @@
 # File Auto Upload
 
-Automatically upload files to cloud storage services when pasting or dragging files into Obsidian.
+Automatically upload files to storage services when pasting or dragging files into Obsidian.
 
 ## Features
 
