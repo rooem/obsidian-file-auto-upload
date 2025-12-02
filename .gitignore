@@ -12,3 +12,4 @@ build/
 *~
 .env
 .env.local
+data.json
