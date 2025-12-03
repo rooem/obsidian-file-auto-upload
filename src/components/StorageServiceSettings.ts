@@ -1,9 +1,9 @@
-import { CustomSetting } from "./CustomSetting";
+import { Setting } from "obsidian";
 import FileAutoUploadPlugin from "../main";
 import { UploaderType } from "../uploader/UploaderType";
 import { UploaderTypeInfo } from "../uploader/UploaderRegistry";
 import { t } from "../i18n";
-import { Setting } from "obsidian";
+import type { FileAutoUploadSettings } from "../types";
 
 /**
  * Storage service settings UI component
@@ -15,13 +15,16 @@ export class StorageServiceSettings {
    * @param containerEl - Container element to render into
    * @param plugin - Plugin instance
    */
-  static render(containerEl: HTMLElement, plugin: FileAutoUploadPlugin): void {
+  static render(
+    containerEl: HTMLElement,
+    plugin: FileAutoUploadPlugin,
+    onToggle: () => void,
+  ): void {
     const settings = plugin.configurationManager.getSettings();
     const uploaderTypes = Object.values(UploaderType);
-    new CustomSetting(containerEl)
+    new Setting(containerEl)
       .setName(t("settings.storage"))
       .setDesc(t("settings.storage.desc"))
-      .required()
       .addDropdown((dropdown) => {
         uploaderTypes.forEach((serviceType) => {
           const serviceInfo = UploaderTypeInfo[serviceType];
@@ -32,26 +35,61 @@ export class StorageServiceSettings {
         return dropdown
           .setValue(settings.uploaderType)
           .onChange(async (value: string) => {
-            regionSetting.required(
-              StorageServiceSettings.regionRequired(value as UploaderType),
-            );
             await plugin.configurationManager.updateSettings(
               { uploaderType: value as UploaderType },
               true,
             );
+            onToggle();
           });
       });
 
     new Setting(containerEl)
-      .setName(t("settings.storage.config"))
-      .setHeading();
-    new CustomSetting(containerEl)
+      .setName(t("settings.accessKeyId"))
+      .setDesc(t("settings.accessKeyId.desc"))
+      .addText((text) =>
+        text
+          .setValue(settings.uploaderConfig.access_key_id as string)
+          .onChange(async (value: string) => {
+            const currentSettings = plugin.configurationManager.getSettings();
+            await plugin.configurationManager.updateSettings(
+              {
+                uploaderConfig: {
+                  ...currentSettings.uploaderConfig,
+                  access_key_id: value,
+                },
+              },
+              true,
+            );
+          })
+          .inputEl.setCssStyles({ width: "300px" }),
+      );
+
+    new Setting(containerEl)
+      .setName(t("settings.secretAccessKey"))
+      .setDesc(t("settings.secretAccessKey.desc"))
+      .addText((text) =>
+        text
+          .setValue(settings.uploaderConfig.secret_access_key as string)
+          .onChange(async (value: string) => {
+            const currentSettings = plugin.configurationManager.getSettings();
+            await plugin.configurationManager.updateSettings(
+              {
+                uploaderConfig: {
+                  ...currentSettings.uploaderConfig,
+                  secret_access_key: value,
+                },
+              },
+              true,
+            );
+          })
+          .inputEl.setCssStyles({ width: "300px" }),
+      );
+
+    new Setting(containerEl)
       .setName(t("settings.endpoint"))
       .setDesc(t("settings.endpoint.desc"))
-      .required()
-      .addText(
-        (text) =>
-        (text
+      .addText((text) =>
+        text
           .setPlaceholder("https://xxxxxx.com")
           .setValue(settings.uploaderConfig.endpoint as string)
           .onChange(async (value: string) => {
@@ -65,82 +103,39 @@ export class StorageServiceSettings {
               },
               true,
             );
-          }).inputEl.setCssStyles({ width: "300px" })),
+            onToggle();
+          })
+          .inputEl.setCssStyles({ width: "300px" }),
       );
 
-    new CustomSetting(containerEl)
-      .setName(t("settings.accessKeyId"))
-      .setDesc(t("settings.accessKeyId.desc"))
-      .required()
-      .addText(
-        (text) =>
-        (text
-          .setValue(settings.uploaderConfig.access_key_id as string)
-          .onChange(async (value: string) => {
-            const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.updateSettings(
-              {
-                uploaderConfig: {
-                  ...currentSettings.uploaderConfig,
-                  access_key_id: value,
+    if (settings.uploaderType !== UploaderType.CLOUDFLARE_R2) {
+      new Setting(containerEl)
+        .setName(t("settings.region"))
+        .setDesc(t("settings.region.desc"))
+        .addText((text) =>
+          text
+            .setValue(StorageServiceSettings.findRegionVaule(settings))
+            .onChange(async (value: string) => {
+              const currentSettings = plugin.configurationManager.getSettings();
+              await plugin.configurationManager.updateSettings(
+                {
+                  uploaderConfig: {
+                    ...currentSettings.uploaderConfig,
+                    region: value,
+                  },
                 },
-              },
-              true,
-            );
-          }).inputEl.setCssStyles({ width: "300px" })),
-      );
+                true,
+              );
+            })
+            .inputEl.setCssStyles({ width: "300px" }),
+        );
+    }
 
-    new CustomSetting(containerEl)
-      .setName(t("settings.secretAccessKey"))
-      .setDesc(t("settings.secretAccessKey.desc"))
-      .required()
-      .addText(
-        (text) =>
-        (text
-          .setValue(settings.uploaderConfig.secret_access_key as string)
-          .onChange(async (value: string) => {
-            const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.updateSettings(
-              {
-                uploaderConfig: {
-                  ...currentSettings.uploaderConfig,
-                  secret_access_key: value,
-                },
-              },
-              true,
-            );
-          }).inputEl.setCssStyles({ width: "300px" })),
-      );
-
-    const regionSetting = new CustomSetting(containerEl)
-      .setName(t("settings.region"))
-      .setDesc(t("settings.region.desc"))
-      .required(StorageServiceSettings.regionRequired(settings.uploaderType))
-      .addText(
-        (text) =>
-        (text
-          .setValue((settings.uploaderConfig.region as string) || "")
-          .onChange(async (value: string) => {
-            const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.updateSettings(
-              {
-                uploaderConfig: {
-                  ...currentSettings.uploaderConfig,
-                  region: value,
-                },
-              },
-              true,
-            );
-          }).inputEl.setCssStyles({ width: "300px" })),
-      );
-
-    new CustomSetting(containerEl)
+    new Setting(containerEl)
       .setName(t("settings.bucketName"))
       .setDesc(t("settings.bucketName.desc"))
-      .required()
-      .addText(
-        (text) =>
-        (text
+      .addText((text) =>
+        text
           .setValue(settings.uploaderConfig.bucket_name as string)
           .onChange(async (value: string) => {
             const currentSettings = plugin.configurationManager.getSettings();
@@ -153,16 +148,15 @@ export class StorageServiceSettings {
               },
               true,
             );
-          }).inputEl.setCssStyles({ width: "300px" })),
+          })
+          .inputEl.setCssStyles({ width: "300px" }),
       );
 
-    new CustomSetting(containerEl)
+    new Setting(containerEl)
       .setName(t("settings.publicUrl"))
       .setDesc(t("settings.publicUrl.desc"))
-      .required(StorageServiceSettings.publicUrlRequired(settings.uploaderType))
-      .addText(
-        (text) =>
-        (text
+      .addText((text) =>
+        text
           .setPlaceholder("https://your-domain.com")
           .setValue((settings.uploaderConfig.public_url as string) || "")
           .onChange(async (value: string) => {
@@ -176,17 +170,17 @@ export class StorageServiceSettings {
               },
               true,
             );
-          }).inputEl.setCssStyles({ width: "300px" })),
+          })
+          .inputEl.setCssStyles({ width: "300px" }),
       );
 
     let testResultEl: HTMLElement;
-
-    new CustomSetting(containerEl).addButton((button) => {
+    new Setting(containerEl).addButton((button) => {
       button.setButtonText(t("settings.testConnection")).onClick(async () => {
         button.setDisabled(true);
         button.setButtonText(t("settings.testing"));
         testResultEl.setText("");
-        testResultEl.setCssStyles({fontSize:"15px"});
+        testResultEl.setCssStyles({ fontSize: "15px" });
         try {
           const result = await plugin.uploadServiceManager.testConnection();
           if (result.success) {
@@ -226,27 +220,42 @@ export class StorageServiceSettings {
           text: "",
         });
 
-        testResultEl.setCssStyles({ marginRight: "12px", fontSize: "12px", whiteSpace: "nowrap" });
+        testResultEl.setCssStyles({
+          marginRight: "12px",
+          fontSize: "12px",
+          whiteSpace: "nowrap",
+        });
 
         parentElement.insertBefore(testResultEl, button.buttonEl);
       }
     });
   }
 
-  /**
-   * Check if region field is required for the given uploader type
-   */
-  private static regionRequired(uploaderType: UploaderType): boolean {
-    return (
-      uploaderType !== UploaderType.CLOUDFLARE_R2 &&
-      uploaderType !== UploaderType.ALIYUN_OSS
-    );
-  }
+  private static findRegionVaule(settings: FileAutoUploadSettings): string {
+    if (!settings.uploaderConfig || !settings.uploaderConfig.endpoint) {
+      return "";
+    }
 
-  /**
-   * Check if public URL field is required for the given uploader type
-   */
-  private static publicUrlRequired(uploaderType: UploaderType): boolean {
-    return uploaderType === UploaderType.CLOUDFLARE_R2;
+    const endpoint = settings.uploaderConfig.endpoint as string;
+
+    if (settings.uploaderType === UploaderType.ALIYUN_OSS) {
+      const ossRegex = /(?:oss-)?([a-z]+-[a-z]+-?\d*)(?:\.oss)?\.aliyuncs\.com/;
+      const match = endpoint.match(ossRegex);
+      if (match && match[1]) {
+        return match[1];
+      }
+      return "";
+    }
+
+    if (settings.uploaderType === UploaderType.TENCENT_COS) {
+      const cosRegex = /cos\.([a-z]+-[a-z]+-?\d*)\.myqcloud\.com/;
+      const match = endpoint.match(cosRegex);
+      if (match && match[1]) {
+        return match[1];
+      }
+      return "";
+    }
+
+    return "";
   }
 }

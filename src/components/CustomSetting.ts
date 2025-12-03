@@ -15,9 +15,9 @@ export class CustomSetting extends Setting {
     if (value && !star) {
       star = this.nameEl.createSpan({ text: "*" });
       star.setCssStyles({
-                  color: "red",
-                  marginRight: "4px",
-                });
+        color: "red",
+        marginRight: "4px",
+      });
       this.nameEl.prepend(star);
     } else if (star) {
       star.remove();

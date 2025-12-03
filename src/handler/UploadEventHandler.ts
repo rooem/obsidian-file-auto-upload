@@ -120,9 +120,13 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
         this.progressDebouncers.delete(placeholderPosition.id);
 
         if (result.success && result.url) {
-          logger.debug("BaseUploadEventHandler", "File processed successfully", {
-            fileName: file.name,
-          });
+          logger.debug(
+            "BaseUploadEventHandler",
+            "File processed successfully",
+            {
+              fileName: file.name,
+            },
+          );
           this.replacePlaceholderWithLink(
             placeholderPosition,
             result.url,

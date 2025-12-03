@@ -11,7 +11,7 @@ class Logger {
   private static instance: Logger;
   private level: LogLevel = LogLevel.DEBUG;
 
-  private constructor() { }
+  private constructor() {}
 
   static getInstance(): Logger {
     if (!Logger.instance) {
@@ -80,11 +80,7 @@ class Logger {
       const timestamp = new Date().toISOString();
       const prefix = `[${timestamp}] [DEBUG] [${context}]`;
       const sanitizedArgs = args.map((arg) => this.sanitize(arg));
-      console.debug(
-        prefix,
-        message,
-        ...sanitizedArgs,
-      );
+      console.debug(prefix, message, ...sanitizedArgs);
     }
   }
 
@@ -93,11 +89,7 @@ class Logger {
       const timestamp = new Date().toISOString();
       const prefix = `[${timestamp}] [WARN] [${context}]`;
       const sanitizedArgs = args.map((arg) => this.sanitize(arg));
-      console.warn(
-        prefix,
-        message,
-        ...sanitizedArgs,
-      );
+      console.warn(prefix, message, ...sanitizedArgs);
     }
   }
 
@@ -105,11 +97,7 @@ class Logger {
     const timestamp = new Date().toISOString();
     const prefix = `[${timestamp}] [ERROR] [${context}]`;
     const sanitizedArgs = args.map((arg) => this.sanitize(arg));
-    console.error(
-      prefix,
-      message,
-      ...sanitizedArgs,
-    );
+    console.error(prefix, message, ...sanitizedArgs);
   }
 }
 

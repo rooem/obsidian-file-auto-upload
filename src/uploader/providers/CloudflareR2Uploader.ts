@@ -14,7 +14,7 @@ export class CloudflareR2Uploader extends AmazonS3Uploader {
 
   protected createS3Client(): S3Client {
     return new S3Client({
-      region: this.config.region || "auto",
+      region: "auto",
       endpoint: this.config.endpoint,
       credentials: {
         accessKeyId: this.config.access_key_id,

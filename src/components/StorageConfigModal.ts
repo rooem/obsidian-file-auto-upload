@@ -27,15 +27,13 @@ export class StorageConfigModal extends BaseModalComponent {
    */
   render() {
     const contentEl = this.getModalContent();
-    new Setting(contentEl)
-      .setName(t("modal.storageConfig.title"))
-      .setHeading();
+    new Setting(contentEl).setName(t("modal.storageConfig.title")).setHeading();
 
     const messageDiv = contentEl.createDiv();
     messageDiv.createEl("p", { text: t("modal.storageConfig.message") });
 
     const buttonDiv = contentEl.createDiv();
-    buttonDiv.setCssStyles({textAlign:"center",marginTop:"20px"});
+    buttonDiv.setCssStyles({ textAlign: "center", marginTop: "20px" });
 
     const openSettingsBtn = buttonDiv.createEl("button", {
       text: t("modal.storageConfig.openSettings"),

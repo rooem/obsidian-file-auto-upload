@@ -45,21 +45,19 @@ export abstract class BaseEventHandler<T = unknown> {
   /**
    * Process all items in the queue sequentially
    */
-  protected processQueue():void {
+  protected processQueue(): void {
     if (this.isProcessing) {
       return;
     }
 
     this.isProcessing = true;
 
-    // Process all current and new items until queue is empty
     while (this.processingQueue.length > 0) {
-      // Get next item to process
       const item = this.processingQueue.shift();
       if (item) {
         // Process item concurrently without waiting
-        this.processItem(item, this.processingQueue.length).catch(error => {
-          logger.error('BaseEventHandler processing item:', error);
+        this.processItem(item, this.processingQueue.length).catch((error) => {
+          logger.error("BaseEventHandler processing item:", error);
         });
       }
     }

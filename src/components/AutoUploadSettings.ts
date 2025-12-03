@@ -1,4 +1,4 @@
-import { CustomSetting} from "./CustomSetting";
+import { CustomSetting } from "./CustomSetting";
 import FileAutoUploadPlugin from "../main";
 import { t } from "../i18n";
 import { Setting } from "obsidian";
@@ -14,9 +14,7 @@ export class AutoUploadSettings {
    * @param plugin - Plugin instance
    */
   static render(containerEl: HTMLElement, plugin: FileAutoUploadPlugin): void {
-    new Setting(containerEl)
-      .setName(t("settings.autoUpload"))
-      .setHeading();
+    new Setting(containerEl).setName(t("settings.autoUpload")).setHeading();
     const settings = plugin.configurationManager.getSettings();
 
     new CustomSetting(containerEl)
@@ -112,7 +110,7 @@ export class AutoUploadSettings {
           notEmptyEl = container.createEl("span", { text: "" });
           notEmptyEl.setCssStyles({
             color: "var(--text-muted)",
-            marginRight:"12px",
+            marginRight: "12px",
             fontSize: "15px",
             whiteSpace: "nowrap",
           });

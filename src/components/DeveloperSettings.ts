@@ -69,14 +69,10 @@ export class DeveloperSettings {
     plugin: FileAutoUploadPlugin,
     onToggle: () => void,
   ): void {
-
     this.setupTripleClickListener(titleEl, onToggle);
 
-
     if (this.developerMode) {
-      new Setting(containerEl)
-        .setName(t("settings.developer"))
-        .setHeading();
+      new Setting(containerEl).setName(t("settings.developer")).setHeading();
 
       new Setting(containerEl)
         .setName(t("settings.developer.name"))
@@ -97,7 +93,5 @@ export class DeveloperSettings {
           }),
         );
     }
-
-
   }
 }

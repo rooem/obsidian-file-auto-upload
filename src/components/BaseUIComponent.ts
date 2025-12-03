@@ -74,7 +74,7 @@ export abstract class BaseUIComponent implements IBaseUIComponent {
    */
   show(): void {
     if (this.container && !this.isVisibleState) {
-      this.container.setCssStyles({display:""});
+      this.container.setCssStyles({ display: "" });
       this.isVisibleState = true;
       this.onShow();
     }
@@ -85,7 +85,7 @@ export abstract class BaseUIComponent implements IBaseUIComponent {
    */
   hide(): void {
     if (this.container && this.isVisibleState) {
-      this.container.setCssStyles({display:"none"});
+      this.container.setCssStyles({ display: "none" });
       this.isVisibleState = false;
       this.onHide();
     }
@@ -360,10 +360,10 @@ export abstract class BaseModalComponent extends BaseUIComponent {
   setModalSize(width?: string, height?: string): void {
     const contentEl = this.getModalContent();
     if (width) {
-      contentEl.setCssStyles({ width: width});
+      contentEl.setCssStyles({ width: width });
     }
     if (height) {
-      contentEl.setCssStyles({ height: height});
+      contentEl.setCssStyles({ height: height });
     }
   }
 

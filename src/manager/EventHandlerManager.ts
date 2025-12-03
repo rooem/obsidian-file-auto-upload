@@ -114,8 +114,7 @@ export class EventHandlerManager {
 
     if (totalQueueLength > 0 || isProcessing) {
       new Notice(
-        t("notice.queueLost")
-          .replace("{count}", totalQueueLength.toString()),
+        t("notice.queueLost").replace("{count}", totalQueueLength.toString()),
         3000,
       );
     }
