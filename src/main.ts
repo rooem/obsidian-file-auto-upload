@@ -1,4 +1,4 @@
-import { Plugin, MarkdownView, Menu, Editor } from "obsidian";
+import { Plugin, MarkdownView, Menu, Editor,addIcon } from "obsidian";
 import { FileAutoUploadSettingTab } from "./settings";
 import { ConfigurationManager } from "./manager/ConfigurationManager";
 import { UploadServiceManager } from "./manager/UploaderManager";
@@ -31,6 +31,7 @@ export default class FileAutoUploadPlugin extends Plugin {
    */
   onunload(): void {
     logger.debug("FileAutoUploadPlugin", "Plugin unloading started");
+    addIcon('circle', `<circle cx="50" cy="50" r="50" fill="currentColor" />`);
     // Check upload queue before unload
     this.eventHandlerManager.checkQueueStatusOnUnload();
     logger.debug("FileAutoUploadPlugin", "Plugin unloading successfully");

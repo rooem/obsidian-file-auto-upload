@@ -175,9 +175,9 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
 
     let placeholderText = "";
     if (!isFileTypeSupported(supportedTypes,extension) || file.size <= MULTIPART_UPLOAD_THRESHOLD) {
-      placeholderText = `⏳${t("upload.progressing")} ${fileName}...<!--${uploadId}-->\n`;
+      placeholderText = `⏳${t("upload.progressing")} ${fileName}<!--${uploadId}-->\n`;
     } else {
-      placeholderText = `📤(0%) ${t("upload.uploading")} ${fileName}...<!--${uploadId}-->\n`;
+      placeholderText = `📤(0%)${t("upload.uploading")} ${fileName}<!--${uploadId}-->\n`;
     }
 
     editor.replaceRange(placeholderText, cursor);
@@ -211,7 +211,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
       return;
     }
 
-    const progressText = `📤(${Math.round(progress)}%) ${t("upload.uploading")} ${fileName}...${marker}`;
+    const progressText = `📤(${Math.round(progress)}%)${t("upload.uploading")} ${fileName}${marker}`;
     const lineEndIndex = content.indexOf('\n', markerIndex);
     const endIndex = lineEndIndex === -1 ? content.length : lineEndIndex;
 

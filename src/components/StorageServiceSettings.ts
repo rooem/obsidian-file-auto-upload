@@ -158,14 +158,14 @@ export class StorageServiceSettings {
       .addText((text) =>
         text
           .setPlaceholder("https://your-domain.com")
-          .setValue((settings.uploaderConfig.public_url as string) || "")
+          .setValue((settings.uploaderConfig.public_domain as string) || "")
           .onChange(async (value: string) => {
             const currentSettings = plugin.configurationManager.getSettings();
             await plugin.configurationManager.updateSettings(
               {
                 uploaderConfig: {
                   ...currentSettings.uploaderConfig,
-                  public_url: value,
+                  public_domain: value,
                 },
               },
               true,

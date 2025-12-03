@@ -28,55 +28,7 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
     this.uploadServiceManager = uploadServiceManager;
   }
 
-  /**
-   * Add delete option to editor context menu for uploaded files
-   * @param menu - Context menu
-   * @param editor - Editor instance
-   * @param view - Markdown view instance
-   */
-  public handleEditorContextMenu(
-    menu: Menu,
-    editor: Editor,
-    view: MarkdownView,
-  ): void {
-    const selectedText = editor.getSelection();
-    if (!selectedText) {
-      return;
-    }
-
-    const uploadedFileLinks = this.extractUploadedFileLinks(selectedText);
-
-    if (uploadedFileLinks.length > 0) {
-      menu.addItem((item: MenuItem) => {
-        item
-          .setTitle(t("delete.menuTitle"))
-          .setIcon("trash")
-          .onClick(() => {
-            void this.handleDeleteUploadedFiles(
-              uploadedFileLinks,
-              editor,
-              view,
-            );
-          });
-
-        setTimeout(() => {
-          const menuContainer =
-            (menu as unknown as { domEl?: HTMLElement }).domEl ||
-            document.querySelector(".menu");
-          if (menuContainer) {
-            const menuItems = menuContainer.querySelectorAll(".menu-item");
-            const lastMenuItem = menuItems[menuItems.length - 1] as
-              | HTMLElement
-              | undefined;
-            if (lastMenuItem) {
-              lastMenuItem.addClass("file-auto-upload-delete-menu");
-            }
-          }
-        }, 10);
-      });
-    }
-  }
-
+ 
   /**
    * Process file deletion from storage and remove from editor
    * @param item - Delete item containing file information
@@ -145,83 +97,12 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
   }
 
   /**
-   * Extract uploaded file URLs from selected text
-   * @param text - Selected text to search
-   * @returns Array of uploaded file URLs
-   */
-  private extractUploadedFileLinks(text: string): string[] {
-    const links: string[] = [];
-    const processedUrls = new Set<string>();
-
-    const linkRegex = /!?\[([^\]]*)\]\(([^)]+)\)/g;
-    let match;
-
-    while ((match = linkRegex.exec(text)) !== null) {
-      const url = match[2];
-      if (!processedUrls.has(url) && this.isUploadedFileLink(url)) {
-        links.push(url);
-        processedUrls.add(url);
-      }
-    }
-
-    const urlRegex = /(https?:\/\/[^\s)]+)/g;
-    while ((match = urlRegex.exec(text)) !== null) {
-      const url = match[1];
-      const beforeMatch = text.substring(0, match.index);
-      const afterMatch = text.substring(match.index + match[0].length);
-
-      const isInMarkdownLink =
-        /\[[^\]]*\]\([^)]*$/.test(beforeMatch) || /^[^)]*\)/.test(afterMatch);
-
-      if (
-        !processedUrls.has(url) &&
-        !isInMarkdownLink &&
-        this.isUploadedFileLink(url)
-      ) {
-        links.push(url);
-        processedUrls.add(url);
-      }
-    }
-
-    return links;
-  }
-
-  /**
-   * Check if URL is an uploaded file from configured storage
-   * @param url - URL to check
-   * @returns true if URL matches configured storage
-   */
-  private isUploadedFileLink(url: string): boolean {
-    try {
-      if (!url.startsWith("http://") && !url.startsWith("https://")) {
-        return false;
-      }
-
-      new URL(url);
-      const settings = this.configurationManager.getSettings();
-
-      const publicUrl = settings.uploaderConfig.public_url;
-
-      if (!publicUrl || typeof publicUrl !== "string") {
-        return false;
-      }
-
-      const publicUrlObj = new URL(publicUrl);
-      const urlObj = new URL(url);
-      return urlObj.hostname === publicUrlObj.hostname;
-    } catch (error) {
-      logger.error("DeleteEventHandler", "URL parsing failed", error);
-      return false;
-    }
-  }
-
-  /**
    * Handle deletion of multiple uploaded files
    * @param fileLinks - Array of file URLs to delete
    * @param editor - Editor instance
    * @param view - Markdown view instance
    */
-  private handleDeleteUploadedFiles(
+  public handleDeleteUploadedFiles(
     fileLinks: string[],
     editor: Editor,
     _view: MarkdownView,
@@ -274,7 +155,7 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
   private extractFileKeyFromUrl(url: string): string {
     try {
       const settings = this.configurationManager.getSettings();
-      const publicUrl = settings.uploaderConfig.public_url;
+      const publicUrl = settings.uploaderConfig.public_domain;
 
       let extractedKey: string;
 

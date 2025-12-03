@@ -1,12 +1,15 @@
-import { App, Notice, MarkdownView, Menu, Editor } from "obsidian";
+import { App, Notice, MarkdownView, Menu, MenuItem, Editor } from "obsidian";
 import { ConfigurationManager } from "./ConfigurationManager";
 import { UploadServiceManager } from "./UploaderManager";
 import { UploadEventHandler } from "../handler/UploadEventHandler";
 import { DeleteEventHandler } from "../handler/DeleteEventHandler";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
+import { findSupportedLocalFilePath, findUploadedFileLinks } from "../utils/FileUtils";
+
 
 export class EventHandlerManager {
+  private app: App;
   private configurationManager: ConfigurationManager;
   private uploadServiceManager: UploadServiceManager;
   private uploadEventHandler: UploadEventHandler;
@@ -17,6 +20,7 @@ export class EventHandlerManager {
     configurationManager: ConfigurationManager,
     uploadServiceManager: UploadServiceManager,
   ) {
+    this.app = app;
     this.configurationManager = configurationManager;
     this.uploadServiceManager = uploadServiceManager;
     this.uploadEventHandler = new UploadEventHandler(
@@ -71,7 +75,52 @@ export class EventHandlerManager {
     editor: Editor,
     view: MarkdownView,
   ): void {
-    void this.deleteEventHandler.handleEditorContextMenu(menu, editor, view);
+    const selectedText = editor.getSelection();
+    if (!selectedText) {
+      return;
+    }
+
+    const supportedTypes = this.configurationManager.getSettings().autoUploadFileTypes;
+    const localFiles = findSupportedLocalFilePath(selectedText, supportedTypes);
+    if (localFiles.length > 0) {
+      menu.addItem((item) => {
+        item
+          .setTitle(t("upload.localFile"))
+          .setIcon('upload')
+          .onClick(async () => {
+            const dataTransfer = new DataTransfer();
+            for (const filePath of localFiles) {
+              try {
+                const arrayBuffer = await this.app.vault.adapter.readBinary(filePath);
+                const fileName = filePath.split('/').pop() || 'file';
+                const uploadFile = new File([new Blob([arrayBuffer])], fileName);
+                dataTransfer.items.add(uploadFile);
+              } catch (error) {
+                logger.error("EventHandlerManager", "Failed to upload local file", error);
+              }
+            }
+            void this.uploadEventHandler.handleFileUploadEvent(dataTransfer.items);
+          });
+      });
+    }
+
+    const publicDomain = this.configurationManager.getSettings().uploaderConfig.public_domain as string;
+    const uploadedFileLinks = findUploadedFileLinks(selectedText, publicDomain);
+        if (uploadedFileLinks.length > 0) {
+      menu.addItem((item: MenuItem) => {
+        item
+          .setTitle(t("delete.menuTitle"))
+          .setIcon("trash")
+          .setWarning(true)
+          .onClick(() => {
+            void this.deleteEventHandler.handleDeleteUploadedFiles(
+              uploadedFileLinks,
+              editor,
+              view,
+            );
+          });
+      });
+    }
   }
 
   private canHandle(evt: Event, items: DataTransferItemList): boolean {

@@ -81,4 +81,7 @@ export default {
   "delete.failed": "文件删除失败：{fileLink} - {error}",
   "delete.error": "删除文件时发生错误：{fileLink}",
   "delete.unknownError": "未知错误",
+
+  // Upload Local File
+  "upload.localFile": "上传文件",
 };

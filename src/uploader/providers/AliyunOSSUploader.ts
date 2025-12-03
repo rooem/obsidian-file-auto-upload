@@ -45,8 +45,8 @@ export class AliyunOSSUploader extends AmazonS3Uploader {
   }
 
   public getPublicUrl(key: string): string {
-    if (this.config.public_url) {
-      return `${this.config.public_url.replace(/\/$/, "")}/${key}`;
+    if (this.config.public_domain) {
+      return `${this.config.public_domain.replace(/\/$/, "")}/${key}`;
     }
 
     const endpoint = super.getEndpoint();

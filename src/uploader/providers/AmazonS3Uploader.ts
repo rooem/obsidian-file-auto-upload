@@ -310,8 +310,8 @@ export class AmazonS3Uploader implements IUploader {
   }
 
   protected getPublicUrl(key: string): string {
-    if (this.config.public_url) {
-      return `${this.config.public_url.replace(/\/$/, "")}/${key}`;
+    if (this.config.public_domain) {
+      return `${this.config.public_domain.replace(/\/$/, "")}/${key}`;
     }
     const bucketName = this.config.bucket_name;
     return `https://${bucketName}.s3.${this.config.region || "amazonaws.com"}/${key}`;

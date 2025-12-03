@@ -83,9 +83,12 @@ export default {
   "upload.failed": "Upload failed",
 
   // Delete Operations
-  "delete.menuTitle": "Delete uploaded files",
+  "delete.menuTitle": "Delete uploaded file",
   "delete.success": "File deleted successfully: {fileLink}",
-  "delete.failed": "File deletion failed: {fileLink} - {error}",
-  "delete.error": "Error occurred while deleting file: {fileLink}",
+  "delete.failed": "Failed to delete file: {fileLink} - {error}",
+  "delete.error": "Error deleting file: {fileLink}",
   "delete.unknownError": "Unknown error",
+
+  // Upload Local File
+  "upload.localFile": "Upload file",
 };

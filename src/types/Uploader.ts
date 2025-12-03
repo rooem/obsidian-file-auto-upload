@@ -18,7 +18,7 @@ export interface S3Config extends UploaderConfig {
   access_key_id: string;
   secret_access_key: string;
   bucket_name: string;
-  public_url?: string;
+  public_domain?: string;
 }
 
 /**

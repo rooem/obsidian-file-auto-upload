@@ -49,7 +49,7 @@ export function isAudioExtension(ext: string): ext is AudioExtension {
  * @param extension - File extension to check
  * @returns true if supported
  */
-export function isFileTypeSupported(autoUploadFileTypes: string[],extension?: string): boolean {
+export function isFileTypeSupported(autoUploadFileTypes: string[], extension?: string): boolean {
   if (!extension || !autoUploadFileTypes || autoUploadFileTypes.length === 0) {
     return false;
   }
@@ -79,4 +79,87 @@ export function generateFileKey(fileName: string): string {
   const encodedName = encodeURIComponent(nameWithoutExt);
 
   return `${timestamp}/${randomString}-${encodedName}.${extension}`;
+}
+
+
+export function findSupportedLocalFilePath(text: string, autoUploadFileTypes: string[]): string[] {
+  if (!text || !autoUploadFileTypes || autoUploadFileTypes.length === 0) {
+    return [];
+  }
+
+  const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
+
+  const markdownMatches = Array.from(text.matchAll(markdownLinkRegex));
+  const wikiMatches = Array.from(text.matchAll(wikiLinkRegex));
+
+  return [
+    ...markdownMatches.filter(match => {
+      const path = match[2];
+      return !path.startsWith('http://') && !path.startsWith('https://') && isFileTypeSupported(autoUploadFileTypes, path.split('.').pop());
+    }).map(match => match[2]),
+    ...wikiMatches.map(match => match[1])
+  ];
+}
+
+
+/**
+ * Extract uploaded file URLs from selected text
+ * @param text - Selected text to search
+ * @returns Array of uploaded file URLs
+ */
+export function findUploadedFileLinks(text: string, domain: string): string[] {
+  const links: string[] = [];
+  const processedUrls = new Set<string>();
+
+  const linkRegex = /!?\[([^\]]*)\]\(([^)]+)\)/g;
+  let match;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    const url = match[2];
+    if (!processedUrls.has(url) && isUploadedFileLink(url, domain)) {
+      links.push(url);
+      processedUrls.add(url);
+    }
+  }
+
+  const urlRegex = /(https?:\/\/[^\s)]+)/g;
+  while ((match = urlRegex.exec(text)) !== null) {
+    const url = match[1];
+    const beforeMatch = text.substring(0, match.index);
+    const afterMatch = text.substring(match.index + match[0].length);
+
+    const isInMarkdownLink =
+      /\[[^\]]*\]\([^)]*$/.test(beforeMatch) || /^[^)]*\)/.test(afterMatch);
+
+    if (!processedUrls.has(url) && !isInMarkdownLink && isUploadedFileLink(url, domain)) {
+      links.push(url);
+      processedUrls.add(url);
+    }
+  }
+
+  return links;
+}
+
+/**
+  * Check if URL is an uploaded file from configured storage
+  * @param url - URL to check
+  * @returns true if URL matches configured storage
+  */
+ function isUploadedFileLink(url: string, publicDomain: string): boolean {
+  try {
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      return false;
+    }
+
+    if (!publicDomain) {
+      return false;
+    }
+
+    const publicUrlObj = new URL(publicDomain);
+    const urlObj = new URL(url);
+    return urlObj.hostname === publicUrlObj.hostname;
+  } catch (error) {
+    throw error;
+  }
 }

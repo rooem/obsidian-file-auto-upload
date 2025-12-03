@@ -41,7 +41,7 @@ export class CloudflareR2Uploader extends AmazonS3Uploader {
       return { success: false, error: t("error.missingBucketName") };
     }
 
-    if (!this.config.public_url) {
+    if (!this.config.public_domain) {
       return { success: false, error: t("error.missingPublicUrl") };
     }
 
@@ -49,8 +49,8 @@ export class CloudflareR2Uploader extends AmazonS3Uploader {
   }
 
   protected getPublicUrl(key: string): string {
-    if (this.config.public_url) {
-      return `${this.config.public_url.replace(/\/$/, "")}/${key}`;
+    if (this.config.public_domain) {
+      return `${this.config.public_domain.replace(/\/$/, "")}/${key}`;
     }
     const endpoint = super.getEndpoint();
     if (endpoint && endpoint.includes("r2.cloudflarestorage.com")) {
