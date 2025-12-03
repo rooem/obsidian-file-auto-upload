@@ -98,11 +98,7 @@ export class EventHandlerManager {
     return true;
   }
 
-  /**
-   * Check upload queue status and wait for completion before unload
-   * Shows notices to user about pending uploads
-   */
-  public checkQueueStatusOnUnload(): void {
+  public dispose(): void {
     const handlers = [this.uploadEventHandler, this.deleteEventHandler];
     const statuses = handlers.map((handler) => handler.getQueueStatus());
 
@@ -118,5 +114,7 @@ export class EventHandlerManager {
         3000,
       );
     }
+
+    handlers.forEach((handler) => handler.clearQueue());
   }
 }
