@@ -5,21 +5,6 @@
  * Supports multipart uploads with progress tracking for large files (>5MB).
  *
  * @implements {IUploader}
- *
- * @example
- * ```typescript
- * const uploader = new AmazonS3Uploader({
- *     endpoint: 'https://s3.amazonaws.com',
- *     region: 'us-east-1',
- *     access_key_id: 'YOUR_ACCESS_KEY',
- *     secret_access_key: 'YOUR_SECRET_KEY',
- *     bucket_name: 'my-bucket'
- * });
- *
- * const result = await uploader.uploadFile(file, undefined, (progress) => {
- *     console.log(`Upload progress: ${progress}%`);
- * });
- * ```
  */
 
 import {
@@ -41,10 +26,7 @@ import { S3Config } from "../../types";
 import { t } from "../../i18n";
 import { handleError } from "../../utils/ErrorHandler";
 import { logger } from "../../utils/Logger";
-
-const RANDOM_STRING_LENGTH = 6;
-const RANDOM_STRING_START_INDEX = 2;
-const MULTIPART_UPLOAD_THRESHOLD = 5 * 1024 * 1024; // 5MB
+import { MULTIPART_UPLOAD_THRESHOLD, generateFileKey} from "../../utils/FileUtils";
 
 export class AmazonS3Uploader implements IUploader {
   protected config: S3Config;
@@ -147,19 +129,7 @@ export class AmazonS3Uploader implements IUploader {
    * @param key - Optional custom key/path for the file. If not provided, generates a unique key
    * @param onProgress - Optional callback for upload progress (0-100)
    * @returns Promise resolving to upload result with URL and key
-   *
-   * @example
-   * ```typescript
-   * const result = await uploader.uploadFile(
-   *     file,
-   *     'images/photo.jpg',
-   *     (progress) => console.log(`${progress}%`)
-   * );
-   *
-   * if (result.success) {
-   *     console.log('File URL:', result.url);
-   * }
-   * ```
+   * @throws {Error} If upload fails
    */
   public async uploadFile(
     file: File,
@@ -173,7 +143,7 @@ export class AmazonS3Uploader implements IUploader {
     });
 
     try {
-      const fileKey = key || this.generateFileKey(file.name);
+      const fileKey = key || generateFileKey(file.name);
       const arrayBuffer = await file.arrayBuffer();
 
       // Use multipart upload for files > 5MB with progress tracking
@@ -355,27 +325,4 @@ export class AmazonS3Uploader implements IUploader {
     return (endpoint = endpoint.replace(/\/+$/, ""));
   }
 
-  /**
-   * Generate a unique file key with timestamp and random string
-   *
-   * Format: {timestamp}/{random}-{encoded-filename}.{extension}
-   * Example: 2024-01-15T10-30-45-123Z/abc123-my%20file.jpg
-   *
-   * @param fileName - Original file name
-   * @returns Generated unique key
-   */
-  private generateFileKey(fileName: string): string {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const randomString = Math.random()
-      .toString(36)
-      .substring(
-        RANDOM_STRING_START_INDEX,
-        RANDOM_STRING_START_INDEX + RANDOM_STRING_LENGTH,
-      );
-    const extension = fileName.split(".").pop();
-    const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf("."));
-    const encodedName = encodeURIComponent(nameWithoutExt);
-
-    return `${timestamp}/${randomString}-${encodedName}.${extension}`;
-  }
 }

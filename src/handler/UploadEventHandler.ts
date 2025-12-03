@@ -2,7 +2,7 @@ import { App, MarkdownView } from "obsidian";
 import { BaseEventHandler } from "./BaseEventHandler";
 import { ConfigurationManager } from "../manager/ConfigurationManager";
 import { UploadServiceManager } from "../manager/UploaderManager";
-import { isImageExtension } from "../utils/FileTypes";
+import { isImageExtension, isFileTypeSupported, MULTIPART_UPLOAD_THRESHOLD } from "../utils/FileUtils";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
 import { ConcurrencyController } from "../utils/ConcurrencyController";
@@ -88,8 +88,8 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
         });
 
         const placeholderPosition = item.placeholder!;
-
-        if (!this.isFileTypeSupported(extension)) {
+        const supportedTypes = this.configurationManager.getSettings().autoUploadFileTypes;
+        if (!isFileTypeSupported(supportedTypes,extension)) {
           await this.processNotSupportedFile(file, placeholderPosition);
           return;
         }
@@ -176,8 +176,10 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
 
     const fileName = file.name;
     const extension = file.name.split(".").pop()?.toLowerCase();
+    const supportedTypes = this.configurationManager.getSettings().autoUploadFileTypes;
+
     let placeholderText = "";
-    if (!this.isFileTypeSupported(extension)) {
+    if (!isFileTypeSupported(supportedTypes,extension) || file.size <= MULTIPART_UPLOAD_THRESHOLD) {
       placeholderText = `⏳${t("upload.progressing")} ${fileName}...\n`;
     } else {
       placeholderText = `📤(0%) ${t("upload.uploading")} ${fileName}...\n`;
@@ -294,7 +296,9 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     errorMessage?: string,
   ): void {
     let pre = "";
-    if (!this.isFileTypeSupported(fileName.split(".").pop()?.toLowerCase())) {
+    const supportedTypes = this.configurationManager.getSettings().autoUploadFileTypes;
+    const extension = fileName.split(".").pop()?.toLowerCase();
+    if (!isFileTypeSupported(supportedTypes, extension)) {
       pre = t("upload.progrefailed");
     } else {
       pre = t("upload.failed");
@@ -305,19 +309,6 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     this.replacePlaceholderWithText(position, errorText);
   }
 
-  /**
-   * Check if file type is supported for upload
-   * @param extension - File extension to check
-   * @returns true if supported
-   */
-  protected isFileTypeSupported(extension?: string): boolean {
-    if (!extension) {
-      return false;
-    }
-
-    const settings = this.configurationManager.getSettings();
-    return settings.autoUploadFileTypes.includes(extension);
-  }
 
   /**
    * Get unique file name in specific folder by adding suffix if file already exists
