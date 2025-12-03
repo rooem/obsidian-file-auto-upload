@@ -60,7 +60,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     item: {
       type: string;
       value: string | File;
-      placeholder?: { line: number; ch: number; length: number; id: string };
+      placeholder?: { id: string };
     },
     _index?: number,
   ): Promise<void> {
@@ -159,15 +159,10 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
    * @param file - File being uploaded
    * @returns Upload ID for updating placeholder
    */
-  protected insertUploadingPlaceholder(file: File): {
-    line: number;
-    ch: number;
-    length: number;
-    id: string;
-  } {
+  protected insertUploadingPlaceholder(file: File): { id: string } {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (!activeView || !activeView.editor) {
-      return { line: 0, ch: 0, length: 0, id: "" };
+      return { id: "" };
     }
 
     const editor = activeView.editor;
@@ -188,12 +183,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     editor.replaceRange(placeholderText, cursor);
     editor.setCursor({ line: cursor.line + 1, ch: 0 });
 
-    return {
-      line: 0,
-      ch: 0,
-      length: 0,
-      id: uploadId,
-    };
+    return { id: uploadId };
   }
 
   /**
@@ -203,7 +193,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
    * @param progress - Upload progress percentage (0-100)
    */
   protected updateUploadProgress(
-    position: { line: number; ch: number; length: number; id: string },
+    position: { id: string },
     fileName: string,
     progress: number,
   ): void {
@@ -245,7 +235,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
    * @param fileName - Name of uploaded file
    */
   protected replacePlaceholderWithLink(
-    position: { line: number; ch: number; length: number; id: string },
+    position: { id: string },
     url: string,
     fileName: string,
   ): void {
@@ -281,7 +271,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
    * @param text - Text to replace with
    */
   protected replacePlaceholderWithText(
-    position: { line: number; ch: number; length: number; id: string },
+    position: { id: string },
     text: string,
   ): void {
     this.replacePlaceholderById(position.id, text);
@@ -294,7 +284,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
    * @param errorMessage - Optional specific error message
    */
   protected replacePlaceholderWithError(
-    position: { line: number; ch: number; length: number; id: string },
+    position: { id: string },
     fileName: string,
     errorMessage?: string,
   ): void {
@@ -383,7 +373,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
 
   private async processNotSupportedFile(
     file: File,
-    placeholder: { line: number; ch: number; length: number; id: string },
+    placeholder: { id: string },
   ) {
     const extension = file.name.split(".").pop()?.toLowerCase();
 
