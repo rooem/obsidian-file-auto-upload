@@ -219,7 +219,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     const textBeforePlaceholder = content.substring(lineStartIndex, markerIndex);
     
     // Find where the placeholder actually starts (look for emoji or progress indicator)
-    const placeholderStart = textBeforePlaceholder.search(/[\u231B\uD83D\uDCE4]/);
+    const placeholderStart = textBeforePlaceholder.search(/[⏳📤❌]/u);
     const prefixText = placeholderStart !== -1 ? textBeforePlaceholder.substring(0, placeholderStart) : '';
     
     const beforeContent = content.substring(0, lineStartIndex);
@@ -328,7 +328,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     const textBeforePlaceholder = content.substring(lineStartIndex, markerIndex);
     
     // Find where the placeholder actually starts (look for emoji or progress indicator)
-    const placeholderStart = textBeforePlaceholder.search(/[\u231B\uD83D\uDCE4\u274C]/);
+    const placeholderStart = textBeforePlaceholder.search(/[⏳📤]/u);
     const prefixText = placeholderStart !== -1 ? textBeforePlaceholder.substring(0, placeholderStart) : '';
     
     const beforeContent = content.substring(0, lineStartIndex);
