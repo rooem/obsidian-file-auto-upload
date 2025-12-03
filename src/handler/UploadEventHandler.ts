@@ -157,7 +157,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
   /**
    * Insert uploading placeholder in editor
    * @param file - File being uploaded
-   * @returns Position information for updating placeholder
+   * @returns Upload ID for updating placeholder
    */
   protected insertUploadingPlaceholder(file: File): {
     line: number;
@@ -172,7 +172,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
 
     const editor = activeView.editor;
     const cursor = editor.getCursor();
-    const uploadId = `upload-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const uploadId = `u${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`;
 
     const fileName = file.name;
     const extension = file.name.split(".").pop()?.toLowerCase();
@@ -180,33 +180,30 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
 
     let placeholderText = "";
     if (!isFileTypeSupported(supportedTypes,extension) || file.size <= MULTIPART_UPLOAD_THRESHOLD) {
-      placeholderText = `⏳${t("upload.progressing")} ${fileName}...\n`;
+      placeholderText = `⏳${t("upload.progressing")} ${fileName}...<!--${uploadId}-->\n`;
     } else {
-      placeholderText = `📤(0%) ${t("upload.uploading")} ${fileName}...\n`;
+      placeholderText = `📤(0%) ${t("upload.uploading")} ${fileName}...<!--${uploadId}-->\n`;
     }
 
-    const startLine = cursor.line;
-    const startCh = cursor.ch;
-
     editor.replaceRange(placeholderText, cursor);
-    editor.setCursor({ line: startLine + 1, ch: 0 });
+    editor.setCursor({ line: cursor.line + 1, ch: 0 });
 
     return {
-      line: startLine,
-      ch: startCh,
-      length: placeholderText.length - 1, // Exclude the newline from length
+      line: 0,
+      ch: 0,
+      length: 0,
       id: uploadId,
     };
   }
 
   /**
    * Update upload progress in editor
-   * @param position - Position of placeholder
+   * @param position - Contains upload ID
    * @param fileName - Name of file being uploaded
    * @param progress - Upload progress percentage (0-100)
    */
   protected updateUploadProgress(
-    position: { line: number; ch: number; length: number },
+    position: { line: number; ch: number; length: number; id: string },
     fileName: string,
     progress: number,
   ): void {
@@ -216,23 +213,39 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     }
 
     const editor = activeView.editor;
-    const progressText = `📤(${Math.round(progress)}%) ${t("upload.uploading")} ${fileName}...`;
+    const content = editor.getValue();
+    const marker = `<!--${position.id}-->`;
+    const markerIndex = content.indexOf(marker);
 
-    const startPos = { line: position.line, ch: position.ch };
-    const endPos = { line: position.line, ch: position.ch + position.length };
-    editor.replaceRange(progressText, startPos, endPos);
+    if (markerIndex === -1) {
+      return;
+    }
 
-    position.length = progressText.length;
+    const progressText = `📤(${Math.round(progress)}%) ${t("upload.uploading")} ${fileName}...${marker}`;
+    const lineEndIndex = content.indexOf('\n', markerIndex);
+    const endIndex = lineEndIndex === -1 ? content.length : lineEndIndex;
+
+    const lineStartIndex = content.lastIndexOf('\n', markerIndex - 1) + 1;
+    const textBeforePlaceholder = content.substring(lineStartIndex, markerIndex);
+    
+    // Find where the placeholder actually starts (look for emoji or progress indicator)
+    const placeholderStart = textBeforePlaceholder.search(/[⏳📤]/);
+    const prefixText = placeholderStart !== -1 ? textBeforePlaceholder.substring(0, placeholderStart) : '';
+    
+    const beforeContent = content.substring(0, lineStartIndex);
+    const afterMarker = content.substring(endIndex);
+
+    editor.setValue(beforeContent + prefixText + progressText + afterMarker);
   }
 
   /**
    * Replace placeholder with markdown link after successful upload
-   * @param position - Position of placeholder
+   * @param position - Contains upload ID
    * @param url - Uploaded file URL
    * @param fileName - Name of uploaded file
    */
   protected replacePlaceholderWithLink(
-    position: { line: number; ch: number; length: number },
+    position: { line: number; ch: number; length: number; id: string },
     url: string,
     fileName: string,
   ): void {
@@ -245,9 +258,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     const extension = fileName.split(".").pop()?.toLowerCase() || "";
     const markdown = this.generateMarkdownLink(extension, fileName, url);
 
-    const startPos = { line: position.line, ch: position.ch };
-    const endPos = { line: position.line, ch: position.ch + position.length };
-    editor.replaceRange(markdown, startPos, endPos);
+    this.replacePlaceholderById(position.id, markdown);
   }
 
   /**
@@ -266,32 +277,24 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
 
   /**
    * Replace placeholder with text
-   * @param position - Position of placeholder
+   * @param position - Contains upload ID
    * @param text - Text to replace with
    */
   protected replacePlaceholderWithText(
-    position: { line: number; ch: number; length: number },
+    position: { line: number; ch: number; length: number; id: string },
     text: string,
   ): void {
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView || !activeView.editor) {
-      return;
-    }
-
-    const editor = activeView.editor;
-    const startPos = { line: position.line, ch: position.ch };
-    const endPos = { line: position.line, ch: position.ch + position.length };
-    editor.replaceRange(text, startPos, endPos);
+    this.replacePlaceholderById(position.id, text);
   }
 
   /**
    * Replace placeholder with error message on upload failure
-   * @param position - Position of placeholder
+   * @param position - Contains upload ID
    * @param fileName - Name of file that failed to upload
    * @param errorMessage - Optional specific error message
    */
   protected replacePlaceholderWithError(
-    position: { line: number; ch: number; length: number },
+    position: { line: number; ch: number; length: number; id: string },
     fileName: string,
     errorMessage?: string,
   ): void {
@@ -307,6 +310,42 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
       ? `❌ ${pre} ${fileName}: ${errorMessage}`
       : `❌ ${pre} ${fileName}`;
     this.replacePlaceholderWithText(position, errorText);
+  }
+
+  /**
+   * Replace placeholder by upload ID
+   * @param uploadId - Unique upload identifier
+   * @param text - Text to replace with
+   */
+  private replacePlaceholderById(uploadId: string, text: string): void {
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!activeView || !activeView.editor) {
+      return;
+    }
+
+    const editor = activeView.editor;
+    const content = editor.getValue();
+    const marker = `<!--${uploadId}-->`;
+    const markerIndex = content.indexOf(marker);
+
+    if (markerIndex === -1) {
+      return;
+    }
+
+    const lineEndIndex = content.indexOf('\n', markerIndex);
+    const endIndex = lineEndIndex === -1 ? content.length : lineEndIndex;
+
+    const lineStartIndex = content.lastIndexOf('\n', markerIndex - 1) + 1;
+    const textBeforePlaceholder = content.substring(lineStartIndex, markerIndex);
+    
+    // Find where the placeholder actually starts (look for emoji or progress indicator)
+    const placeholderStart = textBeforePlaceholder.search(/[⏳📤❌]/);
+    const prefixText = placeholderStart !== -1 ? textBeforePlaceholder.substring(0, placeholderStart) : '';
+    
+    const beforeContent = content.substring(0, lineStartIndex);
+    const afterMarker = content.substring(endIndex);
+
+    editor.setValue(beforeContent + prefixText + text + afterMarker);
   }
 
 
