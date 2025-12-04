@@ -21,22 +21,18 @@ export class StorageServiceSettings {
     onToggle: () => void,
   ): void {
     const settings = plugin.configurationManager.getSettings();
-    const uploaderTypes = Object.values(UploaderType);
     new Setting(containerEl)
       .setName(t("settings.storage"))
       .setDesc(t("settings.storage.desc"))
       .addDropdown((dropdown) => {
-        uploaderTypes.forEach((serviceType) => {
-          const serviceInfo = UploaderTypeInfo[serviceType];
-          if (serviceInfo) {
-            dropdown.addOption(serviceType, serviceInfo.serviceName);
-          }
+        Object.entries(UploaderTypeInfo).forEach(([key, info]) => {
+          dropdown.addOption(key, info.serviceName);
         });
         return dropdown
           .setValue(settings.uploaderType)
           .onChange(async (value: string) => {
             await plugin.configurationManager.saveSettings(
-              { uploaderType: value as UploaderType },
+              { uploaderType: value },
               true,
             );
             onToggle();

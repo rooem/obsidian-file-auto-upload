@@ -47,47 +47,46 @@ export class AutoUploadSettings {
       .setName(t("settings.fileTypes"))
       .setDesc(t("settings.fileTypes.desc"))
       .addTextArea((toggle) => {
+        toggle.inputEl.setCssStyles({
+          width: "300px",
+          height: "100px",
+        });
+
+        const container = toggle.inputEl.parentElement;
+        if (!container) {
+          return;
+        }
+
+        let notEmptyEl = container.createEl("span", { text: "" });
+        notEmptyEl.setCssStyles({
+          color: "var(--text-muted)",
+          marginRight: "12px",
+          fontSize: "15px",
+          whiteSpace: "nowrap",
+        });
+        container.insertBefore(notEmptyEl, toggle.inputEl);
+
         let isUpdating = false;
-        let notEmptyEl: HTMLElement | null = null;
+        toggle.setValue(settings.autoUploadFileTypes.join(","));
+        toggle.onChange(async (value: string) => {
+          notEmptyEl?.setText("");
+          if (!value || value.trim() === "") {
+            notEmptyEl?.setText(t("settings.fileTypes.empty"));
+            notEmptyEl?.setCssStyles({ color: "red" });
+            return;
+          }
 
-        // Convert array to string for display
-        toggle
-          .setValue(settings.autoUploadFileTypes.join(","))
-          .onChange(async (value: string) => {
-            if (isUpdating) {
-              return;
-            }
+          if (isUpdating) {
+            return;
+          }
 
-            if (value.includes("，")) {
-              isUpdating = true;
-              value = value.replace(/，/g, ",");
-              setTimeout(() => {
-                toggle.inputEl.value = value;
-                isUpdating = false;
-              }, 0);
-
-              // Convert string to array
-              const fileTypesArray = value
-                .split(",")
-                .map((t) => t.trim())
-                .filter((t) => t);
-              await plugin.configurationManager.saveSettings({
-                autoUploadFileTypes: fileTypesArray,
-              });
-
-              return;
-            }
-
-            if (!value || value.trim() === "") {
-              notEmptyEl?.setText(t("settings.fileTypes.empty"));
-              if (notEmptyEl) {
-                notEmptyEl.setCssStyles({
-                  color: "red",
-                });
-              }
-            } else {
-              notEmptyEl?.setText("");
-            }
+          if (value.includes("，")) {
+            isUpdating = true;
+            value = value.replace(/，/g, ",");
+            setTimeout(() => {
+              toggle.inputEl.value = value;
+              isUpdating = false;
+            }, 0);
 
             // Convert string to array
             const fileTypesArray = value
@@ -97,25 +96,10 @@ export class AutoUploadSettings {
             await plugin.configurationManager.saveSettings({
               autoUploadFileTypes: fileTypesArray,
             });
-          });
 
-        toggle.inputEl.setCssStyles({
-          width: "300px",
-          height: "100px",
+            return;
+          }
         });
-
-        const container = toggle.inputEl.parentElement;
-        if (container) {
-          notEmptyEl = container.createEl("span", { text: "" });
-          notEmptyEl.setCssStyles({
-            color: "var(--text-muted)",
-            marginRight: "12px",
-            fontSize: "15px",
-            whiteSpace: "nowrap",
-          });
-
-          container.insertBefore(notEmptyEl, toggle.inputEl);
-        }
 
         return toggle;
       });

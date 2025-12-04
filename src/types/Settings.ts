@@ -2,7 +2,6 @@
  * Settings related type definitions
  */
 
-import { UploaderType } from "../uploader/UploaderType";
 import { UploaderConfig } from "./Uploader";
 
 /**
@@ -14,7 +13,7 @@ export interface FileAutoUploadSettings {
   dragAutoUpload: boolean;
   autoUploadFileTypes: string[];
   applyNetworkFiles: boolean;
-  uploaderType: UploaderType;
+  uploaderType: string;
   uploaderConfig: UploaderConfig;
   language: string;
 }
@@ -25,3 +24,11 @@ export interface FileAutoUploadSettings {
 export type ConfigChangeListener = (
   changedSettings: Partial<FileAutoUploadSettings>,
 ) => void;
+
+/**
+ * Encrypted data structure for secure storage
+ */
+export interface EncryptedData {
+  salt: string;
+  data: string;
+}

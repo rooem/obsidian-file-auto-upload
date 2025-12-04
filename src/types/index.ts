@@ -14,7 +14,7 @@ export type {
 } from "./Uploader";
 
 // Settings types
-export type { FileAutoUploadSettings, ConfigChangeListener } from "./Settings";
+export type { FileAutoUploadSettings, ConfigChangeListener, EncryptedData } from "./Settings";
 
 // Error types
 export { ErrorCode, UploadError } from "./Error";
