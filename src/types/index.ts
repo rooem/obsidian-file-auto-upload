@@ -20,3 +20,10 @@ export type { FileAutoUploadSettings, ConfigChangeListener } from "./Settings";
 export { ErrorCode, UploadError } from "./Error";
 
 export type { AppError, ValidationResult } from "./Error";
+
+export  {
+  EventType,
+  ProcessItem,
+} from "./Event";
+
+export type { DeleteItem } from "./Event";

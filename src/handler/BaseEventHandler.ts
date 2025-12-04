@@ -1,6 +1,7 @@
 import { App } from "obsidian";
 import { ConfigurationManager } from "../manager/ConfigurationManager";
 import { logger } from "../utils/Logger";
+import { ProcessItem } from "../types/index";
 
 /**
  * Base class for all event handlers
@@ -9,7 +10,7 @@ import { logger } from "../utils/Logger";
 export abstract class BaseEventHandler<T = unknown> {
   protected app: App;
   protected configurationManager: ConfigurationManager;
-  protected processingQueue: Array<{ type: string; value: T }> = [];
+  protected processingQueue: Array<ProcessItem<T>> = [];
   protected isProcessing: boolean = false;
 
   constructor(app: App, configurationManager: ConfigurationManager) {
@@ -41,7 +42,7 @@ export abstract class BaseEventHandler<T = unknown> {
    * @param queue - Array of items to process
    */
   protected addToProcessingQueue(
-    queue: Array<{ type: string; value: T }>,
+    queue: Array<ProcessItem<T>>,
   ): void {
     this.processingQueue.push(...queue);
 
@@ -61,10 +62,10 @@ export abstract class BaseEventHandler<T = unknown> {
     this.isProcessing = true;
 
     while (this.processingQueue.length > 0) {
-      const item = this.processingQueue.shift();
-      if (item) {
+      const processItem = this.processingQueue.shift();
+      if (processItem) {
         // Process item concurrently without waiting
-        this.processItem(item, this.processingQueue.length).catch((error) => {
+        this.processItem(processItem).catch((error) => {
           logger.error("BaseEventHandler processing item:", error);
         });
       }
@@ -76,10 +77,28 @@ export abstract class BaseEventHandler<T = unknown> {
   /**
    * Process a single queue item - must be implemented by subclasses
    * @param item - The item to process
-   * @param index - The index of the item in the original queue
    */
   protected abstract processItem(
-    item: { type: string; value: T },
-    index?: number,
+    processItem: ProcessItem<T>
   ): Promise<void>;
+
+  /**
+   * Extract uploaded file links from text - can be overridden by subclasses
+   * @param text - Text to extract links from
+   * @returns Array of file URLs
+   */
+  protected extractUploadedFileLinks(text: string): string[] {
+    const settings = this.configurationManager.getSettings();
+    const publicDomain = settings.uploaderConfig.public_domain as string;
+
+    if (!publicDomain) {
+      return [];
+    }
+
+    const escapedUrl = publicDomain.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const linkRegex = new RegExp(`!?\\[[^\\]]*\\]\\((${escapedUrl}[^)]+)\\)`, "g");
+    const matches = text.matchAll(linkRegex);
+
+    return Array.from(matches, (match) => match[1]);
+  }
 }

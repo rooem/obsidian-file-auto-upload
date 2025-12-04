@@ -2,15 +2,9 @@ import { App, MarkdownView, Editor, Notice, Menu, MenuItem } from "obsidian";
 import { ConfigurationManager } from "../manager/ConfigurationManager";
 import { UploadServiceManager } from "../manager/UploaderManager";
 import { BaseEventHandler } from "./BaseEventHandler";
+import { EventType, ProcessItem, DeleteItem } from "../types/index";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
-
-interface DeleteItem {
-  fileLink: string;
-  fileKey: string;
-  editor: Editor;
-  originalSelection: string;
-}
 
 /**
  * Handles deletion of uploaded files from storage
@@ -45,38 +39,87 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
     }
 
     const uploadedFileLinks = this.extractUploadedFileLinks(selectedText);
-
-    if (uploadedFileLinks.length > 0) {
-      menu.addItem((item: MenuItem) => {
-        item
-          .setTitle(t("delete.menuTitle"))
-          .setIcon("trash")
-          .setWarning(true)
-          .onClick(() => {
-            void this.handleDeleteUploadedFiles(
-              uploadedFileLinks,
-              editor,
-              view,
-            );
-          });
-      });
+    if (!uploadedFileLinks || uploadedFileLinks.length === 0) {
+      return;
     }
+
+    menu.addItem((item: MenuItem) => {
+      item
+        .setTitle(t("delete.menuTitle"))
+        .setIcon("trash")
+        .setWarning(true)
+        .onClick(() => {
+          void this.handleDeleteUploadedFiles(
+            uploadedFileLinks,
+            editor,
+            view,
+          );
+        });
+    });
+  }
+
+  /**
+ * Handle deletion of multiple uploaded files
+ * @param fileLinks - Array of file URLs to delete
+ * @param editor - Editor instance
+ * @param view - Markdown view instance
+ */
+  public handleDeleteUploadedFiles(
+    fileLinks: string[],
+    editor: Editor,
+    _view: MarkdownView,
+  ): void {
+    if (fileLinks.length === 0) {
+      return;
+    }
+
+    logger.debug("DeleteEventHandler", "Delete operation initiated", {
+      fileCount: fileLinks.length,
+    });
+
+    const result = this.uploadServiceManager.checkConnectionConfig();
+    if (!result.success) {
+      logger.warn(
+        "DeleteEventHandler",
+        "Connection config invalid, showing config modal",
+      );
+      this.configurationManager.showStorageConfigModal();
+      return;
+    }
+
+    const originalSelection = editor.getSelection();
+    if (!originalSelection) {
+      logger.warn("DeleteEventHandler", "No text selected");
+      return;
+    }
+
+    const queue: ProcessItem<DeleteItem>[] = fileLinks.map((link) => ({
+      id: `d${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`,
+      eventType: EventType.DELETE,
+      type: "delete",
+      value: {
+        fileLink: link,
+        fileKey: this.extractFileKeyFromUrl(link),
+        originalSelection: originalSelection,
+      },
+    }));
+
+    logger.debug("DeleteEventHandler", "Files queued for deletion", {
+      queueLength: queue.length,
+    });
+    void this.addToProcessingQueue(queue);
   }
 
   /**
    * Process file deletion from storage and remove from editor
    * @param item - Delete item containing file information
-   * @param index - The index of the item in the original queue
    */
-  protected async processItem(item: {
-    type: string;
-    value: DeleteItem;
-  }): Promise<void> {
-    if (item.type !== "delete") {
+  protected async processItem(item: ProcessItem<DeleteItem>): Promise<void> {
+    if (item.eventType !== EventType.DELETE) {
       return;
     }
 
-    const { fileLink, fileKey, editor, originalSelection } = item.value;
+    const { fileLink, fileKey, originalSelection } = item.value;
 
     logger.debug("DeleteEventHandler", "Processing delete item", {
       fileLink,
@@ -94,6 +137,13 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
         );
         new Notice(t("delete.success").replace("{fileLink}", fileLink));
 
+        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!activeView?.editor) {
+          logger.warn("DeleteEventHandler", "No active editor found");
+          return;
+        }
+
+        const editor = activeView.editor;
         const currentSelection = editor.getSelection();
         const textToProcess = currentSelection || originalSelection;
 
@@ -130,56 +180,7 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
     }
   }
 
-  /**
-   * Handle deletion of multiple uploaded files
-   * @param fileLinks - Array of file URLs to delete
-   * @param editor - Editor instance
-   * @param view - Markdown view instance
-   */
-  public handleDeleteUploadedFiles(
-    fileLinks: string[],
-    editor: Editor,
-    _view: MarkdownView,
-  ): void {
-    if (fileLinks.length === 0) {
-      return;
-    }
 
-    logger.debug("DeleteEventHandler", "Delete operation initiated", {
-      fileCount: fileLinks.length,
-    });
-
-    const result = this.uploadServiceManager.checkConnectionConfig();
-    if (!result.success) {
-      logger.warn(
-        "DeleteEventHandler",
-        "Connection config invalid, showing config modal",
-      );
-      this.configurationManager.showStorageConfigModal();
-      return;
-    }
-
-    const originalSelection = editor.getSelection();
-    if (!originalSelection) {
-      logger.warn("DeleteEventHandler", "No text selected");
-      return;
-    }
-
-    const queue = fileLinks.map((link) => ({
-      type: "delete",
-      value: {
-        fileLink: link,
-        fileKey: this.extractFileKeyFromUrl(link),
-        editor: editor,
-        originalSelection: originalSelection,
-      },
-    }));
-
-    logger.debug("DeleteEventHandler", "Files queued for deletion", {
-      queueLength: queue.length,
-    });
-    void this.addToProcessingQueue(queue);
-  }
 
   /**
    * Extract storage key from file URL
@@ -189,22 +190,13 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
   private extractFileKeyFromUrl(url: string): string {
     try {
       const settings = this.configurationManager.getSettings();
-      const publicUrl = settings.uploaderConfig.public_domain;
+      const publicDomain = settings.uploaderConfig.public_domain as string;
 
       let extractedKey: string;
 
-      if (publicUrl && typeof publicUrl === "string") {
-        new URL(publicUrl);
-        if (url.startsWith(publicUrl)) {
-          const baseUrl = publicUrl.replace(/\/$/, "");
-          extractedKey = url.substring(baseUrl.length + 1);
-        } else {
-          const urlObj = new URL(url);
-          const pathname = urlObj.pathname;
-          extractedKey = pathname.startsWith("/")
-            ? pathname.substring(1)
-            : pathname;
-        }
+      if (url.startsWith(publicDomain)) {
+        const baseUrl = publicDomain.replace(/\/$/, "");
+        extractedKey = url.substring(baseUrl.length + 1);
       } else {
         const urlObj = new URL(url);
         const pathname = urlObj.pathname;

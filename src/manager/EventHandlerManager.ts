@@ -3,24 +3,24 @@ import { ConfigurationManager } from "./ConfigurationManager";
 import { UploadServiceManager } from "./UploaderManager";
 import { UploadEventHandler } from "../handler/UploadEventHandler";
 import { DeleteEventHandler } from "../handler/DeleteEventHandler";
+import { LocalFileUploadHandler } from "../handler/LocalFileUploadHandler";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
-import { findSupportedLocalFilePath, findUploadedFileLinks } from "../utils/FileUtils";
+import { findSupportedLocalFilePath as findSupportedViewFilePath, findUploadedFileLinks } from "../utils/FileUtils";
 
 
 export class EventHandlerManager {
-  private app: App;
   private configurationManager: ConfigurationManager;
   private uploadServiceManager: UploadServiceManager;
   private uploadEventHandler: UploadEventHandler;
   private deleteEventHandler: DeleteEventHandler;
+  private localFileUploadHandler: LocalFileUploadHandler;
 
   constructor(
     app: App,
     configurationManager: ConfigurationManager,
     uploadServiceManager: UploadServiceManager,
   ) {
-    this.app = app;
     this.configurationManager = configurationManager;
     this.uploadServiceManager = uploadServiceManager;
     this.uploadEventHandler = new UploadEventHandler(
@@ -34,6 +34,11 @@ export class EventHandlerManager {
       configurationManager,
       uploadServiceManager,
     );
+
+    this.localFileUploadHandler = new LocalFileUploadHandler(
+      app,
+      this.uploadEventHandler,
+    );
   }
 
   public handleClipboardPaste(
@@ -42,11 +47,12 @@ export class EventHandlerManager {
     _view: MarkdownView,
   ): void {
     const settings = this.configurationManager.getSettings();
-    if (!settings.clipboardAutoUpload || !evt.clipboardData) {
+    if (!settings.clipboardAutoUpload || !evt.clipboardData || !evt.clipboardData.items) {
       return;
     }
 
-    if (this.canHandle(evt, evt.clipboardData.items)) {
+    if (this.canHandle(evt.clipboardData.items)) {
+       evt.preventDefault();
       void this.uploadEventHandler.handleFileUploadEvent(
         evt.clipboardData.items,
       );
@@ -59,11 +65,12 @@ export class EventHandlerManager {
     _view: MarkdownView,
   ): void {
     const settings = this.configurationManager.getSettings();
-    if (!settings.dragAutoUpload || !evt.dataTransfer) {
+    if (!settings.dragAutoUpload || !evt.dataTransfer || !evt.dataTransfer.items) {
       return;
     }
-
-    if (this.canHandle(evt, evt.dataTransfer.items)) {
+    
+    if (this.canHandle(evt.dataTransfer.items)) {
+       evt.preventDefault();
       void this.uploadEventHandler.handleFileUploadEvent(
         evt.dataTransfer.items,
       );
@@ -80,71 +87,9 @@ export class EventHandlerManager {
       return;
     }
 
-    const supportedTypes = this.configurationManager.getSettings().autoUploadFileTypes;
-    const localFiles = findSupportedLocalFilePath(selectedText, supportedTypes);
-    if (localFiles.length > 0) {
-      menu.addItem((item) => {
-        item
-          .setTitle(t("upload.localFile"))
-          .setIcon('upload')
-          .onClick(async () => {
-            const dataTransfer = new DataTransfer();
-            for (const filePath of localFiles) {
-              try {
-                const arrayBuffer = await this.app.vault.adapter.readBinary(filePath);
-                const fileName = filePath.split('/').pop() || 'file';
-                const uploadFile = new File([new Blob([arrayBuffer])], fileName);
-                dataTransfer.items.add(uploadFile);
-              } catch (error) {
-                logger.error("EventHandlerManager", "Failed to upload local file", error);
-              }
-            }
-            void this.uploadEventHandler.handleFileUploadEvent(dataTransfer.items);
-          });
-      });
-    }
+    this.handleUploadViewFile(menu, editor, view);
 
-    const publicDomain = this.configurationManager.getSettings().uploaderConfig.public_domain as string;
-    const uploadedFileLinks = findUploadedFileLinks(selectedText, publicDomain);
-        if (uploadedFileLinks.length > 0) {
-      menu.addItem((item: MenuItem) => {
-        item
-          .setTitle(t("delete.menuTitle"))
-          .setIcon("trash")
-          .setWarning(true)
-          .onClick(() => {
-            void this.deleteEventHandler.handleDeleteUploadedFiles(
-              uploadedFileLinks,
-              editor,
-              view,
-            );
-          });
-      });
-    }
-  }
-
-  private canHandle(evt: Event, items: DataTransferItemList): boolean {
-    if (items && items.length === 0) {
-      return false;
-    }
-
-    logger.debug("EventHandlerManager", "File upload event triggered", {
-      itemCount: items.length,
-    });
-
-    evt.preventDefault();
-
-    const result = this.uploadServiceManager.checkConnectionConfig();
-    if (!result.success) {
-      logger.warn(
-        "EventHandlerManager",
-        "Connection config invalid, showing config modal",
-      );
-      this.configurationManager.showStorageConfigModal();
-      return false;
-    }
-
-    return true;
+    this.handleDeleteFile(menu, editor, view);
   }
 
   public dispose(): void {
@@ -166,4 +111,74 @@ export class EventHandlerManager {
 
     handlers.forEach((handler) => handler.clearQueue());
   }
+
+  private canHandle(items: DataTransferItemList): boolean {
+    if (items && items.length === 0) {
+      return false;
+    }
+
+    logger.debug("EventHandlerManager", "File upload event triggered", {
+      itemCount: items.length,
+    });
+
+    const result = this.uploadServiceManager.checkConnectionConfig();
+    if (!result.success) {
+      logger.warn(
+        "EventHandlerManager",
+        "Connection config invalid, showing config modal",
+      );
+      this.configurationManager.showStorageConfigModal();
+      return false;
+    }
+
+    return true;
+  }
+
+  private handleUploadViewFile(menu: Menu, editor: Editor, view: MarkdownView): void {
+    const supportedTypes = this.configurationManager.getSettings().autoUploadFileTypes;
+    const localFiles = findSupportedViewFilePath(editor.getSelection(), supportedTypes);
+    if (!localFiles || localFiles.length === 0) {
+      return;
+    }
+
+    menu.addItem((item) => {
+      item
+        .setTitle(t("upload.localFile"))
+        .setIcon('upload')
+        .onClick(async () => {
+          const result = this.uploadServiceManager.checkConnectionConfig();
+          if (!result.success) {
+            logger.warn("EventHandlerManager", "Connection config invalid, showing config modal");
+            this.configurationManager.showStorageConfigModal();
+            return;
+          }
+          await this.localFileUploadHandler.handleLocalFileUpload(localFiles);
+        });
+    });
+  }
+
+
+  private handleDeleteFile(menu: Menu, editor: Editor, view: MarkdownView): void {
+    const publicDomain = this.configurationManager.getSettings().uploaderConfig.public_domain as string;
+    const uploadedFileLinks = findUploadedFileLinks(editor.getSelection(), publicDomain);
+    if (!uploadedFileLinks || uploadedFileLinks.length === 0) {
+      return;
+    }
+
+    menu.addItem((item: MenuItem) => {
+      item
+        .setTitle(t("delete.menuTitle"))
+        .setIcon("trash")
+        .setWarning(true)
+        .onClick(() => {
+          void this.deleteEventHandler.handleDeleteUploadedFiles(
+            uploadedFileLinks,
+            editor,
+            view,
+          );
+        });
+    });
+  }
+
+
 }
