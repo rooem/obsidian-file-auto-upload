@@ -28,7 +28,7 @@ export class ConfigurationManager {
   /**
    * Load current settings (returns a copy)
    */
-  async loadSettings(): Promise<void> {
+  public async loadSettings(): Promise<void> {
     try {
       const loadedSettings = await this.secureStorage.load();
       this.settings = {
@@ -43,14 +43,6 @@ export class ConfigurationManager {
   }
 
   /**
-   * Save settings with encryption
-   * @param data - Settings data to save
-   */
-  async saveData(data: unknown): Promise<void> {
-    await this.secureStorage.save(data);
-  }
-
-  /**
    * Get current settings (returns a copy)
    */
   getSettings(): FileAutoUploadSettings {
@@ -61,7 +53,7 @@ export class ConfigurationManager {
    * Add configuration change listener
    * @param listener - Listener function to call on config changes
    */
-  addConfigChangeListener(listener: ConfigChangeListener): void {
+  public addConfigChangeListener(listener: ConfigChangeListener): void {
     this.configChangeListeners.add(listener);
   }
 
@@ -70,7 +62,7 @@ export class ConfigurationManager {
    * @param listener - Listener function to remove
    * @returns true if listener was found and removed
    */
-  removeConfigChangeListener(listener: ConfigChangeListener): boolean {
+  public removeConfigChangeListener(listener: ConfigChangeListener): boolean {
     const removed = this.configChangeListeners.delete(listener);
     if (removed) {
       logger.debug("ConfigurationManager", "Config change listener removed");
@@ -85,6 +77,49 @@ export class ConfigurationManager {
     const modal = new StorageConfigModal(this.plugin);
     modal.render();
     modal.getModal().open();
+  }
+
+  /**
+   * Save plugin settings
+   * @param newSettings - Partial settings to update
+   * @param saveDataCallback - Optional callback to persist settings
+   * @param needNotify - Whether to notify listeners of changes
+   */
+  async saveSettings(
+    newSettings: Partial<FileAutoUploadSettings>,
+    needNotify?: boolean,
+  ): Promise<void> {
+    this.settings = { ...this.settings, ...newSettings };
+
+    await this.saveData(this.settings);
+
+    if (needNotify) {
+      this.notifyConfigChange(newSettings);
+    }
+  }
+
+  public getCurrentStorageService(): UploaderType {
+    return this.settings.uploaderType;
+  }
+
+  public getCurrentStorageConfig(): UploaderConfig {
+    return { ...this.settings.uploaderConfig };
+  }
+
+  public getPublicDomain(): string {
+    return this.getCurrentStorageConfig().public_domain as string;
+  }
+
+  public getAutoUploadFileTypes(): string[] {
+    return this.settings.autoUploadFileTypes;
+  }
+
+  /**
+   * Save settings with encryption
+   * @param data - Settings data to save
+   */
+  private async saveData(data: unknown): Promise<void> {
+    await this.secureStorage.save(data);
   }
 
   /**
@@ -104,41 +139,6 @@ export class ConfigurationManager {
         );
       }
     });
-  }
-
-  /**
-   * Update plugin settings
-   * @param newSettings - Partial settings to update
-   * @param saveDataCallback - Optional callback to persist settings
-   * @param needNotify - Whether to notify listeners of changes
-   */
-  async updateSettings(
-    newSettings: Partial<FileAutoUploadSettings>,
-    needNotify?: boolean,
-  ): Promise<void> {
-    this.settings = { ...this.settings, ...newSettings };
-
-    await this.saveData(this.settings);
-
-    if (needNotify) {
-      this.notifyConfigChange(newSettings);
-    }
-  }
-
-  getCurrentStorageService(): UploaderType {
-    return this.settings.uploaderType;
-  }
-
-  getCurrentStorageConfig(): UploaderConfig {
-    return { ...this.settings.uploaderConfig };
-  }
-
-  getPublicDomain(): string {
-    return this.getCurrentStorageConfig().public_domain as string;
-  }
-
-  getAutoUploadFileTypes(): string[] {
-    return this.settings.autoUploadFileTypes;
   }
 
 }

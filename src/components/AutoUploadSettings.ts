@@ -24,7 +24,7 @@ export class AutoUploadSettings {
         toggle
           .setValue(settings.clipboardAutoUpload)
           .onChange(async (value: boolean) => {
-            await plugin.configurationManager.updateSettings({
+            await plugin.configurationManager.saveSettings({
               clipboardAutoUpload: value,
             });
           }),
@@ -37,7 +37,7 @@ export class AutoUploadSettings {
         toggle
           .setValue(settings.dragAutoUpload)
           .onChange(async (value: boolean) => {
-            await plugin.configurationManager.updateSettings({
+            await plugin.configurationManager.saveSettings({
               dragAutoUpload: value,
             });
           }),
@@ -71,7 +71,7 @@ export class AutoUploadSettings {
                 .split(",")
                 .map((t) => t.trim())
                 .filter((t) => t);
-              await plugin.configurationManager.updateSettings({
+              await plugin.configurationManager.saveSettings({
                 autoUploadFileTypes: fileTypesArray,
               });
 
@@ -94,7 +94,7 @@ export class AutoUploadSettings {
               .split(",")
               .map((t) => t.trim())
               .filter((t) => t);
-            await plugin.configurationManager.updateSettings({
+            await plugin.configurationManager.saveSettings({
               autoUploadFileTypes: fileTypesArray,
             });
           });

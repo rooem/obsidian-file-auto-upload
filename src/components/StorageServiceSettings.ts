@@ -35,7 +35,7 @@ export class StorageServiceSettings {
         return dropdown
           .setValue(settings.uploaderType)
           .onChange(async (value: string) => {
-            await plugin.configurationManager.updateSettings(
+            await plugin.configurationManager.saveSettings(
               { uploaderType: value as UploaderType },
               true,
             );
@@ -51,7 +51,7 @@ export class StorageServiceSettings {
           .setValue(settings.uploaderConfig.access_key_id as string)
           .onChange(async (value: string) => {
             const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.updateSettings(
+            await plugin.configurationManager.saveSettings(
               {
                 uploaderConfig: {
                   ...currentSettings.uploaderConfig,
@@ -72,7 +72,7 @@ export class StorageServiceSettings {
           .setValue(settings.uploaderConfig.secret_access_key as string)
           .onChange(async (value: string) => {
             const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.updateSettings(
+            await plugin.configurationManager.saveSettings(
               {
                 uploaderConfig: {
                   ...currentSettings.uploaderConfig,
@@ -94,7 +94,7 @@ export class StorageServiceSettings {
           .setValue(settings.uploaderConfig.endpoint as string)
           .onChange(async (value: string) => {
             const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.updateSettings(
+            await plugin.configurationManager.saveSettings(
               {
                 uploaderConfig: {
                   ...currentSettings.uploaderConfig,
@@ -117,7 +117,7 @@ export class StorageServiceSettings {
             .setValue(StorageServiceSettings.findRegionVaule(settings))
             .onChange(async (value: string) => {
               const currentSettings = plugin.configurationManager.getSettings();
-              await plugin.configurationManager.updateSettings(
+              await plugin.configurationManager.saveSettings(
                 {
                   uploaderConfig: {
                     ...currentSettings.uploaderConfig,
@@ -139,7 +139,7 @@ export class StorageServiceSettings {
           .setValue(settings.uploaderConfig.bucket_name as string)
           .onChange(async (value: string) => {
             const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.updateSettings(
+            await plugin.configurationManager.saveSettings(
               {
                 uploaderConfig: {
                   ...currentSettings.uploaderConfig,
@@ -161,7 +161,7 @@ export class StorageServiceSettings {
           .setValue((settings.uploaderConfig.public_domain as string) || "")
           .onChange(async (value: string) => {
             const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.updateSettings(
+            await plugin.configurationManager.saveSettings(
               {
                 uploaderConfig: {
                   ...currentSettings.uploaderConfig,
