@@ -135,7 +135,7 @@ export class EventHandlerManager {
   }
 
   private handleUploadViewFile(menu: Menu, editor: Editor, view: MarkdownView): void {
-    const supportedTypes = this.configurationManager.getSettings().autoUploadFileTypes;
+    const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
     const localFiles = findSupportedViewFilePath(editor.getSelection(), supportedTypes);
     if (!localFiles || localFiles.length === 0) {
       return;

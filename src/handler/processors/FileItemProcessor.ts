@@ -29,7 +29,7 @@ export class FileItemProcessor {
       localPath: processItem.localPath,
     });
 
-    const supportedTypes = this.configurationManager.getSettings().autoUploadFileTypes;
+    const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
     if (!isFileTypeSupported(supportedTypes, processItem.extension)) {
       await this.processNotSupportedFile(file, processItem.id);
       return;
@@ -110,7 +110,7 @@ export class FileItemProcessor {
   }
 
   private replacePlaceholderWithError(id: string, fileName: string, errorMessage?: string): void {
-    const supportedTypes = this.configurationManager.getSettings().autoUploadFileTypes;
+    const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
     const extension = fileName.split(".").pop()?.toLowerCase();
     const pre = !isFileTypeSupported(supportedTypes, extension)
       ? t("upload.progrefailed")

@@ -91,7 +91,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     const cursor = editor.getCursor();
     const fileName = file.name;
     const extension = processItem.extension;
-    const supportedTypes = this.configurationManager.getSettings().autoUploadFileTypes;
+    const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
 
     let placeholderText = "";
     if (!isFileTypeSupported(supportedTypes, extension) || file.size <= MULTIPART_UPLOAD_THRESHOLD) {

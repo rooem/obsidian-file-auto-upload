@@ -125,26 +125,20 @@ export class ConfigurationManager {
     }
   }
 
-  /**
-   * Get currently configured storage service type
-   */
   getCurrentStorageService(): UploaderType {
     return this.settings.uploaderType;
   }
 
-  /**
-   * Get current storage service configuration
-   */
   getCurrentStorageConfig(): UploaderConfig {
     return { ...this.settings.uploaderConfig };
   }
 
-    /**
-   * Get current storage service configuration
-   */
   getPublicDomain(): string {
     return this.getCurrentStorageConfig().public_domain as string;
   }
 
+  getAutoUploadFileTypes(): string[] {
+    return this.settings.autoUploadFileTypes;
+  }
 
 }
