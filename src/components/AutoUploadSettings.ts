@@ -1,4 +1,4 @@
-import { CustomSetting } from "./CustomSetting";
+
 import FileAutoUploadPlugin from "../main";
 import { t } from "../i18n";
 import { Setting } from "obsidian";
@@ -17,7 +17,7 @@ export class AutoUploadSettings {
     new Setting(containerEl).setName(t("settings.autoUpload")).setHeading();
     const settings = plugin.configurationManager.getSettings();
 
-    new CustomSetting(containerEl)
+    new Setting(containerEl)
       .setName(t("settings.clipboardAutoUpload"))
       .setDesc(t("settings.clipboardAutoUpload.desc"))
       .addToggle((toggle) =>
@@ -30,7 +30,7 @@ export class AutoUploadSettings {
           }),
       );
 
-    new CustomSetting(containerEl)
+    new Setting(containerEl)
       .setName(t("settings.dragAutoUpload"))
       .setDesc(t("settings.dragAutoUpload.desc"))
       .addToggle((toggle) =>
@@ -43,10 +43,9 @@ export class AutoUploadSettings {
           }),
       );
 
-    new CustomSetting(containerEl)
+    new Setting(containerEl)
       .setName(t("settings.fileTypes"))
       .setDesc(t("settings.fileTypes.desc"))
-      .required()
       .addTextArea((toggle) => {
         let isUpdating = false;
         let notEmptyEl: HTMLElement | null = null;
