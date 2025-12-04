@@ -2,76 +2,53 @@ import { App } from "obsidian";
 import { ConfigurationManager } from "../manager/ConfigurationManager";
 import { logger } from "../utils/Logger";
 import { ProcessItem } from "../types/index";
+import { ConcurrencyController } from "../utils/ConcurrencyController";
 
 /**
  * Base class for all event handlers
- * Provides queue management for asynchronous operations
+ * Provides queue management for asynchronous operations with concurrency control
  */
 export abstract class BaseEventHandler<T = unknown> {
   protected app: App;
   protected configurationManager: ConfigurationManager;
-  protected processingQueue: Array<ProcessItem<T>> = [];
-  protected isProcessing: boolean = false;
+  protected concurrencyController: ConcurrencyController;
 
-  constructor(app: App, configurationManager: ConfigurationManager) {
+  constructor(app: App, configurationManager: ConfigurationManager, maxConcurrent: number = 3) {
     this.app = app;
     this.configurationManager = configurationManager;
+    this.concurrencyController = new ConcurrencyController(maxConcurrent);
   }
 
   /**
-   * Get current queue status
-   * @returns Queue length and processing state
+   * Get current processing status
+   * @returns Running count and queue length from concurrency controller
    */
   public getQueueStatus(): { queueLength: number; isProcessing: boolean } {
     return {
-      queueLength: this.processingQueue.length,
-      isProcessing: this.isProcessing,
+      queueLength: this.concurrencyController.getQueueLength(),
+      isProcessing: this.concurrencyController.getRunningCount() > 0,
     };
   }
 
   /**
-   * Clear the processing queue
+   * Dispose the handler and abort all pending tasks
    */
-  public clearQueue(): void {
-    this.processingQueue = [];
-    this.isProcessing = false;
+  public dispose(): void {
+    this.concurrencyController.abort();
   }
 
   /**
-   * Add items to processing queue and start processing
-   * @param queue - Array of items to process
+   * Process items immediately with concurrency control
+   * @param items - Array of items to process
    */
-  protected addToProcessingQueue(
-    queue: Array<ProcessItem<T>>,
+  protected processItems(
+    items: Array<ProcessItem<T>>,
   ): void {
-    this.processingQueue.push(...queue);
-
-    if (!this.isProcessing) {
-      this.processQueue();
+    for (const item of items) {
+      this.concurrencyController.run(() => this.processItem(item)).catch((error) => {
+        logger.error("BaseEventHandler processing item:", error);
+      });
     }
-  }
-
-  /**
-   * Process all items in the queue sequentially
-   */
-  protected processQueue(): void {
-    if (this.isProcessing) {
-      return;
-    }
-
-    this.isProcessing = true;
-
-    while (this.processingQueue.length > 0) {
-      const processItem = this.processingQueue.shift();
-      if (processItem) {
-        // Process item concurrently without waiting
-        this.processItem(processItem).catch((error) => {
-          logger.error("BaseEventHandler processing item:", error);
-        });
-      }
-    }
-
-    this.isProcessing = false;
   }
 
   /**

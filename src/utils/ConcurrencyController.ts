@@ -2,8 +2,9 @@
  * Concurrency controller for limiting parallel operations
  */
 export class ConcurrencyController {
-  private queue: Array<() => Promise<void>> = [];
+  private queue: Array<() => void> = [];
   private running = 0;
+  private aborted = false;
 
   constructor(private maxConcurrent: number = 3) {}
 
@@ -13,10 +14,18 @@ export class ConcurrencyController {
    * @returns Promise that resolves when task completes
    */
   async run<T>(task: () => Promise<T>): Promise<T> {
-    while (this.running >= this.maxConcurrent) {
-      await new Promise((resolve) => {
-        this.queue.push(resolve as () => Promise<void>);
+    if (this.aborted) {
+      throw new Error("ConcurrencyController has been aborted");
+    }
+
+    while (this.running >= this.maxConcurrent && !this.aborted) {
+      await new Promise<void>((resolve) => {
+        this.queue.push(resolve);
       });
+    }
+
+    if (this.aborted) {
+      throw new Error("ConcurrencyController has been aborted");
     }
 
     this.running++;
@@ -24,24 +33,32 @@ export class ConcurrencyController {
       return await task();
     } finally {
       this.running--;
-      const nextTask = this.queue.shift();
-      if (nextTask) {
-        void nextTask();
-      }
+      const next = this.queue.shift();
+      if (next) next();
     }
   }
 
   /**
-   * Get current number of running tasks
+   * Abort all pending tasks and clear the queue
    */
+  abort(): void {
+    this.aborted = true;
+    // Release all waiting tasks
+    while (this.queue.length > 0) {
+      const next = this.queue.shift();
+      if (next) next();
+    }
+  }
+
   getRunningCount(): number {
     return this.running;
   }
 
-  /**
-   * Get queue length
-   */
   getQueueLength(): number {
     return this.queue.length;
+  }
+
+  isAborted(): boolean {
+    return this.aborted;
   }
 }

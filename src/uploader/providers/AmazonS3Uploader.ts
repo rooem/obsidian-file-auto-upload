@@ -21,7 +21,7 @@ import {
   FileInfo,
   UploadProgressCallback,
 } from "../../types";
-import { UploaderType } from "../UploaderType";
+import { UploaderType } from "../UploaderRegistry";
 import { S3Config } from "../../types";
 import { t } from "../../i18n";
 import { handleError } from "../../utils/ErrorHandler";
@@ -31,11 +31,27 @@ import { MULTIPART_UPLOAD_THRESHOLD, generateFileKey} from "../../utils/FileUtil
 export class AmazonS3Uploader implements IUploader {
   protected config: S3Config;
   protected s3Client: S3Client;
-  protected type = UploaderType.AMAZON_S3;
+  protected type: string = UploaderType.AMAZON_S3;
 
   constructor(config: S3Config) {
     this.config = config;
     this.s3Client = this.createS3Client();
+  }
+
+  protected validateCommonConfig(): { success: boolean; error?: string } {
+    if (!this.config.endpoint) {
+      return { success: false, error: t("error.missingEndpoint") };
+    }
+    if (!this.config.access_key_id) {
+      return { success: false, error: t("error.missingAccessKeyId") };
+    }
+    if (!this.config.secret_access_key) {
+      return { success: false, error: t("error.missingSecretAccessKey") };
+    }
+    if (!this.config.bucket_name) {
+      return { success: false, error: t("error.missingBucketName") };
+    }
+    return { success: true };
   }
 
   /**
@@ -62,26 +78,12 @@ export class AmazonS3Uploader implements IUploader {
   }
 
   public checkConnectionConfig(): { success: boolean; error?: string } {
-    if (!this.config.endpoint) {
-      return { success: false, error: t("error.missingEndpoint") };
-    }
-
+    const commonResult = this.validateCommonConfig();
+    if (!commonResult.success) return commonResult;
+    
     if (!this.config.region) {
       return { success: false, error: t("error.missingRegion") };
     }
-
-    if (!this.config.access_key_id) {
-      return { success: false, error: t("error.missingAccessKeyId") };
-    }
-
-    if (!this.config.secret_access_key) {
-      return { success: false, error: t("error.missingSecretAccessKey") };
-    }
-
-    if (!this.config.bucket_name) {
-      return { success: false, error: t("error.missingBucketName") };
-    }
-
     return { success: true };
   }
 

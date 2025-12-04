@@ -1,5 +1,4 @@
 import { IUploader } from "../types";
-import { UploaderType } from "../uploader/UploaderType";
 import { UploaderTypeInfo } from "../uploader/UploaderRegistry";
 import { ConfigurationManager } from "./ConfigurationManager";
 import { handleError } from "../utils/ErrorHandler";
@@ -12,7 +11,7 @@ import { logger } from "../utils/Logger";
  */
 export class UploadServiceManager {
   private configurationManager: ConfigurationManager;
-  private uploaderInstances: Map<UploaderType, IUploader> = new Map();
+  private uploaderInstances: Map<string, IUploader> = new Map();
 
   constructor(configurationManager: ConfigurationManager) {
     this.configurationManager = configurationManager;
@@ -71,7 +70,11 @@ export class UploadServiceManager {
 
     const config = this.configurationManager.getCurrentStorageConfig();
 
-    const clazz = UploaderTypeInfo[serviceType].clazz;
+    const uploaderInfo = UploaderTypeInfo[serviceType as keyof typeof UploaderTypeInfo];
+    if (!uploaderInfo) {
+      throw new Error(`Unknown uploader type: ${serviceType}`);
+    }
+    const clazz = uploaderInfo.clazz;
     const uploader = new clazz(
       config as import("../types").S3Config,
     ) as IUploader;

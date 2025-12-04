@@ -1,7 +1,6 @@
 import { Setting } from "obsidian";
 import FileAutoUploadPlugin from "../main";
-import { UploaderType } from "../uploader/UploaderType";
-import { UploaderTypeInfo } from "../uploader/UploaderRegistry";
+import { UploaderType, UploaderTypeInfo } from "../uploader/UploaderRegistry";
 import { t } from "../i18n";
 import type { FileAutoUploadSettings } from "../types";
 
@@ -10,6 +9,15 @@ import type { FileAutoUploadSettings } from "../types";
  * Renders configuration for cloud storage providers (S3, R2, OSS, COS)
  */
 export class StorageServiceSettings {
+  private static createConfigUpdater(plugin: FileAutoUploadPlugin, key: string) {
+    return async (value: string) => {
+      const current = plugin.configurationManager.getSettings();
+      await plugin.configurationManager.saveSettings({
+        uploaderConfig: { ...current.uploaderConfig, [key]: value }
+      }, true);
+    };
+  }
+
   /**
    * Render storage service settings section
    * @param containerEl - Container element to render into
@@ -21,6 +29,8 @@ export class StorageServiceSettings {
     onToggle: () => void,
   ): void {
     const settings = plugin.configurationManager.getSettings();
+    const inputStyle = { width: "300px" };
+
     new Setting(containerEl)
       .setName(t("settings.storage"))
       .setDesc(t("settings.storage.desc"))
@@ -31,10 +41,7 @@ export class StorageServiceSettings {
         return dropdown
           .setValue(settings.uploaderType)
           .onChange(async (value: string) => {
-            await plugin.configurationManager.saveSettings(
-              { uploaderType: value },
-              true,
-            );
+            await plugin.configurationManager.saveSettings({ uploaderType: value }, true);
             onToggle();
           });
       });
@@ -45,19 +52,8 @@ export class StorageServiceSettings {
       .addText((text) =>
         text
           .setValue(settings.uploaderConfig.access_key_id as string)
-          .onChange(async (value: string) => {
-            const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.saveSettings(
-              {
-                uploaderConfig: {
-                  ...currentSettings.uploaderConfig,
-                  access_key_id: value,
-                },
-              },
-              true,
-            );
-          })
-          .inputEl.setCssStyles({ width: "300px" }),
+          .onChange(this.createConfigUpdater(plugin, "access_key_id"))
+          .inputEl.setCssStyles(inputStyle),
       );
 
     new Setting(containerEl)
@@ -66,19 +62,8 @@ export class StorageServiceSettings {
       .addText((text) =>
         text
           .setValue(settings.uploaderConfig.secret_access_key as string)
-          .onChange(async (value: string) => {
-            const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.saveSettings(
-              {
-                uploaderConfig: {
-                  ...currentSettings.uploaderConfig,
-                  secret_access_key: value,
-                },
-              },
-              true,
-            );
-          })
-          .inputEl.setCssStyles({ width: "300px" }),
+          .onChange(this.createConfigUpdater(plugin, "secret_access_key"))
+          .inputEl.setCssStyles(inputStyle),
       );
 
     new Setting(containerEl)
@@ -89,19 +74,10 @@ export class StorageServiceSettings {
           .setPlaceholder("https://xxxxxx.com")
           .setValue(settings.uploaderConfig.endpoint as string)
           .onChange(async (value: string) => {
-            const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.saveSettings(
-              {
-                uploaderConfig: {
-                  ...currentSettings.uploaderConfig,
-                  endpoint: value,
-                },
-              },
-              true,
-            );
+            await this.createConfigUpdater(plugin, "endpoint")(value);
             onToggle();
           })
-          .inputEl.setCssStyles({ width: "300px" }),
+          .inputEl.setCssStyles(inputStyle),
       );
 
     if (settings.uploaderType !== UploaderType.CLOUDFLARE_R2) {
@@ -111,19 +87,8 @@ export class StorageServiceSettings {
         .addText((text) =>
           text
             .setValue(StorageServiceSettings.findRegionVaule(settings))
-            .onChange(async (value: string) => {
-              const currentSettings = plugin.configurationManager.getSettings();
-              await plugin.configurationManager.saveSettings(
-                {
-                  uploaderConfig: {
-                    ...currentSettings.uploaderConfig,
-                    region: value,
-                  },
-                },
-                true,
-              );
-            })
-            .inputEl.setCssStyles({ width: "300px" }),
+            .onChange(this.createConfigUpdater(plugin, "region"))
+            .inputEl.setCssStyles(inputStyle),
         );
     }
 
@@ -133,19 +98,8 @@ export class StorageServiceSettings {
       .addText((text) =>
         text
           .setValue(settings.uploaderConfig.bucket_name as string)
-          .onChange(async (value: string) => {
-            const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.saveSettings(
-              {
-                uploaderConfig: {
-                  ...currentSettings.uploaderConfig,
-                  bucket_name: value,
-                },
-              },
-              true,
-            );
-          })
-          .inputEl.setCssStyles({ width: "300px" }),
+          .onChange(this.createConfigUpdater(plugin, "bucket_name"))
+          .inputEl.setCssStyles(inputStyle),
       );
 
     new Setting(containerEl)
@@ -155,19 +109,8 @@ export class StorageServiceSettings {
         text
           .setPlaceholder("https://your-domain.com")
           .setValue((settings.uploaderConfig.public_domain as string) || "")
-          .onChange(async (value: string) => {
-            const currentSettings = plugin.configurationManager.getSettings();
-            await plugin.configurationManager.saveSettings(
-              {
-                uploaderConfig: {
-                  ...currentSettings.uploaderConfig,
-                  public_domain: value,
-                },
-              },
-              true,
-            );
-          })
-          .inputEl.setCssStyles({ width: "300px" }),
+          .onChange(this.createConfigUpdater(plugin, "public_domain"))
+          .inputEl.setCssStyles(inputStyle),
       );
 
     let testResultEl: HTMLElement;

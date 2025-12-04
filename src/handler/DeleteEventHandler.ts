@@ -107,7 +107,7 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
     logger.debug("DeleteEventHandler", "Files queued for deletion", {
       queueLength: queue.length,
     });
-    void this.addToProcessingQueue(queue);
+    void this.processItems(queue);
   }
 
   /**

@@ -1,16 +1,14 @@
 import { AmazonS3Uploader } from "./AmazonS3Uploader";
-import { UploaderType } from "../UploaderType";
-import { S3Config } from "../../types";
+import { UploaderType } from "../UploaderRegistry";
 
 export class TencentCOSUploader extends AmazonS3Uploader {
   protected type = UploaderType.TENCENT_COS;
 
-  constructor(config: S3Config) {
-    super(config);
-    this.s3Client = this.createS3Client();
+  public checkConnectionConfig(): { success: boolean; error?: string } {
+    return this.validateCommonConfig();
   }
 
-  public getPublicUrl(key: string): string {
+  protected getPublicUrl(key: string): string {
     if (this.config.public_domain) {
       return `${this.config.public_domain.replace(/\/$/, "")}/${key}`;
     }

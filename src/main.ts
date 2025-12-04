@@ -1,4 +1,4 @@
-import { Plugin, MarkdownView, Menu, Editor,addIcon } from "obsidian";
+import { Plugin, MarkdownView, Menu, Editor } from "obsidian";
 import { FileAutoUploadSettingTab } from "./settings";
 import { ConfigurationManager } from "./manager/ConfigurationManager";
 import { UploadServiceManager } from "./manager/UploaderManager";

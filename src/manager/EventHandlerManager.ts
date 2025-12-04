@@ -109,7 +109,7 @@ export class EventHandlerManager {
       );
     }
 
-    handlers.forEach((handler) => handler.clearQueue());
+    handlers.forEach((handler) => handler.dispose());
   }
 
   private canHandle(items: DataTransferItemList): boolean {

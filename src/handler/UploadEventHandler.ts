@@ -5,7 +5,6 @@ import { UploadServiceManager } from "../manager/UploaderManager";
 import { isFileTypeSupported, MULTIPART_UPLOAD_THRESHOLD } from "../utils/FileUtils";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
-import { ConcurrencyController } from "../utils/ConcurrencyController";
 import { EventType, ProcessItem } from "../types/index";
 import { TextItemProcessor } from "./processors/TextItemProcessor";
 import { FileItemProcessor } from "./processors/FileItemProcessor";
@@ -16,7 +15,6 @@ import { FileItemProcessor } from "./processors/FileItemProcessor";
  */
 export class UploadEventHandler extends BaseEventHandler<string | File> {
   protected uploadServiceManager: UploadServiceManager;
-  private concurrencyController: ConcurrencyController;
   private textItemProcessor: TextItemProcessor;
   private fileItemProcessor: FileItemProcessor;
 
@@ -25,9 +23,8 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     configurationManager: ConfigurationManager,
     uploadServiceManager: UploadServiceManager,
   ) {
-    super(app, configurationManager);
+    super(app, configurationManager, 3);
     this.uploadServiceManager = uploadServiceManager;
-    this.concurrencyController = new ConcurrencyController(3);
     this.textItemProcessor = new TextItemProcessor();
     this.fileItemProcessor = new FileItemProcessor(
       app,
@@ -55,7 +52,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
       }
     }
 
-    void this.addToProcessingQueue(queue);
+    void this.processItems(queue);
   }
 
   /**
