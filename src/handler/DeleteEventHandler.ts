@@ -51,6 +51,7 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
         item
           .setTitle(t("delete.menuTitle"))
           .setIcon("trash")
+          .setWarning(true)
           .onClick(() => {
             void this.handleDeleteUploadedFiles(
               uploadedFileLinks,
@@ -58,21 +59,6 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
               view,
             );
           });
-
-        setTimeout(() => {
-          const menuContainer =
-            (menu as unknown as { domEl?: HTMLElement }).domEl ||
-            document.querySelector(".menu");
-          if (menuContainer) {
-            const menuItems = menuContainer.querySelectorAll(".menu-item");
-            const lastMenuItem = menuItems[menuItems.length - 1] as
-              | HTMLElement
-              | undefined;
-            if (lastMenuItem) {
-              lastMenuItem.addClass("file-auto-upload-delete-menu");
-            }
-          }
-        }, 10);
       });
     }
   }
