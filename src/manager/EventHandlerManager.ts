@@ -159,7 +159,7 @@ export class EventHandlerManager {
 
 
   private handleDeleteFile(menu: Menu, editor: Editor, view: MarkdownView): void {
-    const publicDomain = this.configurationManager.getSettings().uploaderConfig.public_domain as string;
+    const publicDomain = this.configurationManager.getPublicDomain();
     const uploadedFileLinks = findUploadedFileLinks(editor.getSelection(), publicDomain);
     if (!uploadedFileLinks || uploadedFileLinks.length === 0) {
       return;

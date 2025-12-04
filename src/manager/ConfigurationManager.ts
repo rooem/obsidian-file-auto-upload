@@ -138,4 +138,13 @@ export class ConfigurationManager {
   getCurrentStorageConfig(): UploaderConfig {
     return { ...this.settings.uploaderConfig };
   }
+
+    /**
+   * Get current storage service configuration
+   */
+  getPublicDomain(): string {
+    return this.getCurrentStorageConfig().public_domain as string;
+  }
+
+
 }

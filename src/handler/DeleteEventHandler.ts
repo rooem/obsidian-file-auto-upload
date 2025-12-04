@@ -189,8 +189,7 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
    */
   private extractFileKeyFromUrl(url: string): string {
     try {
-      const settings = this.configurationManager.getSettings();
-      const publicDomain = settings.uploaderConfig.public_domain as string;
+      const publicDomain = this.configurationManager.getPublicDomain();
 
       let extractedKey: string;
 

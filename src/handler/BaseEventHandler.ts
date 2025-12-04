@@ -88,8 +88,7 @@ export abstract class BaseEventHandler<T = unknown> {
    * @returns Array of file URLs
    */
   protected extractUploadedFileLinks(text: string): string[] {
-    const settings = this.configurationManager.getSettings();
-    const publicDomain = settings.uploaderConfig.public_domain as string;
+    const publicDomain = this.configurationManager.getPublicDomain();
 
     if (!publicDomain) {
       return [];
