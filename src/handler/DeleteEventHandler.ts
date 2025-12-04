@@ -28,7 +28,41 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
     this.uploadServiceManager = uploadServiceManager;
   }
 
- 
+  /**
+   * Add delete option to editor context menu for uploaded files
+   * @param menu - Context menu
+   * @param editor - Editor instance
+   * @param view - Markdown view instance
+   */
+  public handleEditorContextMenu(
+    menu: Menu,
+    editor: Editor,
+    view: MarkdownView,
+  ): void {
+    const selectedText = editor.getSelection();
+    if (!selectedText) {
+      return;
+    }
+
+    const uploadedFileLinks = this.extractUploadedFileLinks(selectedText);
+
+    if (uploadedFileLinks.length > 0) {
+      menu.addItem((item: MenuItem) => {
+        item
+          .setTitle(t("delete.menuTitle"))
+          .setIcon("trash")
+          .setWarning(true)
+          .onClick(() => {
+            void this.handleDeleteUploadedFiles(
+              uploadedFileLinks,
+              editor,
+              view,
+            );
+          });
+      });
+    }
+  }
+
   /**
    * Process file deletion from storage and remove from editor
    * @param item - Delete item containing file information

@@ -211,7 +211,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
       return;
     }
 
-    const progressText = `📤(${Math.round(progress)}%)${t("upload.uploading")} ${fileName}${marker}`;
+    const progressText = `📤(${Math.round(progress)}%) ${t("upload.uploading")} ${fileName}${marker}`;
     const lineEndIndex = content.indexOf('\n', markerIndex);
     const endIndex = lineEndIndex === -1 ? content.length : lineEndIndex;
 
@@ -219,7 +219,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     const textBeforePlaceholder = content.substring(lineStartIndex, markerIndex);
     
     // Find where the placeholder actually starts (look for emoji or progress indicator)
-    const placeholderStart = textBeforePlaceholder.search(/[⏳📤]/);
+    const placeholderStart = textBeforePlaceholder.search(/[⏳📤❌]/u);
     const prefixText = placeholderStart !== -1 ? textBeforePlaceholder.substring(0, placeholderStart) : '';
     
     const beforeContent = content.substring(0, lineStartIndex);
@@ -244,7 +244,6 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
       return;
     }
 
-    const editor = activeView.editor;
     const extension = fileName.split(".").pop()?.toLowerCase() || "";
     const markdown = this.generateMarkdownLink(extension, fileName, url);
 
@@ -329,7 +328,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     const textBeforePlaceholder = content.substring(lineStartIndex, markerIndex);
     
     // Find where the placeholder actually starts (look for emoji or progress indicator)
-    const placeholderStart = textBeforePlaceholder.search(/[⏳📤❌]/);
+    const placeholderStart = textBeforePlaceholder.search(/[⏳📤]/u);
     const prefixText = placeholderStart !== -1 ? textBeforePlaceholder.substring(0, placeholderStart) : '';
     
     const beforeContent = content.substring(0, lineStartIndex);

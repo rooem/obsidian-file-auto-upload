@@ -29,6 +29,14 @@ export abstract class BaseEventHandler<T = unknown> {
   }
 
   /**
+   * Clear the processing queue
+   */
+  public clearQueue(): void {
+    this.processingQueue = [];
+    this.isProcessing = false;
+  }
+
+  /**
    * Add items to processing queue and start processing
    * @param queue - Array of items to process
    */

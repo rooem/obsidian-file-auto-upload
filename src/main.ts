@@ -31,9 +31,8 @@ export default class FileAutoUploadPlugin extends Plugin {
    */
   onunload(): void {
     logger.debug("FileAutoUploadPlugin", "Plugin unloading started");
-    addIcon('circle', `<circle cx="50" cy="50" r="50" fill="currentColor" />`);
-    // Check upload queue before unload
-    this.eventHandlerManager.checkQueueStatusOnUnload();
+    this.eventHandlerManager.dispose();
+    this.uploadServiceManager.dispose();
     logger.debug("FileAutoUploadPlugin", "Plugin unloading successfully");
   }
 

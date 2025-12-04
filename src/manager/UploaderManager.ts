@@ -235,4 +235,16 @@ export class UploadServiceManager {
       return handleError(error, "error.getFileInfoFailed");
     }
   }
+
+  /**
+   * Dispose all uploader instances
+   */
+  dispose(): void {
+    this.uploaderInstances.forEach((uploader) => {
+      if (uploader.dispose) {
+        uploader.dispose();
+      }
+    });
+    this.uploaderInstances.clear();
+  }
 }
