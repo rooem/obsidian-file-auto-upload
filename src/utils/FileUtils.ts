@@ -300,3 +300,78 @@ function isUploadedFileLink(url: string, publicDomain: string): boolean {
     return false;
   }
 }
+
+export interface MarkdownLink {
+  fullMatch: string;
+  start: number;
+  end: number;
+  url: string;
+}
+
+/**
+ * Parse markdown links from text
+ * Handles both ![alt](url) and [text](url) formats
+ */
+export function parseMarkdownLinks(text: string): MarkdownLink[] {
+  const links: MarkdownLink[] = [];
+  let i = 0;
+
+  while (i < text.length) {
+    const startIdx = i;
+    if (text[i] === "!" && i + 1 < text.length && text[i + 1] === "[") {
+      i++;
+    }
+
+    if (text[i] === "[") {
+      let bracketDepth = 1;
+      let j = i + 1;
+      while (j < text.length && bracketDepth > 0) {
+        if (text[j] === "[") bracketDepth++;
+        else if (text[j] === "]") bracketDepth--;
+        j++;
+      }
+
+      if (bracketDepth === 0 && j < text.length && text[j] === "(") {
+        let parenDepth = 1;
+        let k = j + 1;
+        while (k < text.length && parenDepth > 0) {
+          if (text[k] === "(") parenDepth++;
+          else if (text[k] === ")") parenDepth--;
+          k++;
+        }
+        if (parenDepth === 0) {
+          links.push({
+            fullMatch: text.substring(startIdx, k),
+            start: startIdx,
+            end: k,
+            url: text.substring(j + 1, k - 1),
+          });
+          i = k;
+          continue;
+        }
+      }
+    }
+    i++;
+  }
+
+  return links;
+}
+
+/**
+ * Remove markdown links containing the specified URL
+ */
+export function removeMarkdownLinksByUrl(text: string, targetUrl: string): string {
+  const links = parseMarkdownLinks(text);
+  let result = "";
+  let lastEnd = 0;
+
+  for (const link of links) {
+    if (link.url === targetUrl) {
+      result += text.substring(lastEnd, link.start);
+      lastEnd = link.end;
+    }
+  }
+  result += text.substring(lastEnd);
+
+  return result;
+}

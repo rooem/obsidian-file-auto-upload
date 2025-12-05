@@ -22,11 +22,6 @@ export class AliyunOSSUploader extends AmazonS3Uploader {
   }
 
   protected getPublicUrl(key: string): string {
-    if (this.config.public_domain) {
-      return `${this.config.public_domain.replace(/\/$/, "")}/${key}`;
-    }
-
-    const endpoint = super.getEndpoint();
-    return `https://${this.config.bucket_name}.${endpoint.replace("https://", "")}/${key}`;
+    return this.getBucketSubdomainUrl(key);
   }
 }

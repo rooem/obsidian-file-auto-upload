@@ -1,13 +1,6 @@
 export enum EventType {
   UPLOAD,
   DELETE,
-  DOWNLOAD,
-}
-
-export interface DeleteItem {
-  fileLink: string;
-  fileKey: string;
-  originalSelection: string;
 }
 
 // 可辨识联合类型

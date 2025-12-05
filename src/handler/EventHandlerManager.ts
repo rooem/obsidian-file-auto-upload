@@ -14,7 +14,6 @@ import {
 import {
   EventType,
   ProcessItem,
-  DeleteItem,
   DeleteProcessItem,
   TextProcessItem,
   FileProcessItem,

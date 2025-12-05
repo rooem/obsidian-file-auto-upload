@@ -32,5 +32,4 @@ export type {
   TextProcessItem,
   FileProcessItem,
   DeleteProcessItem,
-  DeleteItem,
 } from "./Event";

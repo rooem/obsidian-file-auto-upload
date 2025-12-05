@@ -324,6 +324,17 @@ export class AmazonS3Uploader implements IUploader {
     return `https://${bucketName}.s3.${this.config.region || "amazonaws.com"}/${key}`;
   }
 
+  /**
+   * Get public URL using bucket subdomain format (for OSS/COS compatible services)
+   */
+  protected getBucketSubdomainUrl(key: string): string {
+    if (this.config.public_domain) {
+      return `${this.config.public_domain.replace(/\/$/, "")}/${key}`;
+    }
+    const endpoint = this.getEndpoint();
+    return `https://${this.config.bucket_name}.${endpoint.replace("https://", "")}/${key}`;
+  }
+
   protected getEndpoint(): string {
     let endpoint = this.config.endpoint;
     if (!endpoint.startsWith("http://") && !endpoint.startsWith("https://")) {
