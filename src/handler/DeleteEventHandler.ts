@@ -23,12 +23,6 @@ export class DeleteEventHandler extends BaseEventHandler {
     this.uploadServiceManager = uploadServiceManager;
   }
 
-  /**
-   * Handle deletion of multiple uploaded files
-   * @param fileLinks - Array of file URLs to delete
-   * @param editor - Editor instance
-   * @param view - Markdown view instance
-   */
   public handleDeleteUploadedFiles(items: ProcessItem[]): void {
     logger.debug("DeleteEventHandler", "Files queued for deletion", {
       queueLength: items.length,
@@ -36,16 +30,12 @@ export class DeleteEventHandler extends BaseEventHandler {
     void this.processItems(items);
   }
 
-  /**
-   * Process file deletion from storage and remove from editor
-   * @param item - Delete item containing file information
-   */
   protected async processItem(item: DeleteProcessItem): Promise<void> {
     if (item.eventType !== EventType.DELETE) {
       return;
     }
 
-     const { fileLink, fileKey, originalSelection } = item;
+    const { fileLink, fileKey, originalSelection } = item;
 
     try {
       const result = await this.uploadServiceManager.deleteFile(fileKey);
@@ -98,5 +88,4 @@ export class DeleteEventHandler extends BaseEventHandler {
   private escapeRegExp(string: string): string {
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
-
 }

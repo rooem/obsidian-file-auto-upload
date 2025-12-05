@@ -55,20 +55,11 @@ export const DEFAULT_SETTINGS: FileAutoUploadSettings = {
 export class FileAutoUploadSettingTab extends PluginSettingTab {
   plugin: FileAutoUploadPlugin;
 
-  /**
-   * Create a new settings tab
-   * @param app - The Obsidian app instance
-   * @param plugin - The plugin instance
-   */
   constructor(app: App, plugin: FileAutoUploadPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
 
-  /**
-   * Render the settings tab UI
-   * Creates storage service and auto-upload configuration sections
-   */
   display() {
     const { containerEl } = this;
     containerEl.empty();

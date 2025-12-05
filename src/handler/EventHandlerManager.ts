@@ -176,16 +176,14 @@ export class EventHandlerManager {
       return;
     }
 
-    const processItems: DeleteProcessItem[] = uploadedFileLinks.map(
-      (link) => ({
-        id: generateUniqueId("d"),
-        eventType: EventType.DELETE,
-        type: "text",
-        fileLink: link,
-        fileKey: extractFileKeyFromUrl(link, publicDomain),
-        originalSelection: originalSelection,
-      }),
-    );
+    const processItems: DeleteProcessItem[] = uploadedFileLinks.map((link) => ({
+      id: generateUniqueId("d"),
+      eventType: EventType.DELETE,
+      type: "text",
+      fileLink: link,
+      fileKey: extractFileKeyFromUrl(link, publicDomain),
+      originalSelection: originalSelection,
+    }));
 
     if (this.canHandle(processItems)) {
       menu.addItem((item: MenuItem) => {

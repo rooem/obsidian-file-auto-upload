@@ -24,11 +24,6 @@ export class StorageServiceSettings {
     };
   }
 
-  /**
-   * Render storage service settings section
-   * @param containerEl - Container element to render into
-   * @param plugin - Plugin instance
-   */
   static render(
     containerEl: HTMLElement,
     plugin: FileAutoUploadPlugin,

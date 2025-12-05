@@ -49,7 +49,7 @@ importers:
         specifier: ^5.5.4
         version: 5.5.4(eslint-config-prettier@10.1.8(eslint@9.39.1))(eslint@9.39.1)(prettier@3.7.3)
       obsidian:
-        specifier: ^1.10.3
+        specifier: ^1.5.7
         version: 1.10.3(@codemirror/state@6.5.0)(@codemirror/view@6.38.6)
       prettier:
         specifier: ^3.7.3

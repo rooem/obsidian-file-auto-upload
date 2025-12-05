@@ -2,7 +2,7 @@
 	"id": "file-auto-upload",
 	"name": "File Auto Upload",
 	"version": "1.0.0",
-	"minAppVersion": "1.0.0",
+	"minAppVersion": "1.5.7",
 	"description": "Automatically upload files to storage services when pasting or dragging files.",
 	"author": "rooecm",
 	"authorUrl": "https://github.com/rooem",

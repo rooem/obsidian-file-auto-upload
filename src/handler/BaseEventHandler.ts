@@ -60,5 +60,4 @@ export abstract class BaseEventHandler {
    * @param item - The item to process
    */
   protected abstract processItem(processItem: ProcessItem): Promise<void>;
-
 }

@@ -10,11 +10,6 @@ export class DeveloperSettings {
   private static developerMode: boolean = false;
   private static debugLogging: boolean = false;
 
-  /**
-   * Setup triple-click listener on title element
-   * @param titleEl - Title element to attach listener to
-   * @param onToggle - Callback when developer mode is toggled
-   */
   static setupTripleClickListener(
     titleEl: HTMLElement,
     onToggle: () => void,
@@ -43,26 +38,14 @@ export class DeveloperSettings {
     });
   }
 
-  /**
-   * Get current developer mode status
-   */
   static isEnabled(): boolean {
     return this.developerMode;
   }
 
-  /**
-   * Get debug logging status
-   */
   static isDebugLoggingEnabled(): boolean {
     return this.debugLogging;
   }
 
-  /**
-   * Render developer settings section
-   * @param containerEl - Container element to render into
-   * @param plugin - Plugin instance
-   * @param onToggle - Callback when developer mode is toggled
-   */
   static render(
     containerEl: HTMLElement,
     titleEl: HTMLElement,

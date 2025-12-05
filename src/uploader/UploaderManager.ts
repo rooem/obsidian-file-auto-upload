@@ -18,9 +18,6 @@ export class UploadServiceManager {
     this.initializeConfigChangeListener();
   }
 
-  /**
-   * Listen for configuration changes to clear uploader cache
-   */
   private initializeConfigChangeListener(): void {
     const configChangeListener: ConfigChangeListener = (
       changedSettings: Partial<FileAutoUploadSettings>,
@@ -31,9 +28,6 @@ export class UploadServiceManager {
     this.configurationManager.addConfigChangeListener(configChangeListener);
   }
 
-  /**
-   * Clear uploader instances when configuration changes
-   */
   private handleConfigChange(
     _changedSettings: Partial<FileAutoUploadSettings>,
   ): void {
@@ -50,10 +44,6 @@ export class UploadServiceManager {
     );
   }
 
-  /**
-   * Get or create uploader instance for current storage service
-   * @returns Uploader instance
-   */
   getUploader(): IUploader {
     const serviceType = this.configurationManager.getCurrentStorageService();
     const cached = this.uploaderInstances.get(serviceType);
@@ -87,10 +77,6 @@ export class UploadServiceManager {
     return uploader;
   }
 
-  /**
-   * Check if storage connection configuration is valid
-   * @returns Result with success status and optional error
-   */
   checkConnectionConfig(): { success: boolean; error?: string } {
     try {
       const uploader = this.getUploader();
@@ -114,10 +100,6 @@ export class UploadServiceManager {
     }
   }
 
-  /**
-   * Test connection to storage service
-   * @returns Result with success status and optional error
-   */
   async testConnection(): Promise<{ success: boolean; error?: string }> {
     try {
       const uploader = this.getUploader();
@@ -137,13 +119,6 @@ export class UploadServiceManager {
     }
   }
 
-  /**
-   * Upload a single file to storage
-   * @param file - File to upload
-   * @param key - Optional storage key
-   * @param onProgress - Optional progress callback
-   * @returns Upload result with URL
-   */
   async uploadFile(
     file: File,
     key?: string,
@@ -173,11 +148,6 @@ export class UploadServiceManager {
     return result;
   }
 
-  /**
-   * Delete a file from storage
-   * @param key - Storage key of file to delete
-   * @returns Result with success status and optional error
-   */
   async deleteFile(key: string): Promise<{ success: boolean; error?: string }> {
     logger.debug("UploaderManager", "Starting file deletion", { key });
 
@@ -201,11 +171,6 @@ export class UploadServiceManager {
     }
   }
 
-  /**
-   * Check if a file exists in storage
-   * @param key - Storage key to check
-   * @returns Result with exists status and optional error
-   */
   async fileExists(key: string): Promise<{ exists: boolean; error?: string }> {
     try {
       const uploader = this.getUploader();
@@ -222,11 +187,6 @@ export class UploadServiceManager {
     }
   }
 
-  /**
-   * Get file information from storage
-   * @param key - Storage key
-   * @returns Result with file info and optional error
-   */
   async getFileInfo(key: string): Promise<{
     success: boolean;
     info?: import("../types").FileInfo;
@@ -240,9 +200,6 @@ export class UploadServiceManager {
     }
   }
 
-  /**
-   * Dispose all uploader instances
-   */
   dispose(): void {
     this.uploaderInstances.forEach((uploader) => {
       if (uploader.dispose) {

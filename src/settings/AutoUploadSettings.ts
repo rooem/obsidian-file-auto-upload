@@ -7,11 +7,6 @@ import { Setting } from "obsidian";
  * Renders settings for clipboard upload, drag-drop upload, and file type configuration
  */
 export class AutoUploadSettings {
-  /**
-   * Render auto upload settings section
-   * @param containerEl - Container element to render into
-   * @param plugin - Plugin instance
-   */
   static render(containerEl: HTMLElement, plugin: FileAutoUploadPlugin): void {
     new Setting(containerEl).setName(t("settings.autoUpload")).setHeading();
     const settings = plugin.configurationManager.getSettings();

@@ -38,26 +38,14 @@ export class ConfigurationManager {
     }
   }
 
-  /**
-   * Get current settings (returns a copy)
-   */
   getSettings(): FileAutoUploadSettings {
     return { ...this.settings };
   }
 
-  /**
-   * Add configuration change listener
-   * @param listener - Listener function to call on config changes
-   */
   public addConfigChangeListener(listener: ConfigChangeListener): void {
     this.configChangeListeners.add(listener);
   }
 
-  /**
-   * Remove configuration change listener
-   * @param listener - Listener function to remove
-   * @returns true if listener was found and removed
-   */
   public removeConfigChangeListener(listener: ConfigChangeListener): boolean {
     const removed = this.configChangeListeners.delete(listener);
     if (removed) {
@@ -66,21 +54,12 @@ export class ConfigurationManager {
     return removed;
   }
 
-  /**
-   * Show storage configuration modal dialog
-   */
   public showStorageConfigModal(): void {
     const modal = new StorageConfigModal(this.plugin);
     modal.render();
     modal.getModal().open();
   }
 
-  /**
-   * Save plugin settings
-   * @param newSettings - Partial settings to update
-   * @param saveDataCallback - Optional callback to persist settings
-   * @param needNotify - Whether to notify listeners of changes
-   */
   async saveSettings(
     newSettings: Partial<FileAutoUploadSettings>,
     needNotify?: boolean,

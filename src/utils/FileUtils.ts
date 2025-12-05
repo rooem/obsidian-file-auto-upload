@@ -70,7 +70,7 @@ export function isFileTypeSupported(
  * @returns Generated unique key
  */
 export function generateUniqueId(type: string): string {
- return `${type}${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`
+  return `${type}${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`;
 }
 
 /**
@@ -326,8 +326,11 @@ export function parseMarkdownLinks(text: string): MarkdownLink[] {
       let bracketDepth = 1;
       let j = i + 1;
       while (j < text.length && bracketDepth > 0) {
-        if (text[j] === "[") bracketDepth++;
-        else if (text[j] === "]") bracketDepth--;
+        if (text[j] === "[") {
+          bracketDepth++;
+        } else if (text[j] === "]") {
+          bracketDepth--;
+        }
         j++;
       }
 
@@ -335,8 +338,11 @@ export function parseMarkdownLinks(text: string): MarkdownLink[] {
         let parenDepth = 1;
         let k = j + 1;
         while (k < text.length && parenDepth > 0) {
-          if (text[k] === "(") parenDepth++;
-          else if (text[k] === ")") parenDepth--;
+          if (text[k] === "(") {
+            parenDepth++;
+          } else if (text[k] === ")") {
+            parenDepth--;
+          }
           k++;
         }
         if (parenDepth === 0) {
@@ -360,7 +366,10 @@ export function parseMarkdownLinks(text: string): MarkdownLink[] {
 /**
  * Remove markdown links containing the specified URL
  */
-export function removeMarkdownLinksByUrl(text: string, targetUrl: string): string {
+export function removeMarkdownLinksByUrl(
+  text: string,
+  targetUrl: string,
+): string {
   const links = parseMarkdownLinks(text);
   let result = "";
   let lastEnd = 0;
