@@ -2,10 +2,11 @@ import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import prettier from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
+import obsidianmd from 'eslint-plugin-obsidianmd';
 
 export default [
   {
-    ignores: ['main.js', '*.config.js', 'node_modules/', 'dist/']
+    ignores: ['main.js', '*.config.js', 'node_modules/', 'dist/'],
   },
   {
     files: ['src/**/*.ts'],
@@ -14,12 +15,13 @@ export default [
       parserOptions: {
         ecmaVersion: 2023,
         sourceType: 'module',
-        project: './tsconfig.json'
-      }
+        project: './tsconfig.json',
+      },
     },
     plugins: {
       '@typescript-eslint': tseslint,
-      prettier
+      prettier,
+      obsidianmd,
     },
     rules: {
       ...tseslint.configs.recommended.rules,
@@ -35,10 +37,15 @@ export default [
       'no-console': 'off',
       'prefer-const': 'warn',
       'no-var': 'error',
-      'eqeqeq': ['error', 'always'],
-      'curly': ['error', 'all'],
+      eqeqeq: ['error', 'always'],
+      curly: ['error', 'all'],
       'no-throw-literal': 'error',
-      'prettier/prettier': 'error'
-    }
-  }
+      'prettier/prettier': 'error',
+      // Obsidian 插件特定规则
+      'obsidianmd/no-deprecated-api': 'error',
+      'obsidianmd/no-undocumented-notice': 'warn',
+      'obsidianmd/require-await-loading': 'error',
+      'obsidianmd/no-leaked-settings': 'warn',
+    },
+  },
 ];

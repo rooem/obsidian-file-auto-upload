@@ -34,6 +34,7 @@
     "cross-env": "^10.1.0",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-obsidianmd": "^0.1.9",
     "eslint-plugin-prettier": "^5.5.4",
     "obsidian": "^1.5.7",
     "prettier": "^3.7.3",
