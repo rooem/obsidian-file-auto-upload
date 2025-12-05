@@ -49,12 +49,28 @@ export function isAudioExtension(ext: string): ext is AudioExtension {
  * @param extension - File extension to check
  * @returns true if supported
  */
-export function isFileTypeSupported(autoUploadFileTypes: string[], extension?: string): boolean {
+export function isFileTypeSupported(
+  autoUploadFileTypes: string[],
+  extension?: string,
+): boolean {
   if (!extension || !autoUploadFileTypes || autoUploadFileTypes.length === 0) {
     return false;
   }
 
   return autoUploadFileTypes.includes(extension);
+}
+
+/**
+ * Generate a unique file key with timestamp and random string
+ *
+ * Format: {timestamp}/{random}-{encoded-filename}.{extension}
+ * Example: 2024-01-15T10-30-45-123Z/abc123-my%20file.jpg
+ *
+ * @param fileName - Original file name
+ * @returns Generated unique key
+ */
+export function generateUniqueId(type: string): string {
+ return `${type}${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`
 }
 
 /**
@@ -81,25 +97,27 @@ export function generateFileKey(fileName: string): string {
   return `${timestamp}/${randomString}-${encodedName}.${extension}`;
 }
 
-
-export function findSupportedLocalFilePath(text: string, autoUploadFileTypes: string[]): string[] {
+export function findSupportedFilePath(
+  text: string,
+  autoUploadFileTypes: string[],
+): string[] {
   if (!text || !autoUploadFileTypes || autoUploadFileTypes.length === 0) {
     return [];
   }
 
   const paths: string[] = [];
   let i = 0;
-  
+
   while (i < text.length) {
     // 跳过 ! 前缀
-    if (text[i] === '!' && i + 1 < text.length && text[i + 1] === '[') {
+    if (text[i] === "!" && i + 1 < text.length && text[i + 1] === "[") {
       i++;
     }
-    
-    if (text[i] === '[') {
+
+    if (text[i] === "[") {
       // 检查是否是 [[]] wiki 链接
-      if (i + 1 < text.length && text[i + 1] === '[') {
-        const closeIdx = text.indexOf(']]', i + 2);
+      if (i + 1 < text.length && text[i + 1] === "[") {
+        const closeIdx = text.indexOf("]]", i + 2);
         if (closeIdx !== -1) {
           paths.push(text.substring(i + 2, closeIdx));
           i = closeIdx + 2;
@@ -110,18 +128,24 @@ export function findSupportedLocalFilePath(text: string, autoUploadFileTypes: st
         let bracketDepth = 1;
         let j = i + 1;
         while (j < text.length && bracketDepth > 0) {
-          if (text[j] === '[') bracketDepth++;
-          else if (text[j] === ']') bracketDepth--;
+          if (text[j] === "[") {
+            bracketDepth++;
+          } else if (text[j] === "]") {
+            bracketDepth--;
+          }
           j++;
         }
-        
-        if (bracketDepth === 0 && j < text.length && text[j] === '(') {
+
+        if (bracketDepth === 0 && j < text.length && text[j] === "(") {
           // 找到匹配的右括号（处理嵌套括号）
           let parenDepth = 1;
           let k = j + 1;
           while (k < text.length && parenDepth > 0) {
-            if (text[k] === '(') parenDepth++;
-            else if (text[k] === ')') parenDepth--;
+            if (text[k] === "(") {
+              parenDepth++;
+            } else if (text[k] === ")") {
+              parenDepth--;
+            }
             k++;
           }
           if (parenDepth === 0) {
@@ -135,13 +159,13 @@ export function findSupportedLocalFilePath(text: string, autoUploadFileTypes: st
     i++;
   }
 
-  return paths.filter(path => 
-    !path.startsWith('http://') && 
-    !path.startsWith('https://') && 
-    isFileTypeSupported(autoUploadFileTypes, path.split('.').pop())
+  return paths.filter(
+    (path) =>
+      !path.startsWith("http://") &&
+      !path.startsWith("https://") &&
+      isFileTypeSupported(autoUploadFileTypes, path.split(".").pop()),
   );
 }
-
 
 /**
  * Extract uploaded file URLs from selected text
@@ -155,27 +179,33 @@ export function findUploadedFileLinks(text: string, domain: string): string[] {
 
   while (i < text.length) {
     // 跳过 ! 前缀
-    if (text[i] === '!' && i + 1 < text.length && text[i + 1] === '[') {
+    if (text[i] === "!" && i + 1 < text.length && text[i + 1] === "[") {
       i++;
     }
-    
-    if (text[i] === '[') {
+
+    if (text[i] === "[") {
       // 找到匹配的 ]
       let bracketDepth = 1;
       let j = i + 1;
       while (j < text.length && bracketDepth > 0) {
-        if (text[j] === '[') bracketDepth++;
-        else if (text[j] === ']') bracketDepth--;
+        if (text[j] === "[") {
+          bracketDepth++;
+        } else if (text[j] === "]") {
+          bracketDepth--;
+        }
         j++;
       }
-      
-      if (bracketDepth === 0 && j < text.length && text[j] === '(') {
+
+      if (bracketDepth === 0 && j < text.length && text[j] === "(") {
         // 找到匹配的右括号
         let parenDepth = 1;
         let k = j + 1;
         while (k < text.length && parenDepth > 0) {
-          if (text[k] === '(') parenDepth++;
-          else if (text[k] === ')') parenDepth--;
+          if (text[k] === "(") {
+            parenDepth++;
+          } else if (text[k] === ")") {
+            parenDepth--;
+          }
           k++;
         }
         if (parenDepth === 0) {
@@ -196,7 +226,7 @@ export function findUploadedFileLinks(text: string, domain: string): string[] {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   let match;
   while ((match = urlRegex.exec(text)) !== null) {
-    const url = match[1].replace(/\)+$/, ''); // 移除末尾多余的括号
+    const url = match[1].replace(/\)+$/, ""); // 移除末尾多余的括号
     if (!processedUrls.has(url) && isUploadedFileLink(url, domain)) {
       links.push(url);
       processedUrls.add(url);
@@ -207,11 +237,53 @@ export function findUploadedFileLinks(text: string, domain: string): string[] {
 }
 
 /**
-  * Check if URL is an uploaded file from configured storage
-  * @param url - URL to check
-  * @returns true if URL matches configured storage
-  */
- function isUploadedFileLink(url: string, publicDomain: string): boolean {
+ * Extract storage key from file URL
+ * @param url - File URL
+ * @returns Storage key for deletion
+ */
+export function extractFileKeyFromUrl(
+  url: string,
+  publicDomain: string,
+): string {
+  try {
+    let extractedKey: string;
+    if (url.startsWith(publicDomain)) {
+      const baseUrl = publicDomain.replace(/\/$/, "");
+      extractedKey = url.substring(baseUrl.length + 1);
+    } else {
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      extractedKey = pathname.startsWith("/")
+        ? pathname.substring(1)
+        : pathname;
+    }
+
+    // Encode the key to match the storage format
+    // Split by '/' and encode each part separately to preserve the path structure
+    const keyParts = extractedKey.split("/");
+    const encodedKeyParts = keyParts.map((part) => {
+      // Decode first in case it's already encoded, then re-encode to ensure consistency
+      try {
+        const decoded = decodeURIComponent(part);
+        return encodeURIComponent(decoded);
+      } catch {
+        // If decoding fails, just encode the original part
+        return encodeURIComponent(part);
+      }
+    });
+
+    return encodedKeyParts.join("/");
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Check if URL is an uploaded file from configured storage
+ * @param url - URL to check
+ * @returns true if URL matches configured storage
+ */
+function isUploadedFileLink(url: string, publicDomain: string): boolean {
   try {
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
       return false;
@@ -224,7 +296,7 @@ export function findUploadedFileLinks(text: string, domain: string): string[] {
     const publicUrlObj = new URL(publicDomain);
     const urlObj = new URL(url);
     return urlObj.hostname === publicUrlObj.hostname;
-  } catch (error) {
-    throw error;
+  } catch {
+    return false;
   }
 }

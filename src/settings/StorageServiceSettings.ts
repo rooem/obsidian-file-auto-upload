@@ -9,12 +9,18 @@ import type { FileAutoUploadSettings } from "../types";
  * Renders configuration for cloud storage providers (S3, R2, OSS, COS)
  */
 export class StorageServiceSettings {
-  private static createConfigUpdater(plugin: FileAutoUploadPlugin, key: string) {
+  private static createConfigUpdater(
+    plugin: FileAutoUploadPlugin,
+    key: string,
+  ) {
     return async (value: string) => {
       const current = plugin.configurationManager.getSettings();
-      await plugin.configurationManager.saveSettings({
-        uploaderConfig: { ...current.uploaderConfig, [key]: value }
-      }, true);
+      await plugin.configurationManager.saveSettings(
+        {
+          uploaderConfig: { ...current.uploaderConfig, [key]: value },
+        },
+        true,
+      );
     };
   }
 
@@ -41,7 +47,10 @@ export class StorageServiceSettings {
         return dropdown
           .setValue(settings.uploaderType)
           .onChange(async (value: string) => {
-            await plugin.configurationManager.saveSettings({ uploaderType: value }, true);
+            await plugin.configurationManager.saveSettings(
+              { uploaderType: value },
+              true,
+            );
             onToggle();
           });
       });

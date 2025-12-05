@@ -14,17 +14,23 @@ export type {
 } from "./Uploader";
 
 // Settings types
-export type { FileAutoUploadSettings, ConfigChangeListener, EncryptedData } from "./Settings";
+export type {
+  FileAutoUploadSettings,
+  ConfigChangeListener,
+  EncryptedData,
+} from "./Settings";
 
 // Error types
 export { ErrorCode, UploadError } from "./Error";
 
 export type { AppError, ValidationResult } from "./Error";
 
-export  {
-  EventType,
-  ProcessItem,
-  ProcessFile,
-} from "./Event";
+export { EventType } from "./Event";
 
-export type { DeleteItem } from "./Event";
+export type {
+  ProcessItem,
+  TextProcessItem,
+  FileProcessItem,
+  DeleteProcessItem,
+  DeleteItem,
+} from "./Event";

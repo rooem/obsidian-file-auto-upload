@@ -5,9 +5,20 @@ import { UploadEventHandler } from "./UploadEventHandler";
 import { DeleteEventHandler } from "./DeleteEventHandler";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
-import { findSupportedLocalFilePath as findSupportedViewFilePath, findUploadedFileLinks } from "../utils/FileUtils";
-import { EventType, ProcessItem } from "../types/index";
-
+import {
+  findSupportedFilePath as findSupportedViewFilePath,
+  findUploadedFileLinks,
+  extractFileKeyFromUrl,
+  generateUniqueId,
+} from "../utils/FileUtils";
+import {
+  EventType,
+  ProcessItem,
+  DeleteItem,
+  DeleteProcessItem,
+  TextProcessItem,
+  FileProcessItem,
+} from "../types/index";
 
 export class EventHandlerManager {
   private app: App;
@@ -43,13 +54,19 @@ export class EventHandlerManager {
     _view: MarkdownView,
   ): Promise<void> {
     const settings = this.configurationManager.getSettings();
-    if (!settings.clipboardAutoUpload || !evt.clipboardData || !evt.clipboardData.items) {
+    if (
+      !settings.clipboardAutoUpload ||
+      !evt.clipboardData ||
+      !evt.clipboardData.items
+    ) {
       return;
     }
 
     if (this.canHandle(evt.clipboardData.items)) {
       evt.preventDefault();
-      const processItems = await this.getProcessItemList(evt.clipboardData.items);
+      const processItems = await this.getProcessItemList(
+        evt.clipboardData.items,
+      );
       void this.uploadEventHandler.handleFileUploadEvent(processItems);
     }
   }
@@ -60,13 +77,19 @@ export class EventHandlerManager {
     _view: MarkdownView,
   ): Promise<void> {
     const settings = this.configurationManager.getSettings();
-    if (!settings.dragAutoUpload || !evt.dataTransfer || !evt.dataTransfer.items) {
+    if (
+      !settings.dragAutoUpload ||
+      !evt.dataTransfer ||
+      !evt.dataTransfer.items
+    ) {
       return;
     }
 
     if (this.canHandle(evt.dataTransfer.items)) {
       evt.preventDefault();
-      const processItems = await this.getProcessItemList(evt.dataTransfer.items);
+      const processItems = await this.getProcessItemList(
+        evt.dataTransfer.items,
+      );
       void this.uploadEventHandler.handleFileUploadEvent(processItems);
     }
   }
@@ -106,9 +129,16 @@ export class EventHandlerManager {
     handlers.forEach((handler) => handler.dispose());
   }
 
-  private handleUploadViewFile(menu: Menu, editor: Editor, view: MarkdownView): void {
+  private handleUploadViewFile(
+    menu: Menu,
+    editor: Editor,
+    _view: MarkdownView,
+  ): void {
     const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
-    const localFiles = findSupportedViewFilePath(editor.getSelection(), supportedTypes);
+    const localFiles = findSupportedViewFilePath(
+      editor.getSelection(),
+      supportedTypes,
+    );
     if (!localFiles || localFiles.length === 0) {
       return;
     }
@@ -116,9 +146,10 @@ export class EventHandlerManager {
     menu.addItem((item) => {
       item
         .setTitle(t("upload.localFile"))
-        .setIcon('upload')
+        .setIcon("upload")
         .onClick(async () => {
-          const processItems = await this.getProcessItemListFromView(localFiles);
+          const processItems =
+            await this.getProcessItemListFromView(localFiles);
           if (this.canHandle(processItems)) {
             void this.uploadEventHandler.handleFileUploadEvent(processItems);
           }
@@ -126,30 +157,53 @@ export class EventHandlerManager {
     });
   }
 
-
-  private handleDeleteFile(menu: Menu, editor: Editor, view: MarkdownView): void {
+  private handleDeleteFile(
+    menu: Menu,
+    editor: Editor,
+    _view: MarkdownView,
+  ): void {
     const publicDomain = this.configurationManager.getPublicDomain();
-    const uploadedFileLinks = findUploadedFileLinks(editor.getSelection(), publicDomain);
+    const uploadedFileLinks = findUploadedFileLinks(
+      editor.getSelection(),
+      publicDomain,
+    );
     if (!uploadedFileLinks || uploadedFileLinks.length === 0) {
       return;
     }
 
-    menu.addItem((item: MenuItem) => {
-      item
-        .setTitle(t("delete.menuTitle"))
-        .setIcon("trash")
-        .setWarning(true)
-        .onClick(() => {
-          void this.deleteEventHandler.handleDeleteUploadedFiles(
-            uploadedFileLinks,
-            editor,
-            view,
-          );
-        });
-    });
+    const originalSelection = editor.getSelection();
+    if (!originalSelection) {
+      logger.warn("DeleteEventHandler", "No text selected");
+      return;
+    }
+
+    const processItems: DeleteProcessItem[] = uploadedFileLinks.map(
+      (link) => ({
+        id: generateUniqueId("d"),
+        eventType: EventType.DELETE,
+        type: "text",
+        fileLink: link,
+        fileKey: extractFileKeyFromUrl(link, publicDomain),
+        originalSelection: originalSelection,
+      }),
+    );
+
+    if (this.canHandle(processItems)) {
+      menu.addItem((item: MenuItem) => {
+        item
+          .setTitle(t("delete.menuTitle"))
+          .setIcon("trash")
+          .setWarning(true)
+          .onClick(() => {
+            void this.deleteEventHandler.handleDeleteUploadedFiles(
+              processItems,
+            );
+          });
+      });
+    }
   }
 
-  private canHandle(items: Array<ProcessItem> | DataTransferItemList): boolean {
+  private canHandle(items: ProcessItem[] | DataTransferItemList): boolean {
     if (items && items.length === 0) {
       return false;
     }
@@ -171,16 +225,23 @@ export class EventHandlerManager {
     return true;
   }
 
-  private async getProcessItemList(items: DataTransferItemList): Promise<Array<ProcessItem>> {
-    const queue: Array<ProcessItem> = [];
+  private async getProcessItemList(
+    items: DataTransferItemList,
+  ): Promise<Array<TextProcessItem | FileProcessItem>> {
+    const queue: Array<TextProcessItem | FileProcessItem> = [];
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      const uploadId = `u${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`;
+      const uploadId = generateUniqueId("u");
       if (item.kind === "string" && item.type === "text/plain") {
         const text = await new Promise<string>((resolve) =>
           item.getAsString(resolve),
         );
-        queue.push({ id: uploadId, eventType: EventType.UPLOAD, type: "text", value: text });
+        queue.push({
+          id: uploadId,
+          eventType: EventType.UPLOAD,
+          type: "text",
+          value: text,
+        } as TextProcessItem);
         continue;
       }
 
@@ -196,44 +257,49 @@ export class EventHandlerManager {
         if (!file) {
           continue;
         }
-        const extension = file.name.split(".").pop()?.toLowerCase()
-        queue.push({ id: uploadId, eventType: EventType.UPLOAD, type: "file", value: file, extension: extension });
+        const extension = file.name.split(".").pop()?.toLowerCase();
+        queue.push({
+          id: uploadId,
+          eventType: EventType.UPLOAD,
+          type: "file",
+          value: file,
+          extension: extension,
+        } as FileProcessItem);
       }
     }
     return queue;
   }
 
-  /**
-  * Extract files and text from DataTransferItemList or local file array
-  * @param items - DataTransferItemList from event or array of local files
-  * @returns Queue of items to process
-  */
-  private async getProcessItemListFromView(filePathList: string[]): Promise<Array<ProcessItem>> {
-    const queue: Array<ProcessItem> = [];
-    if (!filePathList || filePathList.length == 0) {
+  private async getProcessItemListFromView(
+    filePathList: string[],
+  ): Promise<FileProcessItem[]> {
+    const queue: FileProcessItem[] = [];
+    if (!filePathList || filePathList.length === 0) {
       return queue;
     }
 
     for (const filePath of filePathList) {
       try {
         const arrayBuffer = await this.app.vault.adapter.readBinary(filePath);
-        const fileName = filePath.split('/').pop() || 'file';
+        const fileName = filePath.split("/").pop() || "file";
         const file = new File([new Blob([arrayBuffer])], fileName);
-        const uploadId = `u${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`;
+        const uploadId = generateUniqueId("u");
         queue.push({
           id: uploadId,
           eventType: EventType.UPLOAD,
           type: "file",
           value: file,
           extension: fileName.split(".").pop()?.toLowerCase(),
-          localPath: filePath
-        });
+          localPath: filePath,
+        } as FileProcessItem);
       } catch (error) {
-        logger.error("LocalFileUploadHandler", "Failed to read local file", { filePath, error });
+        logger.error("LocalFileUploadHandler", "Failed to read local file", {
+          filePath,
+          error,
+        });
       }
     }
 
     return queue;
   }
-
 }

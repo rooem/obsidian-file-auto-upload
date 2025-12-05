@@ -20,8 +20,10 @@ export class CloudflareR2Uploader extends AmazonS3Uploader {
 
   public checkConnectionConfig(): { success: boolean; error?: string } {
     const commonResult = this.validateCommonConfig();
-    if (!commonResult.success) return commonResult;
-    
+    if (!commonResult.success) {
+      return commonResult;
+    }
+
     if (!this.config.public_domain) {
       return { success: false, error: t("error.missingPublicUrl") };
     }

@@ -34,7 +34,9 @@ export class ConcurrencyController {
     } finally {
       this.running--;
       const next = this.queue.shift();
-      if (next) next();
+      if (next) {
+        next();
+      }
     }
   }
 
@@ -46,7 +48,9 @@ export class ConcurrencyController {
     // Release all waiting tasks
     while (this.queue.length > 0) {
       const next = this.queue.shift();
-      if (next) next();
+      if (next) {
+        next();
+      }
     }
   }
 

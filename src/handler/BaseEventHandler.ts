@@ -8,12 +8,16 @@ import { ConcurrencyController } from "../utils/ConcurrencyController";
  * Base class for all event handlers
  * Provides queue management for asynchronous operations with concurrency control
  */
-export abstract class BaseEventHandler<T = unknown> {
+export abstract class BaseEventHandler {
   protected app: App;
   protected configurationManager: ConfigurationManager;
   protected concurrencyController: ConcurrencyController;
 
-  constructor(app: App, configurationManager: ConfigurationManager, maxConcurrent: number = 3) {
+  constructor(
+    app: App,
+    configurationManager: ConfigurationManager,
+    maxConcurrent: number = 3,
+  ) {
     this.app = app;
     this.configurationManager = configurationManager;
     this.concurrencyController = new ConcurrencyController(maxConcurrent);
@@ -41,13 +45,13 @@ export abstract class BaseEventHandler<T = unknown> {
    * Process items immediately with concurrency control
    * @param items - Array of items to process
    */
-  protected processItems(
-    items: Array<ProcessItem<T>>,
-  ): void {
+  protected processItems(items: ProcessItem[]): void {
     for (const item of items) {
-      this.concurrencyController.run(() => this.processItem(item)).catch((error) => {
-        logger.error("BaseEventHandler processing item:", error);
-      });
+      this.concurrencyController
+        .run(() => this.processItem(item))
+        .catch((error: Error) => {
+          logger.error("BaseEventHandler processing item:", error.message);
+        });
     }
   }
 
@@ -55,26 +59,6 @@ export abstract class BaseEventHandler<T = unknown> {
    * Process a single queue item - must be implemented by subclasses
    * @param item - The item to process
    */
-  protected abstract processItem(
-    processItem: ProcessItem<T>
-  ): Promise<void>;
+  protected abstract processItem(processItem: ProcessItem): Promise<void>;
 
-  /**
-   * Extract uploaded file links from text - can be overridden by subclasses
-   * @param text - Text to extract links from
-   * @returns Array of file URLs
-   */
-  protected extractUploadedFileLinks(text: string): string[] {
-    const publicDomain = this.configurationManager.getPublicDomain();
-
-    if (!publicDomain) {
-      return [];
-    }
-
-    const escapedUrl = publicDomain.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const linkRegex = new RegExp(`!?\\[[^\\]]*\\]\\((${escapedUrl}[^)]+)\\)`, "g");
-    const matches = text.matchAll(linkRegex);
-
-    return Array.from(matches, (match) => match[1]);
-  }
 }

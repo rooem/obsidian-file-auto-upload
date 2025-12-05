@@ -1,5 +1,5 @@
 import { App, MarkdownView } from "obsidian";
-import { ProcessItem } from "../../types/index";
+import { FileProcessItem } from "../../types/index";
 import { ConfigurationManager } from "../../settings/ConfigurationManager";
 import { UploadServiceManager } from "../../uploader/UploaderManager";
 import { isFileTypeSupported, isImageExtension } from "../../utils/FileUtils";
@@ -13,12 +13,10 @@ export class FileItemProcessor {
   constructor(
     private app: App,
     private configurationManager: ConfigurationManager,
-    private uploadServiceManager: UploadServiceManager
+    private uploadServiceManager: UploadServiceManager,
   ) {}
 
-  async process(processItem: ProcessItem): Promise<void> {
-    if (!(processItem.value instanceof File)) return;
-
+  async process(processItem: FileProcessItem): Promise<void> {
     const file = processItem.value;
     logger.debug("FileItemProcessor", "Processing file item", {
       fileName: file.name,
@@ -36,16 +34,24 @@ export class FileItemProcessor {
     await this.uploadFile(file, processItem.id, processItem.localPath);
   }
 
-  private async uploadFile(file: File, id: string, localPath?: string): Promise<void> {
+  private async uploadFile(
+    file: File,
+    id: string,
+    localPath?: string,
+  ): Promise<void> {
     const debouncer = new ProgressDebouncer(100);
     this.progressDebouncers.set(id, debouncer);
 
     try {
-      const result = await this.uploadServiceManager.uploadFile(file, undefined, (progress) => {
-        debouncer.update(progress, (debouncedProgress) => {
-          this.updateUploadProgress(id, file.name, debouncedProgress);
-        });
-      });
+      const result = await this.uploadServiceManager.uploadFile(
+        file,
+        undefined,
+        (progress) => {
+          debouncer.update(progress, (debouncedProgress) => {
+            this.updateUploadProgress(id, file.name, debouncedProgress);
+          });
+        },
+      );
 
       this.handleUploadResult(result, file, id, localPath);
     } finally {
@@ -54,36 +60,56 @@ export class FileItemProcessor {
     }
   }
 
-  private handleUploadResult(result: { success: boolean; url?: string; error?: string }, file: File, id: string, localPath?: string): void {
+  private handleUploadResult(
+    result: { success: boolean; url?: string; error?: string },
+    file: File,
+    id: string,
+    _localPath?: string,
+  ): void {
     if (result.success && result.url) {
-      logger.debug("FileItemProcessor", "File processed successfully", { fileName: file.name });
+      logger.debug("FileItemProcessor", "File processed successfully", {
+        fileName: file.name,
+      });
       this.replacePlaceholderWithLink(id, result.url, file.name);
     } else {
       const errorMsg = result.error || t("error.uploadFailed");
-      logger.error("FileItemProcessor", "File processing failed", { fileName: file.name, error: errorMsg });
+      logger.error("FileItemProcessor", "File processing failed", {
+        fileName: file.name,
+        error: errorMsg,
+      });
       this.replacePlaceholderWithError(id, file.name, errorMsg);
     }
   }
 
-  private updateUploadProgress(id: string, fileName: string, progress: number): void {
+  private updateUploadProgress(
+    id: string,
+    fileName: string,
+    progress: number,
+  ): void {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.editor) return;
+    if (!activeView?.editor) {
+      return;
+    }
 
     const editor = activeView.editor;
     const content = editor.getValue();
     const marker = `<!--${id}-->`;
     const markerIndex = content.indexOf(marker);
 
-    if (markerIndex === -1) return;
+    if (markerIndex === -1) {
+      return;
+    }
 
     // 新格式: [fileName]📤(progress%)上传中<!--id-->
     const progressText = `[${fileName}]📤(${Math.round(progress)}%)${t("upload.uploading")}${marker}`;
-    
+
     // 找到包含marker的整个占位符 [...]...<!--id-->
-    const linkStartIndex = content.lastIndexOf('[', markerIndex);
+    const linkStartIndex = content.lastIndexOf("[", markerIndex);
     const markerEndIndex = markerIndex + marker.length;
-    
-    if (linkStartIndex === -1) return;
+
+    if (linkStartIndex === -1) {
+      return;
+    }
 
     const beforeContent = content.substring(0, linkStartIndex);
     const afterContent = content.substring(markerEndIndex);
@@ -91,7 +117,11 @@ export class FileItemProcessor {
     editor.setValue(beforeContent + progressText + afterContent);
   }
 
-  private replacePlaceholderWithLink(id: string, url: string, fileName: string): void {
+  private replacePlaceholderWithLink(
+    id: string,
+    url: string,
+    fileName: string,
+  ): void {
     const extension = fileName.split(".").pop()?.toLowerCase() || "";
     const encodedUrl = encodeURI(url);
     const markdown = isImageExtension(extension)
@@ -100,7 +130,11 @@ export class FileItemProcessor {
     this.replacePlaceholderById(id, markdown);
   }
 
-  private replacePlaceholderWithError(id: string, fileName: string, errorMessage?: string): void {
+  private replacePlaceholderWithError(
+    id: string,
+    fileName: string,
+    errorMessage?: string,
+  ): void {
     const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
     const extension = fileName.split(".").pop()?.toLowerCase();
     const pre = !isFileTypeSupported(supportedTypes, extension)
@@ -114,20 +148,29 @@ export class FileItemProcessor {
 
   private replacePlaceholderById(uploadId: string, text: string): void {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.editor) return;
+    if (!activeView?.editor) {
+      return;
+    }
 
     const editor = activeView.editor;
     const content = editor.getValue();
     const marker = `<!--${uploadId}-->`;
     const markerIndex = content.indexOf(marker);
 
-    if (markerIndex === -1) return;
+    if (markerIndex === -1) {
+      // 没有占位符时，在光标处插入
+      editor.replaceSelection(text + "\n");
+      return;
+    }
 
     // 新格式: [fileName]📤(progress%)上传中<!--id-->
-    const linkStartIndex = content.lastIndexOf('[', markerIndex);
+    const linkStartIndex = content.lastIndexOf("[", markerIndex);
     const markerEndIndex = markerIndex + marker.length;
-    
-    if (linkStartIndex === -1) return;
+
+    if (linkStartIndex === -1) {
+      editor.replaceSelection(text + "\n");
+      return;
+    }
 
     const beforeContent = content.substring(0, linkStartIndex);
     const afterContent = content.substring(markerEndIndex);
@@ -135,15 +178,21 @@ export class FileItemProcessor {
     editor.setValue(beforeContent + text + afterContent);
   }
 
-
   private async processNotSupportedFile(file: File, id: string): Promise<void> {
-    logger.debug("FileItemProcessor", "File type not supported for upload, saving to vault", {
-      fileName: file.name,
-    });
+    logger.debug(
+      "FileItemProcessor",
+      "File type not supported for upload, saving to vault",
+      {
+        fileName: file.name,
+      },
+    );
 
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (!activeView) {
-      logger.warn("FileItemProcessor", "File type not supported: No active markdown view");
+      logger.warn(
+        "FileItemProcessor",
+        "File type not supported: No active markdown view",
+      );
       return;
     }
 
@@ -165,11 +214,21 @@ export class FileItemProcessor {
         await this.app.vault.createFolder(attachmentFolder);
       }
 
-      const uniqueName = this.getUniqueFileNameInFolder(file.name, attachmentFolder);
+      const uniqueName = this.getUniqueFileNameInFolder(
+        file.name,
+        attachmentFolder,
+      );
       const fullPath = `${attachmentFolder}/${uniqueName}`;
-      const created = await this.app.vault.createBinary(fullPath, await file.arrayBuffer());
+      const created = await this.app.vault.createBinary(
+        fullPath,
+        await file.arrayBuffer(),
+      );
 
-      this.replacePlaceholderById(id, `[${file.name}](${created.path})`);
+      const extension = file.name.split(".").pop()?.toLowerCase() || "";
+      const markdown = isImageExtension(extension)
+        ? `![${file.name}](${created.path})`
+        : `[${file.name}](${created.path})`;
+      this.replacePlaceholderById(id, markdown);
     } catch (error: unknown) {
       logger.error("FileItemProcessor", "Failed to save file to vault", {
         fileName: file.name,
@@ -180,7 +239,10 @@ export class FileItemProcessor {
     }
   }
 
-  private getUniqueFileNameInFolder(fileName: string, folderPath: string): string {
+  private getUniqueFileNameInFolder(
+    fileName: string,
+    folderPath: string,
+  ): string {
     const fullPath = `${folderPath}/${fileName}`;
     const existingFile = this.app.vault.getAbstractFileByPath(fullPath);
     if (!existingFile) {
@@ -193,7 +255,9 @@ export class FileItemProcessor {
 
     let counter = 1;
     let uniqueName = `${name}-${counter}${ext}`;
-    while (this.app.vault.getAbstractFileByPath(`${folderPath}/${uniqueName}`)) {
+    while (
+      this.app.vault.getAbstractFileByPath(`${folderPath}/${uniqueName}`)
+    ) {
       counter++;
       uniqueName = `${name}-${counter}${ext}`;
     }

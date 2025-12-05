@@ -31,7 +31,7 @@ export class ConfigurationManager {
       const loadedSettings = await this.load();
       this.settings = {
         ...DEFAULT_SETTINGS,
-        ...(loadedSettings !== null? loadedSettings: {}),
+        ...(loadedSettings !== null ? loadedSettings : {}),
       };
     } catch (error) {
       logger.error("ConfigurationManager", "Failed to load settings", error);
@@ -126,9 +126,8 @@ export class ConfigurationManager {
     const encryptedData = loadedData as EncryptedData;
 
     try {
-      const vaultPath =
-        (this.plugin.app.vault.adapter as any).basePath ||
-        this.plugin.app.vault.getName();
+      const adapter = this.plugin.app.vault.adapter as { basePath?: string };
+      const vaultPath = adapter.basePath || this.plugin.app.vault.getName();
       const decrypted = await EncryptionHelper.decrypt(
         encryptedData.data,
         this.plugin.manifest.id,
@@ -154,9 +153,8 @@ export class ConfigurationManager {
    */
   private async saveData(data: unknown): Promise<void> {
     const jsonString = JSON.stringify(data);
-    const vaultPath =
-      (this.plugin.app.vault.adapter as any).basePath ||
-      this.plugin.app.vault.getName();
+    const adapter = this.plugin.app.vault.adapter as { basePath?: string };
+    const vaultPath = adapter.basePath || this.plugin.app.vault.getName();
 
     // Generate a new salt for each encryption
     const salt = this.generateSalt();
@@ -201,5 +199,4 @@ export class ConfigurationManager {
     const saltArray = crypto.getRandomValues(new Uint8Array(32));
     return btoa(String.fromCharCode(...saltArray));
   }
-
 }

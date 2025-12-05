@@ -70,7 +70,8 @@ export class UploadServiceManager {
 
     const config = this.configurationManager.getCurrentStorageConfig();
 
-    const uploaderInfo = UploaderTypeInfo[serviceType as keyof typeof UploaderTypeInfo];
+    const uploaderInfo =
+      UploaderTypeInfo[serviceType as keyof typeof UploaderTypeInfo];
     if (!uploaderInfo) {
       throw new Error(`Unknown uploader type: ${serviceType}`);
     }

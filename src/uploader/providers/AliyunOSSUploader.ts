@@ -1,6 +1,5 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import { UploaderType } from "../UploaderRegistry";
-import { S3Config } from "../../types";
 import { AmazonS3Uploader } from "./AmazonS3Uploader";
 
 export class AliyunOSSUploader extends AmazonS3Uploader {

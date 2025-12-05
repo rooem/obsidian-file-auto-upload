@@ -1,4 +1,3 @@
-
 import FileAutoUploadPlugin from "../main";
 import { t } from "../i18n";
 import { Setting } from "obsidian";
@@ -57,7 +56,7 @@ export class AutoUploadSettings {
           return;
         }
 
-        let notEmptyEl = container.createEl("span", { text: "" });
+        const notEmptyEl = container.createEl("span", { text: "" });
         notEmptyEl.setCssStyles({
           color: "var(--text-muted)",
           marginRight: "12px",

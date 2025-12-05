@@ -26,7 +26,10 @@ import { S3Config } from "../../types";
 import { t } from "../../i18n";
 import { handleError } from "../../utils/ErrorHandler";
 import { logger } from "../../utils/Logger";
-import { MULTIPART_UPLOAD_THRESHOLD, generateFileKey} from "../../utils/FileUtils";
+import {
+  MULTIPART_UPLOAD_THRESHOLD,
+  generateFileKey,
+} from "../../utils/FileUtils";
 
 export class AmazonS3Uploader implements IUploader {
   protected config: S3Config;
@@ -79,8 +82,10 @@ export class AmazonS3Uploader implements IUploader {
 
   public checkConnectionConfig(): { success: boolean; error?: string } {
     const commonResult = this.validateCommonConfig();
-    if (!commonResult.success) return commonResult;
-    
+    if (!commonResult.success) {
+      return commonResult;
+    }
+
     if (!this.config.region) {
       return { success: false, error: t("error.missingRegion") };
     }
@@ -326,5 +331,4 @@ export class AmazonS3Uploader implements IUploader {
     }
     return (endpoint = endpoint.replace(/\/+$/, ""));
   }
-
 }
