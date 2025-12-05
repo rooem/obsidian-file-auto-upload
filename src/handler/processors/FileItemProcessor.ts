@@ -57,11 +57,7 @@ export class FileItemProcessor {
   private handleUploadResult(result: { success: boolean; url?: string; error?: string }, file: File, id: string, localPath?: string): void {
     if (result.success && result.url) {
       logger.debug("FileItemProcessor", "File processed successfully", { fileName: file.name });
-      if (localPath) {
-        this.replaceLocalFileLink(localPath, result.url, file.name);
-      } else {
-        this.replacePlaceholderWithLink(id, result.url, file.name);
-      }
+      this.replacePlaceholderWithLink(id, result.url, file.name);
     } else {
       const errorMsg = result.error || t("error.uploadFailed");
       logger.error("FileItemProcessor", "File processing failed", { fileName: file.name, error: errorMsg });
@@ -80,20 +76,19 @@ export class FileItemProcessor {
 
     if (markerIndex === -1) return;
 
-    const progressText = `📤(${Math.round(progress)}%) ${t("upload.uploading")} ${fileName}${marker}`;
-    const lineEndIndex = content.indexOf('\n', markerIndex);
-    const endIndex = lineEndIndex === -1 ? content.length : lineEndIndex;
+    // 新格式: [fileName]📤(progress%)上传中<!--id-->
+    const progressText = `[${fileName}]📤(${Math.round(progress)}%)${t("upload.uploading")}${marker}`;
+    
+    // 找到包含marker的整个占位符 [...]...<!--id-->
+    const linkStartIndex = content.lastIndexOf('[', markerIndex);
+    const markerEndIndex = markerIndex + marker.length;
+    
+    if (linkStartIndex === -1) return;
 
-    const lineStartIndex = content.lastIndexOf('\n', markerIndex - 1) + 1;
-    const textBeforePlaceholder = content.substring(lineStartIndex, markerIndex);
+    const beforeContent = content.substring(0, linkStartIndex);
+    const afterContent = content.substring(markerEndIndex);
 
-    const placeholderStart = textBeforePlaceholder.search(/[⏳📤❌]/u);
-    const prefixText = placeholderStart !== -1 ? textBeforePlaceholder.substring(0, placeholderStart) : '';
-
-    const beforeContent = content.substring(0, lineStartIndex);
-    const afterMarker = content.substring(endIndex);
-
-    editor.setValue(beforeContent + prefixText + progressText + afterMarker);
+    editor.setValue(beforeContent + progressText + afterContent);
   }
 
   private replacePlaceholderWithLink(id: string, url: string, fileName: string): void {
@@ -128,41 +123,18 @@ export class FileItemProcessor {
 
     if (markerIndex === -1) return;
 
-    const lineEndIndex = content.indexOf('\n', markerIndex);
-    const endIndex = lineEndIndex === -1 ? content.length : lineEndIndex;
+    // 新格式: [fileName]📤(progress%)上传中<!--id-->
+    const linkStartIndex = content.lastIndexOf('[', markerIndex);
+    const markerEndIndex = markerIndex + marker.length;
+    
+    if (linkStartIndex === -1) return;
 
-    const lineStartIndex = content.lastIndexOf('\n', markerIndex - 1) + 1;
-    const textBeforePlaceholder = content.substring(lineStartIndex, markerIndex);
+    const beforeContent = content.substring(0, linkStartIndex);
+    const afterContent = content.substring(markerEndIndex);
 
-    const placeholderStart = textBeforePlaceholder.search(/[⏳📤]/u);
-    const prefixText = placeholderStart !== -1 ? textBeforePlaceholder.substring(0, placeholderStart) : '';
-
-    const beforeContent = content.substring(0, lineStartIndex);
-    const afterMarker = content.substring(endIndex);
-
-    editor.setValue(beforeContent + prefixText + text + afterMarker);
+    editor.setValue(beforeContent + text + afterContent);
   }
 
-  private replaceLocalFileLink(localPath: string, url: string, fileName: string): void {
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.editor) return;
-
-    const editor = activeView.editor;
-    const content = editor.getValue();
-    const escapedPath = localPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const linkRegex = new RegExp(`!?\\[[^\\]]*\\]\\(${escapedPath}\\)`, "g");
-    
-    const extension = fileName.split(".").pop()?.toLowerCase() || "";
-    const encodedUrl = encodeURI(url);
-    const markdown = isImageExtension(extension)
-      ? `![${fileName}](${encodedUrl})`
-      : `[${fileName}](${encodedUrl})`;
-    
-    const updatedContent = content.replace(linkRegex, markdown);
-    editor.setValue(updatedContent);
-    
-    logger.debug("FileItemProcessor", "Local file link replaced", { localPath, url });
-  }
 
   private async processNotSupportedFile(file: File, id: string): Promise<void> {
     logger.debug("FileItemProcessor", "File type not supported for upload, saving to vault", {

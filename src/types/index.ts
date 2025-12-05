@@ -24,6 +24,7 @@ export type { AppError, ValidationResult } from "./Error";
 export  {
   EventType,
   ProcessItem,
+  ProcessFile,
 } from "./Event";
 
 export type { DeleteItem } from "./Event";

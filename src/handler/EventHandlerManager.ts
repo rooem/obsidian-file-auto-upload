@@ -3,24 +3,25 @@ import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { UploadServiceManager } from "../uploader/UploaderManager";
 import { UploadEventHandler } from "./UploadEventHandler";
 import { DeleteEventHandler } from "./DeleteEventHandler";
-import { LocalFileUploadHandler } from "./LocalFileUploadHandler";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
 import { findSupportedLocalFilePath as findSupportedViewFilePath, findUploadedFileLinks } from "../utils/FileUtils";
+import { EventType, ProcessItem } from "../types/index";
 
 
 export class EventHandlerManager {
+  private app: App;
   private configurationManager: ConfigurationManager;
   private uploadServiceManager: UploadServiceManager;
   private uploadEventHandler: UploadEventHandler;
   private deleteEventHandler: DeleteEventHandler;
-  private localFileUploadHandler: LocalFileUploadHandler;
 
   constructor(
     app: App,
     configurationManager: ConfigurationManager,
     uploadServiceManager: UploadServiceManager,
   ) {
+    this.app = app;
     this.configurationManager = configurationManager;
     this.uploadServiceManager = uploadServiceManager;
     this.uploadEventHandler = new UploadEventHandler(
@@ -34,46 +35,39 @@ export class EventHandlerManager {
       configurationManager,
       uploadServiceManager,
     );
-
-    this.localFileUploadHandler = new LocalFileUploadHandler(
-      app,
-      this.uploadEventHandler,
-    );
   }
 
-  public handleClipboardPaste(
+  public async handleClipboardPaste(
     evt: ClipboardEvent,
     _editor: Editor,
     _view: MarkdownView,
-  ): void {
+  ): Promise<void> {
     const settings = this.configurationManager.getSettings();
     if (!settings.clipboardAutoUpload || !evt.clipboardData || !evt.clipboardData.items) {
       return;
     }
 
     if (this.canHandle(evt.clipboardData.items)) {
-       evt.preventDefault();
-      void this.uploadEventHandler.handleFileUploadEvent(
-        evt.clipboardData.items,
-      );
+      evt.preventDefault();
+      const processItems = await this.getProcessItemList(evt.clipboardData.items);
+      void this.uploadEventHandler.handleFileUploadEvent(processItems);
     }
   }
 
-  public handleFileDrop(
+  public async handleFileDrop(
     evt: DragEvent,
     _editor: Editor,
     _view: MarkdownView,
-  ): void {
+  ): Promise<void> {
     const settings = this.configurationManager.getSettings();
     if (!settings.dragAutoUpload || !evt.dataTransfer || !evt.dataTransfer.items) {
       return;
     }
-    
+
     if (this.canHandle(evt.dataTransfer.items)) {
-       evt.preventDefault();
-      void this.uploadEventHandler.handleFileUploadEvent(
-        evt.dataTransfer.items,
-      );
+      evt.preventDefault();
+      const processItems = await this.getProcessItemList(evt.dataTransfer.items);
+      void this.uploadEventHandler.handleFileUploadEvent(processItems);
     }
   }
 
@@ -112,28 +106,6 @@ export class EventHandlerManager {
     handlers.forEach((handler) => handler.dispose());
   }
 
-  private canHandle(items: DataTransferItemList): boolean {
-    if (items && items.length === 0) {
-      return false;
-    }
-
-    logger.debug("EventHandlerManager", "File upload event triggered", {
-      itemCount: items.length,
-    });
-
-    const result = this.uploadServiceManager.checkConnectionConfig();
-    if (!result.success) {
-      logger.warn(
-        "EventHandlerManager",
-        "Connection config invalid, showing config modal",
-      );
-      this.configurationManager.showStorageConfigModal();
-      return false;
-    }
-
-    return true;
-  }
-
   private handleUploadViewFile(menu: Menu, editor: Editor, view: MarkdownView): void {
     const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
     const localFiles = findSupportedViewFilePath(editor.getSelection(), supportedTypes);
@@ -146,13 +118,10 @@ export class EventHandlerManager {
         .setTitle(t("upload.localFile"))
         .setIcon('upload')
         .onClick(async () => {
-          const result = this.uploadServiceManager.checkConnectionConfig();
-          if (!result.success) {
-            logger.warn("EventHandlerManager", "Connection config invalid, showing config modal");
-            this.configurationManager.showStorageConfigModal();
-            return;
+          const processItems = await this.getProcessItemListFromView(localFiles);
+          if (this.canHandle(processItems)) {
+            void this.uploadEventHandler.handleFileUploadEvent(processItems);
           }
-          await this.localFileUploadHandler.handleLocalFileUpload(localFiles);
         });
     });
   }
@@ -180,5 +149,91 @@ export class EventHandlerManager {
     });
   }
 
+  private canHandle(items: Array<ProcessItem> | DataTransferItemList): boolean {
+    if (items && items.length === 0) {
+      return false;
+    }
+
+    logger.debug("EventHandlerManager", "File upload event triggered", {
+      itemCount: items.length,
+    });
+
+    const result = this.uploadServiceManager.checkConnectionConfig();
+    if (!result.success) {
+      logger.warn(
+        "EventHandlerManager",
+        "Connection config invalid, showing config modal",
+      );
+      this.configurationManager.showStorageConfigModal();
+      return false;
+    }
+
+    return true;
+  }
+
+  private async getProcessItemList(items: DataTransferItemList): Promise<Array<ProcessItem>> {
+    const queue: Array<ProcessItem> = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const uploadId = `u${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`;
+      if (item.kind === "string" && item.type === "text/plain") {
+        const text = await new Promise<string>((resolve) =>
+          item.getAsString(resolve),
+        );
+        queue.push({ id: uploadId, eventType: EventType.UPLOAD, type: "text", value: text });
+        continue;
+      }
+
+      if (item.kind === "file") {
+        const entry = item.webkitGetAsEntry();
+        if (entry?.isDirectory) {
+          logger.debug("UploadEventHandler", "Detected directory drop", {
+            name: entry.name,
+          });
+          continue;
+        }
+        const file = item.getAsFile();
+        if (!file) {
+          continue;
+        }
+        const extension = file.name.split(".").pop()?.toLowerCase()
+        queue.push({ id: uploadId, eventType: EventType.UPLOAD, type: "file", value: file, extension: extension });
+      }
+    }
+    return queue;
+  }
+
+  /**
+  * Extract files and text from DataTransferItemList or local file array
+  * @param items - DataTransferItemList from event or array of local files
+  * @returns Queue of items to process
+  */
+  private async getProcessItemListFromView(filePathList: string[]): Promise<Array<ProcessItem>> {
+    const queue: Array<ProcessItem> = [];
+    if (!filePathList || filePathList.length == 0) {
+      return queue;
+    }
+
+    for (const filePath of filePathList) {
+      try {
+        const arrayBuffer = await this.app.vault.adapter.readBinary(filePath);
+        const fileName = filePath.split('/').pop() || 'file';
+        const file = new File([new Blob([arrayBuffer])], fileName);
+        const uploadId = `u${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`;
+        queue.push({
+          id: uploadId,
+          eventType: EventType.UPLOAD,
+          type: "file",
+          value: file,
+          extension: fileName.split(".").pop()?.toLowerCase(),
+          localPath: filePath
+        });
+      } catch (error) {
+        logger.error("LocalFileUploadHandler", "Failed to read local file", { filePath, error });
+      }
+    }
+
+    return queue;
+  }
 
 }

@@ -66,7 +66,6 @@ export class AutoUploadSettings {
         });
         container.insertBefore(notEmptyEl, toggle.inputEl);
 
-        let isUpdating = false;
         toggle.setValue(settings.autoUploadFileTypes.join(","));
         toggle.onChange(async (value: string) => {
           notEmptyEl?.setText("");
@@ -76,29 +75,15 @@ export class AutoUploadSettings {
             return;
           }
 
-          if (isUpdating) {
-            return;
-          }
-
-          if (value.includes("，")) {
-            isUpdating = true;
-            value = value.replace(/，/g, ",");
-            setTimeout(() => {
-              toggle.inputEl.value = value;
-              isUpdating = false;
-            }, 0);
-
-            // Convert string to array
-            const fileTypesArray = value
-              .split(",")
-              .map((t) => t.trim())
-              .filter((t) => t);
-            await plugin.configurationManager.saveSettings({
-              autoUploadFileTypes: fileTypesArray,
-            });
-
-            return;
-          }
+          // Convert string to array (support both , and ，)
+          const fileTypesArray = value
+            .replace(/，/g, ",")
+            .split(",")
+            .map((t) => t.trim())
+            .filter((t) => t);
+          await plugin.configurationManager.saveSettings({
+            autoUploadFileTypes: fileTypesArray,
+          });
         });
 
         return toggle;

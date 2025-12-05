@@ -87,19 +87,59 @@ export function findSupportedLocalFilePath(text: string, autoUploadFileTypes: st
     return [];
   }
 
-  const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-  const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
+  const paths: string[] = [];
+  let i = 0;
+  
+  while (i < text.length) {
+    // 跳过 ! 前缀
+    if (text[i] === '!' && i + 1 < text.length && text[i + 1] === '[') {
+      i++;
+    }
+    
+    if (text[i] === '[') {
+      // 检查是否是 [[]] wiki 链接
+      if (i + 1 < text.length && text[i + 1] === '[') {
+        const closeIdx = text.indexOf(']]', i + 2);
+        if (closeIdx !== -1) {
+          paths.push(text.substring(i + 2, closeIdx));
+          i = closeIdx + 2;
+          continue;
+        }
+      } else {
+        // []() markdown 链接 - 找到匹配的 ]
+        let bracketDepth = 1;
+        let j = i + 1;
+        while (j < text.length && bracketDepth > 0) {
+          if (text[j] === '[') bracketDepth++;
+          else if (text[j] === ']') bracketDepth--;
+          j++;
+        }
+        
+        if (bracketDepth === 0 && j < text.length && text[j] === '(') {
+          // 找到匹配的右括号（处理嵌套括号）
+          let parenDepth = 1;
+          let k = j + 1;
+          while (k < text.length && parenDepth > 0) {
+            if (text[k] === '(') parenDepth++;
+            else if (text[k] === ')') parenDepth--;
+            k++;
+          }
+          if (parenDepth === 0) {
+            paths.push(text.substring(j + 1, k - 1));
+            i = k;
+            continue;
+          }
+        }
+      }
+    }
+    i++;
+  }
 
-  const markdownMatches = Array.from(text.matchAll(markdownLinkRegex));
-  const wikiMatches = Array.from(text.matchAll(wikiLinkRegex));
-
-  return [
-    ...markdownMatches.filter(match => {
-      const path = match[2];
-      return !path.startsWith('http://') && !path.startsWith('https://') && isFileTypeSupported(autoUploadFileTypes, path.split('.').pop());
-    }).map(match => match[2]),
-    ...wikiMatches.map(match => match[1])
-  ];
+  return paths.filter(path => 
+    !path.startsWith('http://') && 
+    !path.startsWith('https://') && 
+    isFileTypeSupported(autoUploadFileTypes, path.split('.').pop())
+  );
 }
 
 
@@ -111,28 +151,53 @@ export function findSupportedLocalFilePath(text: string, autoUploadFileTypes: st
 export function findUploadedFileLinks(text: string, domain: string): string[] {
   const links: string[] = [];
   const processedUrls = new Set<string>();
+  let i = 0;
 
-  const linkRegex = /!?\[([^\]]*)\]\(([^)]+)\)/g;
-  let match;
-
-  while ((match = linkRegex.exec(text)) !== null) {
-    const url = match[2];
-    if (!processedUrls.has(url) && isUploadedFileLink(url, domain)) {
-      links.push(url);
-      processedUrls.add(url);
+  while (i < text.length) {
+    // 跳过 ! 前缀
+    if (text[i] === '!' && i + 1 < text.length && text[i + 1] === '[') {
+      i++;
     }
+    
+    if (text[i] === '[') {
+      // 找到匹配的 ]
+      let bracketDepth = 1;
+      let j = i + 1;
+      while (j < text.length && bracketDepth > 0) {
+        if (text[j] === '[') bracketDepth++;
+        else if (text[j] === ']') bracketDepth--;
+        j++;
+      }
+      
+      if (bracketDepth === 0 && j < text.length && text[j] === '(') {
+        // 找到匹配的右括号
+        let parenDepth = 1;
+        let k = j + 1;
+        while (k < text.length && parenDepth > 0) {
+          if (text[k] === '(') parenDepth++;
+          else if (text[k] === ')') parenDepth--;
+          k++;
+        }
+        if (parenDepth === 0) {
+          const url = text.substring(j + 1, k - 1);
+          if (!processedUrls.has(url) && isUploadedFileLink(url, domain)) {
+            links.push(url);
+            processedUrls.add(url);
+          }
+          i = k;
+          continue;
+        }
+      }
+    }
+    i++;
   }
 
-  const urlRegex = /(https?:\/\/[^\s)]+)/g;
+  // 匹配独立的 URL
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  let match;
   while ((match = urlRegex.exec(text)) !== null) {
-    const url = match[1];
-    const beforeMatch = text.substring(0, match.index);
-    const afterMatch = text.substring(match.index + match[0].length);
-
-    const isInMarkdownLink =
-      /\[[^\]]*\]\([^)]*$/.test(beforeMatch) || /^[^)]*\)/.test(afterMatch);
-
-    if (!processedUrls.has(url) && !isInMarkdownLink && isUploadedFileLink(url, domain)) {
+    const url = match[1].replace(/\)+$/, ''); // 移除末尾多余的括号
+    if (!processedUrls.has(url) && isUploadedFileLink(url, domain)) {
       links.push(url);
       processedUrls.add(url);
     }

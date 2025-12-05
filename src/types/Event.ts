@@ -5,6 +5,14 @@ export enum EventType {
   DOWNLOAD,
 }
 
+export interface ProcessFile extends DataTransferItem {
+  id: string;
+  eventType: EventType;
+  extension?: string;
+  localPath?: string;
+}
+
+
 export interface ProcessItem<T = string | File> {
   id: string;
   eventType: EventType;

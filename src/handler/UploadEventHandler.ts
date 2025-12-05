@@ -33,26 +33,31 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     );
   }
 
-  /**
+    /**
    * Handle file upload event from clipboard, drag-drop, or local files
    * @param items - DataTransferItemList or array of local file paths with metadata
    */
   public async handleFileUploadEvent(
-    items: DataTransferItemList | Array<{ file: File; localPath?: string }>,
+    items: Array<ProcessItem>,
   ): Promise<void> {
-    const queue = await this.getFileQueue(items);
     logger.debug("BaseUploadEventHandler", "Files queued for upload", {
-      queueLength: queue.length,
+      itemsLength: items.length,
     });
 
-    for (const processItem of queue) {
+    for (const processItem of items) {
       if (processItem.type === "file" && processItem.value instanceof File) {
-        this.insertUploadingPlaceholder(processItem);
+        if (processItem.localPath) {
+          this.replaceLocalLinkWithPlaceholder(processItem);
+        } else {
+          this.insertUploadingPlaceholder(processItem);
+        }
       }
     }
 
-    void this.processItems(queue);
+    void this.processItems(items);
   }
+
+  
 
   /**
    * Process a single upload item (file or text)
@@ -75,7 +80,6 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     }
   }
 
-
   protected insertUploadingPlaceholder(processItem: ProcessItem) {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (!activeView || !activeView.editor) {
@@ -91,67 +95,40 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
 
     let placeholderText = "";
     if (!isFileTypeSupported(supportedTypes, extension) || file.size <= MULTIPART_UPLOAD_THRESHOLD) {
-      placeholderText = `⏳${t("upload.progressing")} ${fileName}<!--${processItem.id}-->\n`;
+      placeholderText = `[${fileName}]⏳${t("upload.progressing")}<!--${processItem.id}-->\n`;
     } else {
-      placeholderText = `📤(0%)${t("upload.uploading")} ${fileName}<!--${processItem.id}-->\n`;
+      placeholderText = `[${fileName}]📤(0%)${t("upload.uploading")}<!--${processItem.id}-->\n`;
     }
 
     editor.replaceRange(placeholderText, cursor);
     editor.setCursor({ line: cursor.line + 1, ch: 0 });
   }
 
-  /**
-   * Extract files and text from DataTransferItemList or local file array
-   * @param items - DataTransferItemList from event or array of local files
-   * @returns Queue of items to process
-   */
-  protected async getFileQueue(
-    items: DataTransferItemList | Array<{ file: File; localPath?: string }>,
-  ): Promise<Array<ProcessItem>> {
-    const queue: Array<ProcessItem> = [];
-    
-    // Handle local file array
-    if (Array.isArray(items)) {
-      for (const item of items) {
-        const uploadId = `u${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`;
-        queue.push({ 
-          id: uploadId, 
-          eventType: EventType.UPLOAD, 
-          type: "file", 
-          value: item.file, 
-          extension: item.file.name.split(".").pop()?.toLowerCase(),
-          localPath: item.localPath
-        });
-      }
-      return queue;
+  protected replaceLocalLinkWithPlaceholder(processItem: ProcessItem) {
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!activeView || !activeView.editor) {
+      return;
     }
+
+    const file = processItem.value as File;
+    const editor = activeView.editor;
+    const content = editor.getValue();
+    const localPath = processItem.localPath!;
+    const extension = processItem.extension;
+    const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
+
+    // 匹配 [文件名](本地路径) 格式，替换括号内容为占位符
+    const escapedPath = localPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const linkRegex = new RegExp(`(!?\\[[^\\]]*\\])\\(${escapedPath}\\)`, "g");
     
-    // Handle DataTransferItemList
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const uploadId = `u${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`;
-      if (item.kind === "string" && item.type === "text/plain") {
-        const text = await new Promise<string>((resolve) =>
-          item.getAsString(resolve),
-        );
-        queue.push({ id: uploadId, eventType: EventType.UPLOAD, type: "text", value: text });
-        continue;
-      }
-      if (item.kind === "file") {
-        const entry = item.webkitGetAsEntry();
-        if (entry?.isDirectory) {
-          logger.debug("UploadEventHandler", "Detected directory drop", {
-            name: entry.name,
-          });
-          continue;
-        }
-        const file = item.getAsFile();
-        if (!file) {
-          continue;
-        }
-        queue.push({ id: uploadId, eventType: EventType.UPLOAD, type: "file", value: file, extension: file.name.split(".").pop()?.toLowerCase() });
-      }
+    let placeholder = "";
+    if (!isFileTypeSupported(supportedTypes, extension) || file.size <= MULTIPART_UPLOAD_THRESHOLD) {
+      placeholder = `$1⏳${t("upload.progressing")}<!--${processItem.id}-->`;
+    } else {
+      placeholder = `$1📤(0%)${t("upload.uploading")}<!--${processItem.id}-->`;
     }
-    return queue;
+
+    const updatedContent = content.replace(linkRegex, placeholder);
+    editor.setValue(updatedContent);
   }
 }

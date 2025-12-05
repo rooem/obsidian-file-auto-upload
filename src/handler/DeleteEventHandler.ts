@@ -148,10 +148,11 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
         const textToProcess = currentSelection || originalSelection;
 
         const escapedUrl = this.escapeRegExp(fileLink);
-        const linkRegex = new RegExp(`!?\\[[^\\]]*\\]\\(${escapedUrl}\\)`, "g");
+        
+        // 使用函数替换来处理包含括号的链接
+        let updatedText = this.removeMarkdownLinks(textToProcess, fileLink);
+        // 移除独立的 URL
         const urlRegex = new RegExp(escapedUrl, "g");
-
-        let updatedText = textToProcess.replace(linkRegex, "");
         updatedText = updatedText.replace(urlRegex, "");
         updatedText = updatedText.replace(/\n\s*\n\s*/g, "\n\n").trim();
 
@@ -230,5 +231,56 @@ export class DeleteEventHandler extends BaseEventHandler<DeleteItem> {
    */
   private escapeRegExp(string: string): string {
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  /**
+   * Remove markdown links containing the specified URL
+   */
+  private removeMarkdownLinks(text: string, targetUrl: string): string {
+    let result = '';
+    let i = 0;
+    
+    while (i < text.length) {
+      const startIdx = i;
+      // 检查 ! 前缀
+      if (text[i] === '!' && i + 1 < text.length && text[i + 1] === '[') {
+        i++;
+      }
+      
+      if (text[i] === '[') {
+        // 找到匹配的 ]
+        let bracketDepth = 1;
+        let j = i + 1;
+        while (j < text.length && bracketDepth > 0) {
+          if (text[j] === '[') bracketDepth++;
+          else if (text[j] === ']') bracketDepth--;
+          j++;
+        }
+        
+        if (bracketDepth === 0 && j < text.length && text[j] === '(') {
+          // 找到匹配的右括号
+          let parenDepth = 1;
+          let k = j + 1;
+          while (k < text.length && parenDepth > 0) {
+            if (text[k] === '(') parenDepth++;
+            else if (text[k] === ')') parenDepth--;
+            k++;
+          }
+          if (parenDepth === 0) {
+            const url = text.substring(j + 1, k - 1);
+            if (url === targetUrl) {
+              // 跳过这个链接
+              i = k;
+              continue;
+            }
+          }
+        }
+      }
+      
+      result += text[startIdx];
+      i = startIdx + 1;
+    }
+    
+    return result;
   }
 }
