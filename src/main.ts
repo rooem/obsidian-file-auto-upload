@@ -1,5 +1,5 @@
 import { Plugin, MarkdownView, Menu, Editor } from "obsidian";
-import { FileAutoUploadSettingTab } from "./settings/settings";
+import { FileAutoUploadSettingTab } from "./settings/FileAutoUploadSettingTab";
 import { ConfigurationManager } from "./settings/ConfigurationManager";
 import { UploadServiceManager } from "./uploader/UploaderManager";
 import { EventHandlerManager } from "./handler/EventHandlerManager";

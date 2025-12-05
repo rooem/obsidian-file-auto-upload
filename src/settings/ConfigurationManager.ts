@@ -1,6 +1,6 @@
 import { Plugin } from "obsidian";
 import { StorageConfigModal } from "../components/StorageConfigModal";
-import { DEFAULT_SETTINGS } from "./settings";
+import { DEFAULT_SETTINGS } from "./FileAutoUploadSettingTab";
 import { EncryptionHelper } from "../utils/EncryptionHelper";
 import type {
   FileAutoUploadSettings,

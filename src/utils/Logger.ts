@@ -1,4 +1,4 @@
-import { DeveloperSettings } from "../components/DeveloperSettings";
+import { DeveloperSettings } from "../settings/DeveloperSettings";
 
 export enum LogLevel {
   DEBUG = 1,
