@@ -1,7 +1,7 @@
 import { App, MarkdownView } from "obsidian";
 import { BaseEventHandler } from "./BaseEventHandler";
-import { ConfigurationManager } from "../manager/ConfigurationManager";
-import { UploadServiceManager } from "../manager/UploaderManager";
+import { ConfigurationManager } from "../settings/ConfigurationManager";
+import { UploadServiceManager } from "../uploader/UploaderManager";
 import { isFileTypeSupported, MULTIPART_UPLOAD_THRESHOLD } from "../utils/FileUtils";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
@@ -29,8 +29,7 @@ export class UploadEventHandler extends BaseEventHandler<string | File> {
     this.fileItemProcessor = new FileItemProcessor(
       app,
       configurationManager,
-      uploadServiceManager,
-      this.concurrencyController
+      uploadServiceManager
     );
   }
 

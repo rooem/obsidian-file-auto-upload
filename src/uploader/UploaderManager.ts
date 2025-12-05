@@ -1,6 +1,6 @@
 import { IUploader } from "../types";
-import { UploaderTypeInfo } from "../uploader/UploaderRegistry";
-import { ConfigurationManager } from "./ConfigurationManager";
+import { UploaderTypeInfo } from "./UploaderRegistry";
+import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { handleError } from "../utils/ErrorHandler";
 import type { FileAutoUploadSettings, ConfigChangeListener } from "../types";
 import { logger } from "../utils/Logger";

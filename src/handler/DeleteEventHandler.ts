@@ -1,6 +1,6 @@
 import { App, MarkdownView, Editor, Notice, Menu, MenuItem } from "obsidian";
-import { ConfigurationManager } from "../manager/ConfigurationManager";
-import { UploadServiceManager } from "../manager/UploaderManager";
+import { ConfigurationManager } from "../settings/ConfigurationManager";
+import { UploadServiceManager } from "../uploader/UploaderManager";
 import { BaseEventHandler } from "./BaseEventHandler";
 import { EventType, ProcessItem, DeleteItem } from "../types/index";
 import { t } from "../i18n";

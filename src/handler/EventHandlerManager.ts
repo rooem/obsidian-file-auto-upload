@@ -1,9 +1,9 @@
 import { App, Notice, MarkdownView, Menu, MenuItem, Editor } from "obsidian";
-import { ConfigurationManager } from "./ConfigurationManager";
-import { UploadServiceManager } from "./UploaderManager";
-import { UploadEventHandler } from "../handler/UploadEventHandler";
-import { DeleteEventHandler } from "../handler/DeleteEventHandler";
-import { LocalFileUploadHandler } from "../handler/LocalFileUploadHandler";
+import { ConfigurationManager } from "../settings/ConfigurationManager";
+import { UploadServiceManager } from "../uploader/UploaderManager";
+import { UploadEventHandler } from "./UploadEventHandler";
+import { DeleteEventHandler } from "./DeleteEventHandler";
+import { LocalFileUploadHandler } from "./LocalFileUploadHandler";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
 import { findSupportedLocalFilePath as findSupportedViewFilePath, findUploadedFileLinks } from "../utils/FileUtils";

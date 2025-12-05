@@ -1,5 +1,5 @@
 import { App } from "obsidian";
-import { ConfigurationManager } from "../manager/ConfigurationManager";
+import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { logger } from "../utils/Logger";
 import { ProcessItem } from "../types/index";
 import { ConcurrencyController } from "../utils/ConcurrencyController";

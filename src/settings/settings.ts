@@ -1,14 +1,14 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
-import FileAutoUploadPlugin from "./main";
-import { UploaderType } from "./uploader/UploaderRegistry";
-import { AutoUploadSettings } from "./components/AutoUploadSettings";
-import { StorageServiceSettings } from "./components/StorageServiceSettings";
-import { DeveloperSettings } from "./components/DeveloperSettings";
-import { t } from "./i18n";
-import type { FileAutoUploadSettings } from "./types";
+import FileAutoUploadPlugin from "../main";
+import { UploaderType } from "../uploader/UploaderRegistry";
+import { AutoUploadSettings } from "../components/AutoUploadSettings";
+import { StorageServiceSettings } from "../components/StorageServiceSettings";
+import { DeveloperSettings } from "../components/DeveloperSettings";
+import { t } from "../i18n";
+import type { FileAutoUploadSettings } from "../types";
 
 // Re-export for backward compatibility
-export type { FileAutoUploadSettings } from "./types";
+export type { FileAutoUploadSettings } from "../types";
 
 /**
  * Default plugin settings

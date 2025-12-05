@@ -1,11 +1,10 @@
 import { App, MarkdownView } from "obsidian";
 import { ProcessItem } from "../../types/index";
-import { ConfigurationManager } from "../../manager/ConfigurationManager";
-import { UploadServiceManager } from "../../manager/UploaderManager";
+import { ConfigurationManager } from "../../settings/ConfigurationManager";
+import { UploadServiceManager } from "../../uploader/UploaderManager";
 import { isFileTypeSupported, isImageExtension } from "../../utils/FileUtils";
 import { t } from "../../i18n";
 import { logger } from "../../utils/Logger";
-import { ConcurrencyController } from "../../utils/ConcurrencyController";
 import { ProgressDebouncer } from "../../utils/ProgressDebouncer";
 
 export class FileItemProcessor {
@@ -14,8 +13,7 @@ export class FileItemProcessor {
   constructor(
     private app: App,
     private configurationManager: ConfigurationManager,
-    private uploadServiceManager: UploadServiceManager,
-    private concurrencyController: ConcurrencyController
+    private uploadServiceManager: UploadServiceManager
   ) {}
 
   async process(processItem: ProcessItem): Promise<void> {
@@ -43,13 +41,11 @@ export class FileItemProcessor {
     this.progressDebouncers.set(id, debouncer);
 
     try {
-      const result = await this.concurrencyController.run(() =>
-        this.uploadServiceManager.uploadFile(file, undefined, (progress) => {
-          debouncer.update(progress, (debouncedProgress) => {
-            this.updateUploadProgress(id, file.name, debouncedProgress);
-          });
-        })
-      );
+      const result = await this.uploadServiceManager.uploadFile(file, undefined, (progress) => {
+        debouncer.update(progress, (debouncedProgress) => {
+          this.updateUploadProgress(id, file.name, debouncedProgress);
+        });
+      });
 
       this.handleUploadResult(result, file, id, localPath);
     } finally {
