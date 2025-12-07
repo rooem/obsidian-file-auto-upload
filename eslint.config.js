@@ -9,6 +9,16 @@ export default [
     ignores: ['main.js', '*.config.js', 'node_modules/', 'dist/'],
   },
   {
+    files: ['**/*.ts'],
+    plugins: {
+      obsidianmd,
+    },
+    rules: {
+      ...obsidianmd.configs.recommended.rules,
+      'obsidianmd/sample-names': 'off',
+    },
+  },
+  {
     files: ['src/**/*.ts'],
     languageOptions: {
       parser: tsparser,
@@ -21,7 +31,6 @@ export default [
     plugins: {
       '@typescript-eslint': tseslint,
       prettier,
-      obsidianmd,
     },
     rules: {
       ...tseslint.configs.recommended.rules,
@@ -29,23 +38,11 @@ export default [
       ...prettierConfig.rules,
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
-      '@typescript-eslint/await-thenable': 'error',
-      '@typescript-eslint/no-base-to-string': 'off',
-      'no-console': 'off',
-      'prefer-const': 'warn',
-      'no-var': 'error',
       eqeqeq: ['error', 'always'],
       curly: ['error', 'all'],
-      'no-throw-literal': 'error',
       'prettier/prettier': 'error',
-      // Obsidian 插件特定规则
-      'obsidianmd/no-deprecated-api': 'error',
-      'obsidianmd/no-undocumented-notice': 'warn',
-      'obsidianmd/require-await-loading': 'error',
-      'obsidianmd/no-leaked-settings': 'warn',
     },
   },
 ];
