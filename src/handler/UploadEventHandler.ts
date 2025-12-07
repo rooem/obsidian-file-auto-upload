@@ -2,33 +2,34 @@ import { App, MarkdownView } from "obsidian";
 import { BaseEventHandler } from "./BaseEventHandler";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { UploadServiceManager } from "../uploader/UploaderManager";
+import { StatusBarManager } from "../utils/StatusBarManager";
 import { logger } from "../utils/Logger";
 import { ProcessItem, TextProcessItem, FileProcessItem } from "../types/index";
 import {
   isFileTypeSupported,
   isImageExtension,
-  MULTIPART_UPLOAD_THRESHOLD,
 } from "../utils/FileUtils";
 import { t } from "../i18n";
-import { ProgressDebouncer } from "../utils/ProgressDebouncer";
 
 /**
  * Handles file upload operations with progress tracking
  */
 export class UploadEventHandler extends BaseEventHandler {
   protected uploadServiceManager: UploadServiceManager;
-  private progressDebouncers: Map<string, ProgressDebouncer> = new Map();
+  private statusBarManager: StatusBarManager;
 
   constructor(
     app: App,
     configurationManager: ConfigurationManager,
     uploadServiceManager: UploadServiceManager,
+    statusBarManager: StatusBarManager,
   ) {
     super(app, configurationManager, 3);
     this.uploadServiceManager = uploadServiceManager;
+    this.statusBarManager = statusBarManager;
   }
 
-  public handleFileUploadEvent(items: ProcessItem[]): void {
+  public async handleFileUploadEvent(items: ProcessItem[]): Promise<void> {
     logger.debug("UploadEventHandler", "Files queued for upload", {
       itemsLength: items.length,
     });
@@ -36,9 +37,9 @@ export class UploadEventHandler extends BaseEventHandler {
     for (const processItem of items) {
       if (processItem.type === "file") {
         if (processItem.localPath) {
-          this.replaceLocalLinkWithPlaceholder(processItem);
+          await this.replaceLocalLinkWithPlaceholder(processItem);
         } else {
-          this.insertPlaceholder(processItem);
+          await this.insertPlaceholder(processItem);
         }
       }
     }
@@ -66,28 +67,27 @@ export class UploadEventHandler extends BaseEventHandler {
     }
   }
 
-  private insertPlaceholder(processItem: FileProcessItem): void {
+  private async insertPlaceholder(processItem: FileProcessItem): Promise<void> {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.editor) {
+    if (!activeView?.file) {
       return;
     }
 
-    const editor = activeView.editor;
-    const cursor = editor.getCursor();
+    const file = activeView.file;
+    const content = await this.app.vault.cachedRead(file);
     const placeholderText = `[${processItem.value.name}]${this.getPlaceholderSuffix(processItem)}\n`;
 
-    editor.replaceRange(placeholderText, cursor);
-    editor.setCursor({ line: cursor.line + 1, ch: 0 });
+    await this.app.vault.modify(file, content + placeholderText);
   }
 
-  private replaceLocalLinkWithPlaceholder(processItem: FileProcessItem): void {
+  private async replaceLocalLinkWithPlaceholder(processItem: FileProcessItem): Promise<void> {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.editor || !processItem.localPath) {
+    if (!activeView?.file || !processItem.localPath) {
       return;
     }
 
-    const editor = activeView.editor;
-    const content = editor.getValue();
+    const file = activeView.file;
+    const content = await this.app.vault.cachedRead(file);
     const escapedPath = processItem.localPath.replace(
       /[.*+?^${}()|[\]\\]/g,
       "\\$&",
@@ -95,19 +95,11 @@ export class UploadEventHandler extends BaseEventHandler {
     const linkRegex = new RegExp(`(!?\\[[^\\]]*\\])\\(${escapedPath}\\)`, "g");
     const placeholder = `$1${this.getPlaceholderSuffix(processItem)}`;
 
-    editor.setValue(content.replace(linkRegex, placeholder));
+    await this.app.vault.modify(file, content.replace(linkRegex, placeholder));
   }
 
   private getPlaceholderSuffix(processItem: FileProcessItem): string {
-    const file = processItem.value;
-    const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
-    const showProgress =
-      isFileTypeSupported(supportedTypes, processItem.extension) &&
-      file.size > MULTIPART_UPLOAD_THRESHOLD;
-
-    return showProgress
-      ? `📤(0%)${t("upload.uploading")}<!--${processItem.id}-->`
-      : `⏳${t("upload.progressing")}<!--${processItem.id}-->`;
+    return `⏳${t("upload.progressing")}<!--${processItem.id}-->`;
   }
 
   private async processFileItem(processItem: FileProcessItem): Promise<void> {
@@ -119,17 +111,14 @@ export class UploadEventHandler extends BaseEventHandler {
       return;
     }
 
-    const debouncer = new ProgressDebouncer(100);
-    this.progressDebouncers.set(processItem.id, debouncer);
+    this.statusBarManager.startUpload(processItem.id);
 
     try {
       const result = await this.uploadServiceManager.uploadFile(
         file,
         undefined,
         (progress) => {
-          debouncer.update(progress, (p) =>
-            this.updateProgress(processItem.id, file.name, p),
-          );
+          this.statusBarManager.updateProgress(processItem.id, progress);
         },
       );
 
@@ -146,37 +135,8 @@ export class UploadEventHandler extends BaseEventHandler {
         );
       }
     } finally {
-      debouncer.clear();
-      this.progressDebouncers.delete(processItem.id);
+      this.statusBarManager.finishUpload(processItem.id);
     }
-  }
-
-  private async updateProgress(id: string, fileName: string, progress: number): Promise<void> {
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.file) {
-      return;
-    }
-
-    const file = activeView.file;
-    const content = await this.app.vault.read(file);
-    const marker = `<!--${id}-->`;
-    const markerIndex = content.indexOf(marker);
-    if (markerIndex === -1) {
-      return;
-    }
-
-    const linkStartIndex = content.lastIndexOf("[", markerIndex);
-    if (linkStartIndex === -1) {
-      return;
-    }
-
-    const progressText = `[${fileName}]📤(${Math.round(progress)}%)${t("upload.uploading")}${marker}`;
-    await this.app.vault.modify(
-      file,
-      content.substring(0, linkStartIndex) +
-        progressText +
-        content.substring(markerIndex + marker.length),
-    );
   }
 
   private async replacePlaceholder(id: string, text: string): Promise<void> {
@@ -186,7 +146,7 @@ export class UploadEventHandler extends BaseEventHandler {
     }
 
     const file = activeView.file;
-    const content = await this.app.vault.read(file);
+    const content = await this.app.vault.cachedRead(file);
     const marker = `<!--${id}-->`;
     const markerIndex = content.indexOf(marker);
 
