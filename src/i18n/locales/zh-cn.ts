@@ -86,5 +86,5 @@ export default {
   "upload.localFile": "上传文件",
 
   // Status Bar
-  "statusBar.uploading": "正在上传{count}个文件：{progress}%",
+  "statusBar.uploading": "{uploaded}/{total}: {progress}%",
 };

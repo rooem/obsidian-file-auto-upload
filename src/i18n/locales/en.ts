@@ -93,5 +93,5 @@ export default {
   "upload.localFile": "Upload file",
 
   // Status Bar
-  "statusBar.uploading": "{count} file(s) uploading:{progress}%",
+  "statusBar.uploading": "{uploaded}/{total}: {progress}%",
 };

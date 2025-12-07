@@ -2,7 +2,7 @@ import { App, MarkdownView } from "obsidian";
 import { BaseEventHandler } from "./BaseEventHandler";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { UploadServiceManager } from "../uploader/UploaderManager";
-import { StatusBarManager } from "../utils/StatusBarManager";
+import { StatusBar } from "../components/StatusBar";
 import { logger } from "../utils/Logger";
 import { ProcessItem, TextProcessItem, FileProcessItem } from "../types/index";
 import {
@@ -16,13 +16,13 @@ import { t } from "../i18n";
  */
 export class UploadEventHandler extends BaseEventHandler {
   protected uploadServiceManager: UploadServiceManager;
-  private statusBarManager: StatusBarManager;
+  private statusBarManager: StatusBar;
 
   constructor(
     app: App,
     configurationManager: ConfigurationManager,
     uploadServiceManager: UploadServiceManager,
-    statusBarManager: StatusBarManager,
+    statusBarManager: StatusBar,
   ) {
     super(app, configurationManager, 3);
     this.uploadServiceManager = uploadServiceManager;

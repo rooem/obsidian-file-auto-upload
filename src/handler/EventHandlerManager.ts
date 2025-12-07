@@ -1,7 +1,7 @@
 import { App, Notice, MarkdownView, Menu, MenuItem, Editor } from "obsidian";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { UploadServiceManager } from "../uploader/UploaderManager";
-import { StatusBarManager } from "../utils/StatusBarManager";
+import { StatusBar } from "../components/StatusBar";
 import { UploadEventHandler } from "./UploadEventHandler";
 import { DeleteEventHandler } from "./DeleteEventHandler";
 import { t } from "../i18n";
@@ -31,7 +31,7 @@ export class EventHandlerManager {
     app: App,
     configurationManager: ConfigurationManager,
     uploadServiceManager: UploadServiceManager,
-    statusBarManager: StatusBarManager,
+    statusBarManager: StatusBar,
   ) {
     this.app = app;
     this.configurationManager = configurationManager;

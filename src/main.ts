@@ -3,7 +3,7 @@ import { FileAutoUploadSettingTab } from "./settings/FileAutoUploadSettingTab";
 import { ConfigurationManager } from "./settings/ConfigurationManager";
 import { UploadServiceManager } from "./uploader/UploaderManager";
 import { EventHandlerManager } from "./handler/EventHandlerManager";
-import { StatusBarManager } from "./utils/StatusBarManager";
+import { StatusBar } from "./components/StatusBar";
 import { logger } from "./utils/Logger";
 
 /**
@@ -13,7 +13,7 @@ export default class FileAutoUploadPlugin extends Plugin {
   public configurationManager!: ConfigurationManager;
   public uploadServiceManager!: UploadServiceManager;
   public eventHandlerManager!: EventHandlerManager;
-  public statusBarManager!: StatusBarManager;
+  public statusBarManager!: StatusBar;
 
   /**
    * Plugin initialization - called when plugin is loaded
@@ -51,7 +51,7 @@ export default class FileAutoUploadPlugin extends Plugin {
       this.configurationManager,
     );
 
-    this.statusBarManager = new StatusBarManager(this);
+    this.statusBarManager = new StatusBar(this);
 
     this.eventHandlerManager = new EventHandlerManager(
       this.app,

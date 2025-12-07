@@ -1,9 +1,10 @@
 import { Plugin } from "obsidian";
 import { t } from "../i18n";
 
-export class StatusBarManager {
+export class StatusBar {
   private statusBarItem: HTMLElement;
-  private uploadCount = 0;
+  private totalCount = 0;
+  private uploadedCount = 0;
   private progressMap: Map<string, number> = new Map();
 
   constructor(plugin: Plugin) {
@@ -12,7 +13,7 @@ export class StatusBarManager {
   }
 
   startUpload(id: string): void {
-    this.uploadCount++;
+    this.totalCount++;
     this.progressMap.set(id, 0);
     this.updateDisplay();
   }
@@ -24,16 +25,18 @@ export class StatusBarManager {
 
   finishUpload(id: string): void {
     this.progressMap.delete(id);
-    this.uploadCount = Math.max(0, this.uploadCount - 1);
-    if (this.uploadCount === 0) {
+    this.uploadedCount++;
+    if (this.uploadedCount >= this.totalCount) {
       this.statusBarItem.hide();
+      this.totalCount = 0;
+      this.uploadedCount = 0;
     } else {
       this.updateDisplay();
     }
   }
 
   private updateDisplay(): void {
-    if (this.uploadCount === 0) {
+    if (this.totalCount === 0) {
       this.statusBarItem.hide();
       return;
     }
@@ -43,9 +46,10 @@ export class StatusBarManager {
       : 0;
 
     const text = t("statusBar.uploading")
-      .replace("{count}", this.uploadCount.toString())
+      .replace("{uploaded}", this.uploadedCount.toString())
+      .replace("{total}", this.totalCount.toString())
       .replace("{progress}", avgProgress.toString());
-    this.statusBarItem.setText(`📤${text}`);
+    this.statusBarItem.setText(`📤 ${text}`);
     this.statusBarItem.show();
   }
 
