@@ -16,7 +16,7 @@
     "noImplicitThis": true,
     "alwaysStrict": true,
     "moduleResolution": "node",
-    "importHelpers": true,
+    "importHelpers": false,
     "skipLibCheck": true,
     "lib": ["dom", "es5", "scripthost", "es2015", "es2020", "ESNext"],
     "noEmit": true

@@ -138,9 +138,9 @@ export class UploadEventHandler extends BaseEventHandler {
         const markdown = isImageExtension(ext)
           ? `![${file.name}](${encodeURI(result.url)})`
           : `[${file.name}](${encodeURI(result.url)})`;
-        this.replacePlaceholder(processItem.id, markdown);
+        await this.replacePlaceholder(processItem.id, markdown);
       } else {
-        this.replacePlaceholder(
+        await this.replacePlaceholder(
           processItem.id,
           `❌ ${t("upload.failed")} ${file.name}: ${result.error || t("error.uploadFailed")}`,
         );
@@ -151,14 +151,14 @@ export class UploadEventHandler extends BaseEventHandler {
     }
   }
 
-  private updateProgress(id: string, fileName: string, progress: number): void {
+  private async updateProgress(id: string, fileName: string, progress: number): Promise<void> {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.editor) {
+    if (!activeView?.file) {
       return;
     }
 
-    const editor = activeView.editor;
-    const content = editor.getValue();
+    const file = activeView.file;
+    const content = await this.app.vault.read(file);
     const marker = `<!--${id}-->`;
     const markerIndex = content.indexOf(marker);
     if (markerIndex === -1) {
@@ -171,36 +171,38 @@ export class UploadEventHandler extends BaseEventHandler {
     }
 
     const progressText = `[${fileName}]📤(${Math.round(progress)}%)${t("upload.uploading")}${marker}`;
-    editor.setValue(
+    await this.app.vault.modify(
+      file,
       content.substring(0, linkStartIndex) +
         progressText +
         content.substring(markerIndex + marker.length),
     );
   }
 
-  private replacePlaceholder(id: string, text: string): void {
+  private async replacePlaceholder(id: string, text: string): Promise<void> {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.editor) {
+    if (!activeView?.file) {
       return;
     }
 
-    const editor = activeView.editor;
-    const content = editor.getValue();
+    const file = activeView.file;
+    const content = await this.app.vault.read(file);
     const marker = `<!--${id}-->`;
     const markerIndex = content.indexOf(marker);
 
     if (markerIndex === -1) {
-      editor.replaceSelection(text + "\n");
+      await this.app.vault.modify(file, content + text + "\n");
       return;
     }
 
     const linkStartIndex = content.lastIndexOf("[", markerIndex);
     if (linkStartIndex === -1) {
-      editor.replaceSelection(text + "\n");
+      await this.app.vault.modify(file, content + text + "\n");
       return;
     }
 
-    editor.setValue(
+    await this.app.vault.modify(
+      file,
       content.substring(0, linkStartIndex) +
         text +
         content.substring(markerIndex + marker.length),
@@ -227,10 +229,10 @@ export class UploadEventHandler extends BaseEventHandler {
       const markdown = isImageExtension(ext)
         ? `![${file.name}](${created.path})`
         : `[${file.name}](${created.path})`;
-      this.replacePlaceholder(id, markdown);
+      await this.replacePlaceholder(id, markdown);
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      this.replacePlaceholder(
+      await this.replacePlaceholder(
         id,
         `❌ ${t("upload.progrefailed")} ${file.name}: ${errorMsg}`,
       );
