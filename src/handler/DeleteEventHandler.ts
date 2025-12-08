@@ -53,7 +53,7 @@ export class DeleteEventHandler extends BaseEventHandler {
         const textToProcess = currentSelection || originalSelection;
 
         let updatedText = removeMarkdownLinksByUrl(textToProcess, fileLink);
-        const urlRegex = new RegExp(this.escapeRegExp(fileLink), "g");
+        const urlRegex = new RegExp(super.escapeRegExp(fileLink), "g");
         updatedText = updatedText.replace(urlRegex, "");
         updatedText = updatedText.replace(/\n\s*\n\s*/g, "\n\n").trim();
 
@@ -82,10 +82,4 @@ export class DeleteEventHandler extends BaseEventHandler {
     }
   }
 
-  /**
-   * Escape special regex characters in string
-   */
-  private escapeRegExp(string: string): string {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
 }

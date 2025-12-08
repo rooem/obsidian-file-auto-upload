@@ -85,24 +85,10 @@ export class UploadEventHandler extends BaseEventHandler {
   }
 
   private replaceLocalLinkWithPlaceholder(processItem: FileProcessItem): void {
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView || !processItem.localPath) {
+    if (!processItem.localPath) {
       return;
     }
-
-    const editor = activeView.editor;
-    const content = editor.getValue();
-    const escapedPath = processItem.localPath.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      "\\$&",
-    );
-    const linkRegex = new RegExp(`(!?\\[[^\\]]*\\])\\(${escapedPath}\\)`, "g");
-    const placeholder = `$1${this.getPlaceholderSuffix(processItem)}`;
-    const newContent = content.replace(linkRegex, placeholder);
-
-    if (newContent !== content) {
-      editor.setValue(newContent);
-    }
+    this.replaceUrlWithPlaceholder(processItem.localPath, this.getPlaceholderSuffix(processItem));
   }
 
   private getPlaceholderSuffix(processItem: FileProcessItem): string {
@@ -147,36 +133,7 @@ export class UploadEventHandler extends BaseEventHandler {
   }
 
   private replacePlaceholder(id: string, text: string): void {
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView) {
-      return;
-    }
-
-    const editor = activeView.editor;
-    const content = editor.getValue();
-    const marker = `<!--${id}-->`;
-    const markerIndex = content.indexOf(marker);
-
-    if (markerIndex === -1) {
-      const lastLine = editor.lastLine();
-      editor.replaceRange(text + "\n", { line: lastLine + 1, ch: 0 });
-      return;
-    }
-
-    const linkStartIndex = content.lastIndexOf("[", markerIndex);
-    if (linkStartIndex === -1) {
-      const lastLine = editor.lastLine();
-      editor.replaceRange(text + "\n", { line: lastLine + 1, ch: 0 });
-      return;
-    }
-
-    // Check if there's already an image prefix (!) and text starts with !
-    const hasImagePrefix = linkStartIndex > 0 && content[linkStartIndex - 1] === "!";
-    const finalText = hasImagePrefix && text.startsWith("!") ? text.substring(1) : text;
-
-    const startPos = editor.offsetToPos(linkStartIndex);
-    const endPos = editor.offsetToPos(markerIndex + marker.length);
-    editor.replaceRange(finalText, startPos, endPos);
+    this.replacePlaceholderWithMarkdown(id, text);
   }
 
   private async saveToVault(processItem: FileProcessItem): Promise<void> {
