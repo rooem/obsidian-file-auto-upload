@@ -121,17 +121,15 @@ export class UploadServiceManager {
 
   async uploadFile(
     file: File,
-    key?: string,
     onProgress?: (progress: number) => void,
   ): Promise<import("../types").UploadResult> {
     logger.debug("UploaderManager", "Starting file upload", {
       fileName: file.name,
       fileSize: file.size,
-      key,
     });
 
     const uploader = this.getUploader();
-    const result = await uploader.uploadFile(file, key, onProgress);
+    const result = await uploader.uploadFile(file, undefined, onProgress);
 
     if (result.success) {
       logger.debug("UploaderManager", "File upload successful", {

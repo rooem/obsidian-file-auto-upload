@@ -107,7 +107,7 @@ export class UploadEventHandler extends BaseEventHandler {
     const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
 
     if (!isFileTypeSupported(supportedTypes, processItem.extension)) {
-      await this.saveToVault(file, processItem.id);
+      await this.saveToVault(processItem);
       return;
     }
 
@@ -116,22 +116,20 @@ export class UploadEventHandler extends BaseEventHandler {
     try {
       const result = await this.uploadServiceManager.uploadFile(
         file,
-        undefined,
         (progress) => {
           this.statusBarManager.updateProgress(processItem.id, progress);
         },
       );
 
       if (result.success && result.url) {
-        const ext = file.name.split(".").pop()?.toLowerCase() || "";
-        const markdown = isImageExtension(ext)
+        const markdown = isImageExtension(processItem.extension)
           ? `![${file.name}](${encodeURI(result.url)})`
           : `[${file.name}](${encodeURI(result.url)})`;
         await this.replacePlaceholder(processItem.id, markdown);
       } else {
         await this.replacePlaceholder(
           processItem.id,
-          `❌ ${t("upload.failed")} ${file.name}: ${result.error || t("error.uploadFailed")}`,
+          `❌${t("upload.failed")} ${file.name}: ${result.error || t("error.uploadFailed")}`,
         );
       }
     } finally {
@@ -169,12 +167,13 @@ export class UploadEventHandler extends BaseEventHandler {
     );
   }
 
-  private async saveToVault(file: File, id: string): Promise<void> {
+  private async saveToVault(processItem: FileProcessItem): Promise<void> {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (!activeView?.file) {
       return;
     }
 
+    const file = processItem.value;
     try {
       const fullPath = await this.app.fileManager.getAvailablePathForAttachment(
         file.name,
@@ -185,11 +184,10 @@ export class UploadEventHandler extends BaseEventHandler {
         await file.arrayBuffer(),
       );
 
-      const ext = file.name.split(".").pop()?.toLowerCase() || "";
-      const markdown = isImageExtension(ext)
+      const markdown = isImageExtension(processItem.extension)
         ? `![${file.name}](${created.path})`
         : `[${file.name}](${created.path})`;
-      await this.replacePlaceholder(id, markdown);
+      await this.replacePlaceholder(processItem.id, markdown);
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       await this.replacePlaceholder(
