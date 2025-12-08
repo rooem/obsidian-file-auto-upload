@@ -175,7 +175,7 @@ export class EventHandlerManager {
 
     const originalSelection = editor.getSelection();
     if (!originalSelection) {
-      logger.warn("DeleteEventHandler", "No text selected");
+      logger.warn("EventHandlerManager", "No text selected");
       return;
     }
 
@@ -248,7 +248,7 @@ export class EventHandlerManager {
       if (item.kind === "file") {
         const entry = item.webkitGetAsEntry();
         if (entry?.isDirectory) {
-          logger.debug("UploadEventHandler", "Detected directory drop", {
+          logger.debug("EventHandlerManager", "Skipping directory", {
             name: entry.name,
           });
           continue;
@@ -293,7 +293,7 @@ export class EventHandlerManager {
           localPath: filePath,
         } as FileProcessItem);
       } catch (error) {
-        logger.error("LocalFileUploadHandler", "Failed to read local file", {
+        logger.error("EventHandlerManager", "Failed to read local file", {
           filePath,
           error,
         });

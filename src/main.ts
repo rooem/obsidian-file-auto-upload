@@ -29,19 +29,18 @@ export default class FileAutoUploadPlugin extends Plugin {
 
   /**
    * Plugin cleanup - called when plugin is unloaded
-   * Checks for pending uploads and waits for completion
+   * Disposes all managers and releases resources
    */
   onunload(): void {
     logger.debug("FileAutoUploadPlugin", "Plugin unloading started");
     this.eventHandlerManager.dispose();
     this.uploadServiceManager.dispose();
     this.statusBarManager.dispose();
-    logger.debug("FileAutoUploadPlugin", "Plugin unloading successfully");
+    logger.debug("FileAutoUploadPlugin", "Plugin unloaded successfully");
   }
 
   /**
-   * Initialize configuration and service managers
-   * Creates event handlers for clipboard, drag-drop, and delete operations
+   * Initialize configuration, upload service, status bar and event handler managers
    */
   private async initialize(): Promise<void> {
     this.configurationManager = new ConfigurationManager(this);

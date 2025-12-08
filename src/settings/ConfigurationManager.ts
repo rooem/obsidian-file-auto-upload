@@ -24,7 +24,7 @@ export class ConfigurationManager {
   }
 
   /**
-   * Load current settings (returns a copy)
+   * Load settings from storage and merge with defaults
    */
   public async loadSettings(): Promise<void> {
     try {
@@ -93,12 +93,12 @@ export class ConfigurationManager {
     const loadedData: unknown = await this.plugin.loadData();
 
     if (!loadedData || typeof loadedData !== "object") {
-      logger.debug("SecureStorage", "No data found or invalid format");
+      logger.debug("ConfigurationManager", "No data found or invalid format");
       return {};
     }
 
     if (!("salt" in loadedData) || !("data" in loadedData)) {
-      logger.debug("SecureStorage", "Data not encrypted, returning as-is");
+      logger.debug("ConfigurationManager", "Data not encrypted, returning as-is");
       return loadedData;
     }
 
@@ -114,13 +114,13 @@ export class ConfigurationManager {
         this.plugin,
         encryptedData.salt,
       );
-      logger.debug("SecureStorage", "Data decrypted successfully");
+      logger.debug("ConfigurationManager", "Data decrypted successfully");
       return JSON.parse(decrypted) as object;
     } catch (error) {
-      logger.error("SecureStorage", "Failed to decrypt settings", error);
+      logger.error("ConfigurationManager", "Failed to decrypt settings", error);
       logger.warn(
-        "SecureStorage",
-        "This may be due to old encryption format. Settings will be reset.",
+        "ConfigurationManager",
+        "Old encryption format detected, settings will be reset",
       );
       return {};
     }
@@ -151,8 +151,7 @@ export class ConfigurationManager {
     };
 
     await this.plugin.saveData(savedData);
-
-    logger.debug("SecureStorage", "Data saved successfully");
+    logger.debug("ConfigurationManager", "Settings saved successfully");
   }
 
   /**

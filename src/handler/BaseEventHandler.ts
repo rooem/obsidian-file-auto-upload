@@ -24,8 +24,7 @@ export abstract class BaseEventHandler {
   }
 
   /**
-   * Get current processing status
-   * @returns Running count and queue length from concurrency controller
+   * Get current queue status
    */
   public getQueueStatus(): { queueLength: number; isProcessing: boolean } {
     return {
@@ -56,8 +55,7 @@ export abstract class BaseEventHandler {
   }
 
   /**
-   * Process a single queue item - must be implemented by subclasses
-   * @param item - The item to process
+   * Process a single item - must be implemented by subclasses
    */
   protected abstract processItem(processItem: ProcessItem): Promise<void>;
 }

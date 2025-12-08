@@ -191,7 +191,7 @@ export class UploadEventHandler extends BaseEventHandler {
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       await this.replacePlaceholder(
-        id,
+        processItem.id,
         `❌ ${t("upload.progrefailed")} ${file.name}: ${errorMsg}`,
       );
     }

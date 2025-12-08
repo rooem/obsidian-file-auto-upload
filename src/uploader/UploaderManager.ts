@@ -48,9 +48,6 @@ export class UploadServiceManager {
     const serviceType = this.configurationManager.getCurrentStorageService();
     const cached = this.uploaderInstances.get(serviceType);
     if (cached) {
-      logger.debug("UploaderManager", "Using cached uploader instance", {
-        serviceType,
-      });
       return cached;
     }
 
@@ -59,21 +56,15 @@ export class UploadServiceManager {
     });
 
     const config = this.configurationManager.getCurrentStorageConfig();
-
     const uploaderInfo =
       UploaderTypeInfo[serviceType as keyof typeof UploaderTypeInfo];
     if (!uploaderInfo) {
       throw new Error(`Unknown uploader type: ${serviceType}`);
     }
-    const clazz = uploaderInfo.clazz;
-    const uploader = new clazz(
+    const uploader = new uploaderInfo.clazz(
       config as import("../types").S3Config,
     ) as IUploader;
     this.uploaderInstances.set(serviceType, uploader);
-
-    logger.debug("UploaderManager", "Uploader instance created", {
-      serviceType,
-    });
     return uploader;
   }
 
@@ -123,46 +114,14 @@ export class UploadServiceManager {
     file: File,
     onProgress?: (progress: number) => void,
   ): Promise<import("../types").UploadResult> {
-    logger.debug("UploaderManager", "Starting file upload", {
-      fileName: file.name,
-      fileSize: file.size,
-    });
-
     const uploader = this.getUploader();
-    const result = await uploader.uploadFile(file, undefined, onProgress);
-
-    if (result.success) {
-      logger.debug("UploaderManager", "File upload successful", {
-        fileName: file.name,
-        url: result.url,
-      });
-    } else {
-      logger.error("UploaderManager", "File upload failed", {
-        fileName: file.name,
-        error: result.error,
-      });
-    }
-
-    return result;
+    return await uploader.uploadFile(file, undefined, onProgress);
   }
 
   async deleteFile(key: string): Promise<{ success: boolean; error?: string }> {
-    logger.debug("UploaderManager", "Starting file deletion", { key });
-
     try {
       const uploader = this.getUploader();
-      const result = await uploader.deleteFile(key);
-
-      if (result.success) {
-        logger.debug("UploaderManager", "File deletion successful", { key });
-      } else {
-        logger.error("UploaderManager", "File deletion failed", {
-          key,
-          error: result.error,
-        });
-      }
-
-      return result;
+      return await uploader.deleteFile(key);
     } catch (error) {
       logger.error("UploaderManager", "File deletion error", { key, error });
       return handleError(error, "error.fileDeletionFailed");

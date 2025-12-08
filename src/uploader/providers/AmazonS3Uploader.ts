@@ -59,7 +59,6 @@ export class AmazonS3Uploader implements IUploader {
 
   /**
    * Clean up S3 client resources
-   * Destroys the client to release connection pools
    */
   public dispose(): void {
     if (this.s3Client) {
@@ -128,36 +127,19 @@ export class AmazonS3Uploader implements IUploader {
 
   /**
    * Upload a file to S3 storage
-   *
-   * Automatically uses multipart upload for files larger than 5MB to enable
-   * progress tracking. Smaller files use simple upload for better performance.
-   *
-   * @param file - The file to upload
-   * @param key - Optional custom key/path for the file. If not provided, generates a unique key
-   * @param onProgress - Optional callback for upload progress (0-100)
-   * @returns Promise resolving to upload result with URL and key
-   * @throws {Error} If upload fails
+   * Uses multipart upload for files > 5MB with progress tracking
    */
   public async uploadFile(
     file: File,
     key?: string,
     onProgress?: UploadProgressCallback,
   ): Promise<UploadResult> {
-    logger.debug("AmazonS3Uploader", "Starting S3 upload", {
-      fileName: file.name,
-      fileSize: file.size,
-      key: key || "auto-generated",
-    });
-
     try {
       const fileKey = key || generateFileKey(file.name);
       const arrayBuffer = await file.arrayBuffer();
 
       // Use multipart upload for files > 5MB with progress tracking
       if (onProgress && file.size > MULTIPART_UPLOAD_THRESHOLD) {
-        logger.debug("AmazonS3Uploader", "Using multipart upload", {
-          fileSize: file.size,
-        });
         const upload = new Upload({
           client: this.s3Client,
           params: {
@@ -179,12 +161,7 @@ export class AmazonS3Uploader implements IUploader {
         );
 
         await upload.done();
-        logger.debug("AmazonS3Uploader", "Multipart upload completed");
       } else {
-        logger.debug("AmazonS3Uploader", "Using simple upload", {
-          fileSize: file.size,
-        });
-        // Use simple PutObject for small files (faster, no progress tracking)
         const uploadParams = {
           Bucket: this.config.bucket_name,
           Key: fileKey,
@@ -209,8 +186,8 @@ export class AmazonS3Uploader implements IUploader {
       }
 
       const publicUrl = this.getPublicUrl(fileKey);
-      logger.debug("AmazonS3Uploader", "S3 upload successful", {
-        fileKey,
+      logger.debug("AmazonS3Uploader", "Upload successful", {
+        fileName: file.name,
         url: publicUrl,
       });
       return {
@@ -219,7 +196,10 @@ export class AmazonS3Uploader implements IUploader {
         key: fileKey,
       };
     } catch (error) {
-      logger.error("AmazonS3Uploader", "S3 upload failed", error);
+      logger.error("AmazonS3Uploader", "Upload failed", {
+        fileName: file.name,
+        error,
+      });
       return handleError(error, "error.uploadError");
     }
   }
