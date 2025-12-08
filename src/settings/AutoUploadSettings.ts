@@ -38,6 +38,19 @@ export class AutoUploadSettings {
       );
 
     new Setting(containerEl)
+      .setName(t("settings.skipDuplicateFiles"))
+      .setDesc(t("settings.skipDuplicateFiles.desc"))
+      .addToggle((toggle) =>
+        toggle
+          .setValue(settings.skipDuplicateFiles)
+          .onChange(async (value: boolean) => {
+            await plugin.configurationManager.saveSettings({
+              skipDuplicateFiles: value,
+            });
+          }),
+      );
+
+    new Setting(containerEl)
       .setName(t("settings.fileTypes"))
       .setDesc(t("settings.fileTypes.desc"))
       .addTextArea((toggle) => {

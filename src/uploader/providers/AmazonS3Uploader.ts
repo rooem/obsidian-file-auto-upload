@@ -12,6 +12,8 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
+  ListObjectsV2CommandOutput
 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import {
@@ -296,7 +298,35 @@ export class AmazonS3Uploader implements IUploader {
     }
   }
 
-  protected getPublicUrl(key: string): string {
+  public async fileExistsByPrefix(prefix: string): Promise<UploadResult> {
+    try {
+      const command = new ListObjectsV2Command({
+        Bucket: this.config.bucket_name,
+        Prefix: prefix,
+        MaxKeys: 1,
+      });
+
+      const response: ListObjectsV2CommandOutput = await this.s3Client.send(command);
+      if (response && response.Contents && response.Contents.length > 0 && response.Contents[0].Key) {
+        return {
+          success: true,
+          url: this.getPublicUrl(response.Contents[0].Key),
+          key: response.Contents[0].Key,
+        };
+      }
+
+      return {
+        success: false,
+        url: '',
+        key: "",
+      };
+    } catch (error) {
+      logger.error("AmazonS3Uploader", "check file exists by prefix error", error);
+      return handleError(error, "error.uploadError");
+    }
+  }
+
+  public getPublicUrl(key: string): string {
     if (this.config.public_domain) {
       return `${this.config.public_domain.replace(/\/$/, "")}/${key}`;
     }

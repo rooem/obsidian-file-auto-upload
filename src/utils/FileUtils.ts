@@ -102,13 +102,12 @@ export function generateFileKey(fileName: string, randomString?: string): string
       );
   }
 
-  const timestamp = now.getFullYear().toString() +
+  const timestamp = randomString + "_" + now.getFullYear().toString() +
     (now.getMonth() + 1).toString().padStart(2, '0') +
     now.getDate().toString().padStart(2, '0') +
     now.getHours().toString().padStart(2, '0') +
     now.getMinutes().toString().padStart(2, '0') +
-    now.getSeconds().toString().padStart(2, '0') +
-    randomString;
+    now.getSeconds().toString().padStart(2, '0');
 
   const extension = fileName.split(".").pop();
   const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf("."));

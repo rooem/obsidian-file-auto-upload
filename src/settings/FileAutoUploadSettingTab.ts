@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: FileAutoUploadSettings = {
   autoUpload: true,
   clipboardAutoUpload: true,
   dragAutoUpload: true,
+  skipDuplicateFiles: false,
   autoUploadFileTypes: [
     "jpg",
     "jpeg",

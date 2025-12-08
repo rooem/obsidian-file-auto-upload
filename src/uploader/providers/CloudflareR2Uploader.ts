@@ -30,7 +30,7 @@ export class CloudflareR2Uploader extends AmazonS3Uploader {
     return { success: true };
   }
 
-  protected getPublicUrl(key: string): string {
+  public getPublicUrl(key: string): string {
     if (this.config.public_domain) {
       return `${this.config.public_domain.replace(/\/$/, "")}/${key}`;
     }
