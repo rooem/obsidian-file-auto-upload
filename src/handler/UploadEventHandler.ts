@@ -129,7 +129,7 @@ export class UploadEventHandler extends BaseEventHandler {
       } else {
         await this.replacePlaceholder(
           processItem.id,
-          `❌${t("upload.failed")} ${file.name}: ${result.error || t("error.uploadFailed")}`,
+          `[${file.name}]❌${result.error || t("error.uploadFailed")}`,
         );
       }
     } finally {
@@ -192,7 +192,7 @@ export class UploadEventHandler extends BaseEventHandler {
       const errorMsg = error instanceof Error ? error.message : String(error);
       await this.replacePlaceholder(
         processItem.id,
-        `❌ ${t("upload.progrefailed")} ${file.name}: ${errorMsg}`,
+        `[${file.name}]❌${errorMsg}`,
       );
     }
   }
