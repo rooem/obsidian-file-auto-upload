@@ -53,8 +53,10 @@ export class DownloadHandler extends BaseEventHandler {
         activeView.file.path,
       );
       await this.app.vault.createBinary(fullPath, response.arrayBuffer);
-
-      await this.replacePlaceholder(item.id, fullPath, actualFileName);
+   
+      // Use actual saved file name from fullPath (may have number suffix if duplicate)
+      const savedFileName = fullPath.split("/").pop() || actualFileName;
+      await this.replacePlaceholder(item.id, fullPath, decodeURIComponent(savedFileName));
 
       new Notice(t("download.success").replace("{fileName}", actualFileName));
     } catch (error) {
@@ -96,9 +98,7 @@ export class DownloadHandler extends BaseEventHandler {
 
     const editor = activeView.editor;
     const content = editor.getValue();
-    const extension = fileName.split(".").pop()?.toLowerCase() || "";
-    const prefix = isImageExtension(extension) ? "!" : "";
-    const localMarkdown = `${prefix}[${fileName}](${localPath})`;
+    const localMarkdown = `[${fileName}](${localPath})`;
 
     const marker = `<!--${id}-->`;
     const markerIndex = content.indexOf(marker);
@@ -111,8 +111,14 @@ export class DownloadHandler extends BaseEventHandler {
       return;
     }
 
+    // Check if there's already an image prefix (!)
+    const extension = fileName.split(".").pop()?.toLowerCase() || "";
+    const hasImagePrefix = linkStartIndex > 0 && content[linkStartIndex - 1] === "!";
+    const needsImagePrefix = isImageExtension(extension) && !hasImagePrefix;
+    const finalMarkdown = needsImagePrefix ? `!${localMarkdown}` : localMarkdown;
+
     const startPos = editor.offsetToPos(linkStartIndex);
     const endPos = editor.offsetToPos(markerIndex + marker.length);
-    editor.replaceRange(localMarkdown, startPos, endPos);
+    editor.replaceRange(finalMarkdown, startPos, endPos);
   }
 }

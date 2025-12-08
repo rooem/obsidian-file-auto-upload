@@ -170,9 +170,13 @@ export class UploadEventHandler extends BaseEventHandler {
       return;
     }
 
+    // Check if there's already an image prefix (!) and text starts with !
+    const hasImagePrefix = linkStartIndex > 0 && content[linkStartIndex - 1] === "!";
+    const finalText = hasImagePrefix && text.startsWith("!") ? text.substring(1) : text;
+
     const startPos = editor.offsetToPos(linkStartIndex);
     const endPos = editor.offsetToPos(markerIndex + marker.length);
-    editor.replaceRange(text, startPos, endPos);
+    editor.replaceRange(finalText, startPos, endPos);
   }
 
   private async saveToVault(processItem: FileProcessItem): Promise<void> {
