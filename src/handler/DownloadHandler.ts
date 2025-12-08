@@ -1,17 +1,18 @@
-import { MarkdownView, Notice, requestUrl } from "obsidian";
+import { MarkdownView, Notice, requestUrl, App } from "obsidian";
 import { BaseEventHandler } from "./BaseEventHandler";
 import { StatusBar } from "../components/StatusBar";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
 import { isImageExtension } from "../utils/FileUtils";
-import { ProcessItem, DownloadProcessItem } from "../types/index";
+import { ProcessItem, DownloadProcessItem, EventType } from "../types/index";
+import { ConfigurationManager } from "../settings/ConfigurationManager";
 
 export class DownloadHandler extends BaseEventHandler {
   private statusBar: StatusBar;
 
   constructor(
-    app: import("obsidian").App,
-    configurationManager: import("../settings/ConfigurationManager").ConfigurationManager,
+    app: App,
+    configurationManager: ConfigurationManager,
     statusBar: StatusBar,
   ) {
     super(app, configurationManager, 3);
@@ -23,7 +24,7 @@ export class DownloadHandler extends BaseEventHandler {
   }
 
   protected async processItem(processItem: ProcessItem): Promise<void> {
-    if (processItem.type !== "download") {
+    if (processItem.eventType !== EventType.DOWNLOAD) {
       return;
     }
 
@@ -31,7 +32,6 @@ export class DownloadHandler extends BaseEventHandler {
     const url = item.url;
     const decodedUrl = decodeURIComponent(url);
     const fileName = decodeURIComponent(decodedUrl.split("/").pop() || "file");
-
     try {
       const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
       if (!activeView?.file) {
@@ -39,6 +39,9 @@ export class DownloadHandler extends BaseEventHandler {
       }
 
       this.statusBar.startDownload(item.id);
+
+      // 替换URL为下载中状态
+      this.replaceUrlWithDownloading(url, item.id);
 
       const response = await requestUrl({ url });
       this.statusBar.updateProgress(item.id, 100);
@@ -51,7 +54,7 @@ export class DownloadHandler extends BaseEventHandler {
       );
       await this.app.vault.createBinary(fullPath, response.arrayBuffer);
 
-      await this.replaceUrlWithLocalPath(url, fullPath, actualFileName);
+      await this.replacePlaceholder(item.id, fullPath, actualFileName);
 
       new Notice(t("download.success").replace("{fileName}", actualFileName));
     } catch (error) {
@@ -63,8 +66,26 @@ export class DownloadHandler extends BaseEventHandler {
     }
   }
 
-  private replaceUrlWithLocalPath(
-    url: string,
+  private replaceUrlWithDownloading(url: string, id: string): void {
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!activeView) {
+      return;
+    }
+
+    const editor = activeView.editor;
+    const content = editor.getValue();
+    const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const linkRegex = new RegExp(`(!?\\[[^\\]]*\\])\\(${escapedUrl}\\)`, "g");
+    const placeholder = `$1⏳${t("download.progressing")}<!--${id}-->`;
+    const newContent = content.replace(linkRegex, placeholder);
+
+    if (newContent !== content) {
+      editor.setValue(newContent);
+    }
+  }
+
+  private replacePlaceholder(
+    id: string,
     localPath: string,
     fileName: string,
   ): void {
@@ -79,12 +100,19 @@ export class DownloadHandler extends BaseEventHandler {
     const prefix = isImageExtension(extension) ? "!" : "";
     const localMarkdown = `${prefix}[${fileName}](${localPath})`;
 
-    const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const linkRegex = new RegExp(`!?\\[[^\\]]*\\]\\(${escapedUrl}\\)`, "g");
-    const newContent = content.replace(linkRegex, localMarkdown);
-
-    if (newContent !== content) {
-      editor.setValue(newContent);
+    const marker = `<!--${id}-->`;
+    const markerIndex = content.indexOf(marker);
+    if (markerIndex === -1) {
+      return;
     }
+
+    const linkStartIndex = content.lastIndexOf("[", markerIndex);
+    if (linkStartIndex === -1) {
+      return;
+    }
+
+    const startPos = editor.offsetToPos(linkStartIndex);
+    const endPos = editor.offsetToPos(markerIndex + marker.length);
+    editor.replaceRange(localMarkdown, startPos, endPos);
   }
 }

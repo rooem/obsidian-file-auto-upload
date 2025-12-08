@@ -84,9 +84,14 @@ export default {
 
   // Upload Local File
   "upload.localFile": "上传文件（file auto upload）",
+  "upload.allLocalFiles": "上传所有文件（file auto upload）",
+  "upload.noFiles": "未发现可上传的文件",
 
   // Download
   "download.menuTitle": "下载文件（file auto upload）",
+  "download.allMenuTitle": "下载所有文件（file auto upload）",
+  "download.progressing": "下载中",
+  "download.noFiles": "未发现可下载的文件",
   "download.success": "文件已下载：{fileName}",
   "download.failed": "下载失败：{error}",
 

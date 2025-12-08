@@ -1,4 +1,4 @@
-import { App, Notice, MarkdownView, Menu, MenuItem, Editor } from "obsidian";
+import { App, Notice, MarkdownView, Menu, MenuItem, Editor, TFile } from "obsidian";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { UploadServiceManager } from "../uploader/UploaderManager";
 import { StatusBar } from "../components/StatusBar";
@@ -105,6 +105,14 @@ export class EventHandlerManager {
     }
   }
 
+  public handleFileMenu(menu: Menu, file: TFile): void {
+    if (file.extension !== "md") {
+      return;
+    }
+    this.handleDownloadAllFilesFromFile(menu, file);
+    this.handleUploadAllFilesFromFile(menu, file);
+  }
+
   public handleEditorContextMenu(
     menu: Menu,
     editor: Editor,
@@ -207,6 +215,56 @@ export class EventHandlerManager {
     });
   }
 
+  private handleDownloadAllFilesFromFile(menu: Menu, file: TFile): void {
+    const publicDomain = this.configurationManager.getPublicDomain();
+
+    menu.addItem((item: MenuItem) => {
+      item
+        .setTitle(t("download.allMenuTitle"))
+        .setIcon("download")
+        .onClick(async () => {
+          const content = await this.app.vault.read(file);
+          const uploadedFileLinks = findUploadedFileLinks(content, publicDomain);
+          if (!uploadedFileLinks || uploadedFileLinks.length === 0) {
+            new Notice(t("download.noFiles"), 1000);
+            return;
+          }
+          const processItems: DownloadProcessItem[] = uploadedFileLinks.map(
+            (url) => ({
+              id: generateUniqueId("dl"),
+              eventType: EventType.DOWNLOAD,
+              type: "download",
+              url,
+            }),
+          );
+          this.downloadHandler.handleDownloadFiles(processItems);
+        });
+    });
+  }
+
+  private handleUploadAllFilesFromFile(menu: Menu, file: TFile): void {
+    const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
+
+    menu.addItem((item) => {
+      item
+        .setTitle(t("upload.allLocalFiles"))
+        .setIcon("upload")
+        .onClick(async () => {
+          const content = await this.app.vault.read(file);
+          const localFiles = findSupportedViewFilePath(content, supportedTypes);
+          if (!localFiles || localFiles.length === 0) {
+            new Notice(t("upload.noFiles"), 1000);
+            return;
+          }
+          const processItems =
+            await this.getProcessItemListFromView(localFiles);
+          if (this.canHandle(processItems)) {
+            void this.uploadEventHandler.handleFileUploadEvent(processItems);
+          }
+        });
+    });
+  }
+
   private handleDeleteFile(
     menu: Menu,
     editor: Editor,
@@ -277,7 +335,7 @@ export class EventHandlerManager {
     items: DataTransferItemList,
   ): Promise<Array<TextProcessItem | FileProcessItem>> {
     const queue: Array<TextProcessItem | FileProcessItem> = [];
-    
+
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (item.kind === "string" && item.type === "text/plain") {
@@ -305,7 +363,7 @@ export class EventHandlerManager {
         if (!file) {
           continue;
         }
-        const uploadId = generateUniqueId("u",file);
+        const uploadId = generateUniqueId("u", file);
         const extension = file.name.split(".").pop()?.toLowerCase();
         queue.push({
           id: uploadId,
@@ -332,7 +390,7 @@ export class EventHandlerManager {
         const arrayBuffer = await this.app.vault.adapter.readBinary(filePath);
         const fileName = filePath.split("/").pop() || "file";
         const file = new File([new Blob([arrayBuffer])], fileName);
-        const uploadId = generateUniqueId("u",file);
+        const uploadId = generateUniqueId("u", file);
         queue.push({
           id: uploadId,
           eventType: EventType.UPLOAD,

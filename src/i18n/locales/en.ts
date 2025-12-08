@@ -91,9 +91,14 @@ export default {
 
   // Upload Local File
   "upload.localFile": "Upload file(file auto upload)",
+  "upload.allLocalFiles": "Upload all files(file auto upload)",
+  "upload.noFiles": "No uploadable files found",
 
   // Download
   "download.menuTitle": "Download file(file auto upload)",
+  "download.allMenuTitle": "Download all files(file auto upload)",
+  "download.progressing": "Downloading",
+  "download.noFiles": "No downloadable files found",
   "download.success": "File downloaded: {fileName}",
   "download.failed": "Download failed: {error}",
 

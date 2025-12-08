@@ -4,7 +4,7 @@ import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { UploadServiceManager } from "../uploader/UploaderManager";
 import { StatusBar } from "../components/StatusBar";
 import { logger } from "../utils/Logger";
-import { ProcessItem, TextProcessItem, FileProcessItem } from "../types/index";
+import { ProcessItem, TextProcessItem, FileProcessItem, EventType } from "../types/index";
 import {
   isFileTypeSupported,
   isImageExtension,
@@ -50,6 +50,10 @@ export class UploadEventHandler extends BaseEventHandler {
   }
 
   protected async processItem(processItem: ProcessItem): Promise<void> {
+    if (processItem.eventType !== EventType.UPLOAD) {
+      return;
+    }
+    
     try {
       const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
       if (!activeView) {

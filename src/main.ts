@@ -1,4 +1,4 @@
-import { Plugin, MarkdownView, Menu, Editor } from "obsidian";
+import { Plugin, MarkdownView, Menu, Editor, TFile } from "obsidian";
 import { FileAutoUploadSettingTab } from "./settings/FileAutoUploadSettingTab";
 import { ConfigurationManager } from "./settings/ConfigurationManager";
 import { UploadServiceManager } from "./uploader/UploaderManager";
@@ -94,6 +94,12 @@ export default class FileAutoUploadPlugin extends Plugin {
           this.eventHandlerManager.handleEditorContextMenu(menu, editor, view);
         },
       ),
+    );
+
+    this.registerEvent(
+      this.app.workspace.on("file-menu", (menu: Menu, file: TFile) => {
+        this.eventHandlerManager.handleFileMenu(menu, file);
+      }),
     );
   }
 }
