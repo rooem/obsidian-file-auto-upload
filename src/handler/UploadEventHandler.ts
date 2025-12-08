@@ -8,7 +8,9 @@ import { ProcessItem, TextProcessItem, FileProcessItem } from "../types/index";
 import {
   isFileTypeSupported,
   isImageExtension,
+  generateFileKey
 } from "../utils/FileUtils";
+
 import { t } from "../i18n";
 
 /**
@@ -115,8 +117,10 @@ export class UploadEventHandler extends BaseEventHandler {
     this.statusBarManager.startUpload(processItem.id);
 
     try {
+      const key = generateFileKey(file.name, processItem.id);
       const result = await this.uploadServiceManager.uploadFile(
         file,
+        key,
         (progress) => {
           this.statusBarManager.updateProgress(processItem.id, progress);
         },

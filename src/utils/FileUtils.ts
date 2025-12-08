@@ -30,7 +30,7 @@ export type VideoExtension = (typeof VIDEO_EXTENSIONS)[number];
 export type AudioExtension = (typeof AUDIO_EXTENSIONS)[number];
 export type MediaExtension = (typeof MEDIA_EXTENSIONS)[number];
 
-export const RANDOM_STRING_LENGTH = 6;
+export const RANDOM_STRING_LENGTH = 7;
 export const RANDOM_STRING_START_INDEX = 2;
 export const MULTIPART_UPLOAD_THRESHOLD = 5 * 1024 * 1024; // 5MB
 
@@ -85,25 +85,34 @@ export function generateUniqueId(type: string, file?: File, length: number = 6):
 /**
  * Generate a unique file key with timestamp and random string
  *
- * Format: {timestamp}/{random}-{encoded-filename}.{extension}
- * Example: 2024-01-15T10-30-45-123Z/abc123-my%20file.jpg
+ * Format: {timestamp}/{random}-{filename}.{extension}
+ * Example: 2024-01-15T10-30-45-123Z/abc123-myfile.jpg
  *
  * @param fileName - Original file name
  * @returns Generated unique key
  */
-export function generateFileKey(fileName: string): string {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const randomString = Math.random()
-    .toString(36)
-    .substring(
-      RANDOM_STRING_START_INDEX,
-      RANDOM_STRING_START_INDEX + RANDOM_STRING_LENGTH,
-    );
+export function generateFileKey(fileName: string, randomString?: string): string {
+  const now = new Date();
+  if (!randomString) {
+    randomString = Math.random()
+      .toString(36)
+      .substring(
+        RANDOM_STRING_START_INDEX,
+        RANDOM_STRING_START_INDEX + RANDOM_STRING_LENGTH,
+      );
+  }
+
+  const timestamp = now.getFullYear().toString() +
+    (now.getMonth() + 1).toString().padStart(2, '0') +
+    now.getDate().toString().padStart(2, '0') +
+    now.getHours().toString().padStart(2, '0') +
+    now.getMinutes().toString().padStart(2, '0') +
+    now.getSeconds().toString().padStart(2, '0') +
+    randomString;
+
   const extension = fileName.split(".").pop();
   const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf("."));
-  const encodedName = encodeURIComponent(nameWithoutExt);
-
-  return `${timestamp}/${randomString}-${encodedName}.${extension}`;
+  return `${timestamp}_${nameWithoutExt}.${extension}`;
 }
 
 export function findSupportedFilePath(
@@ -267,21 +276,13 @@ export function extractFileKeyFromUrl(
         : pathname;
     }
 
-    // Encode the key to match the storage format
-    // Split by '/' and encode each part separately to preserve the path structure
-    const keyParts = extractedKey.split("/");
-    const encodedKeyParts = keyParts.map((part) => {
-      // Decode first in case it's already encoded, then re-encode to ensure consistency
-      try {
-        const decoded = decodeURIComponent(part);
-        return encodeURIComponent(decoded);
-      } catch {
-        // If decoding fails, just encode the original part
-        return encodeURIComponent(part);
-      }
-    });
-
-    return encodedKeyParts.join("/");
+    // Decode the key to get the original storage key
+    // The URL may be encoded, but S3 stores keys in their original form
+    try {
+      return decodeURIComponent(extractedKey);
+    } catch {
+      return extractedKey;
+    }
   } catch {
     return url;
   }

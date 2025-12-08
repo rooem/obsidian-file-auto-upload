@@ -2,7 +2,7 @@ import { IUploader } from "../types";
 import { UploaderTypeInfo } from "./UploaderRegistry";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { handleError } from "../utils/ErrorHandler";
-import type { FileAutoUploadSettings, ConfigChangeListener,UploadResult,FileInfo} from "../types";
+import type { FileAutoUploadSettings, ConfigChangeListener, UploadResult, FileInfo } from "../types";
 import { logger } from "../utils/Logger";
 
 /**
@@ -112,10 +112,11 @@ export class UploadServiceManager {
 
   async uploadFile(
     file: File,
+    key?: string,
     onProgress?: (progress: number) => void,
   ): Promise<UploadResult> {
     const uploader = this.getUploader();
-    return await uploader.uploadFile(file, undefined, onProgress);
+    return await uploader.uploadFile(file, key, onProgress);
   }
 
   async deleteFile(key: string): Promise<{ success: boolean; error?: string }> {

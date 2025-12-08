@@ -43,15 +43,17 @@ export class DownloadHandler extends BaseEventHandler {
       const response = await requestUrl({ url });
       this.statusBar.updateProgress(item.id, 100);
 
+      const randomStringIndex = fileName.indexOf("_");
+      const actualFileName = randomStringIndex > 0 ? fileName.substring(randomStringIndex + 1) : fileName;
       const fullPath = await this.app.fileManager.getAvailablePathForAttachment(
-        fileName,
+        actualFileName,
         activeView.file.path,
       );
       await this.app.vault.createBinary(fullPath, response.arrayBuffer);
 
-      await this.replaceUrlWithLocalPath(url, fullPath, fileName);
+      await this.replaceUrlWithLocalPath(url, fullPath, actualFileName);
 
-      new Notice(t("download.success").replace("{fileName}", fileName));
+      new Notice(t("download.success").replace("{fileName}", actualFileName));
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       new Notice(t("download.failed").replace("{error}", errorMsg));
