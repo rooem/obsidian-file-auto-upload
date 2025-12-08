@@ -53,10 +53,11 @@ export class DownloadHandler extends BaseEventHandler {
         activeView.file.path,
       );
       await this.app.vault.createBinary(fullPath, response.arrayBuffer);
-   
-      // Use actual saved file name from fullPath (may have number suffix if duplicate)
-      const savedFileName = fullPath.split("/").pop() || actualFileName;
-      await this.replacePlaceholder(item.id, fullPath, decodeURIComponent(savedFileName));
+
+      const saveedName = fullPath.replace(/\\/g, '/').split('/').pop() || '';
+      const actualFullPath = fullPath.replace(saveedName, encodeURIComponent(saveedName));
+
+      await this.replacePlaceholder(item.id, actualFullPath, actualFileName);
 
       new Notice(t("download.success").replace("{fileName}", actualFileName));
     } catch (error) {
