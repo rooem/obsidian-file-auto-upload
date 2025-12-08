@@ -10,19 +10,6 @@ export interface ErrorResult {
 }
 
 /**
- * Success result type with optional data
- */
-export interface SuccessResult<T = void> {
-  success: true;
-  data?: T;
-}
-
-/**
- * Union type for operation results
- */
-export type Result<T = void> = SuccessResult<T> | ErrorResult;
-
-/**
  * Handle errors and return standardized error result
  * @param error - Error object or message
  * @param contextKey - Optional i18n key for context
@@ -40,17 +27,6 @@ export function handleError(error: unknown, contextKey?: string): ErrorResult {
   };
 }
 
-/**
- * Create success result
- * @param data - Optional data to include
- * @returns SuccessResult
- */
-export function success<T>(data?: T): SuccessResult<T> {
-  return {
-    success: true,
-    data,
-  };
-}
 
 /**
  * Create failure result with i18n error message

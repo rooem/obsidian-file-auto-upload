@@ -83,15 +83,21 @@ export default {
   "upload.failed": "Upload failed",
 
   // Delete Operations
-  "delete.menuTitle": "Delete uploaded file",
+  "delete.menuTitle": "Delete file(file auto upload)",
   "delete.success": "File deleted successfully: {fileLink}",
   "delete.failed": "Failed to delete file: {fileLink} - {error}",
   "delete.error": "Error deleting file: {fileLink}",
   "delete.unknownError": "Unknown error",
 
   // Upload Local File
-  "upload.localFile": "Upload file",
+  "upload.localFile": "Upload file(file auto upload)",
+
+  // Download
+  "download.menuTitle": "Download file(file auto upload)",
+  "download.success": "File downloaded: {fileName}",
+  "download.failed": "Download failed: {error}",
 
   // Status Bar
   "statusBar.uploading": "{uploaded}/{total}: {progress}%",
+  "statusBar.downloading": "{downloaded}/{total}: {progress}%",
 };

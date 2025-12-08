@@ -76,15 +76,21 @@ export default {
   "upload.failed": "上传失败",
 
   // Delete Operations
-  "delete.menuTitle": "删除已上传文件",
+  "delete.menuTitle": "删除文件（file auto upload）",
   "delete.success": "文件删除成功：{fileLink}",
   "delete.failed": "文件删除失败：{fileLink} - {error}",
   "delete.error": "删除文件时发生错误：{fileLink}",
   "delete.unknownError": "未知错误",
 
   // Upload Local File
-  "upload.localFile": "上传文件",
+  "upload.localFile": "上传文件（file auto upload）",
+
+  // Download
+  "download.menuTitle": "下载文件（file auto upload）",
+  "download.success": "文件已下载：{fileName}",
+  "download.failed": "下载失败：{error}",
 
   // Status Bar
   "statusBar.uploading": "{uploaded}/{total}: {progress}%",
+  "statusBar.downloading": "{downloaded}/{total}: {progress}%",
 };

@@ -1,11 +1,14 @@
 import { Plugin } from "obsidian";
 import { t } from "../i18n";
 
+type OperationType = "upload" | "download";
+
 export class StatusBar {
   private statusBarItem: HTMLElement;
   private totalCount = 0;
-  private uploadedCount = 0;
+  private completedCount = 0;
   private progressMap: Map<string, number> = new Map();
+  private currentOperation: OperationType = "upload";
 
   constructor(plugin: Plugin) {
     this.statusBarItem = plugin.addStatusBarItem();
@@ -13,7 +16,16 @@ export class StatusBar {
   }
 
   startUpload(id: string): void {
+    this.start(id, "upload");
+  }
+
+  startDownload(id: string): void {
+    this.start(id, "download");
+  }
+
+  private start(id: string, operation: OperationType): void {
     this.totalCount++;
+    this.currentOperation = operation;
     this.progressMap.set(id, 0);
     this.updateDisplay();
   }
@@ -24,12 +36,20 @@ export class StatusBar {
   }
 
   finishUpload(id: string): void {
+    this.finish(id);
+  }
+
+  finishDownload(id: string): void {
+    this.finish(id);
+  }
+
+  private finish(id: string): void {
     this.progressMap.delete(id);
-    this.uploadedCount++;
-    if (this.uploadedCount >= this.totalCount) {
+    this.completedCount++;
+    if (this.completedCount >= this.totalCount) {
       this.statusBarItem.hide();
       this.totalCount = 0;
-      this.uploadedCount = 0;
+      this.completedCount = 0;
     } else {
       this.updateDisplay();
     }
@@ -41,15 +61,26 @@ export class StatusBar {
       return;
     }
 
-    const avgProgress = this.progressMap.size > 0
-      ? Math.round([...this.progressMap.values()].reduce((a, b) => a + b, 0) / this.progressMap.size)
-      : 0;
+    const avgProgress =
+      this.progressMap.size > 0
+        ? Math.round(
+            [...this.progressMap.values()].reduce((a, b) => a + b, 0) /
+              this.progressMap.size,
+          )
+        : 0;
 
-    const text = t("statusBar.uploading")
-      .replace("{uploaded}", this.uploadedCount.toString())
+    const key =
+      this.currentOperation === "upload"
+        ? "statusBar.uploading"
+        : "statusBar.downloading";
+    const icon = this.currentOperation === "upload" ? "📤" : "📥";
+
+    const text = t(key)
+      .replace("{uploaded}", this.completedCount.toString())
+      .replace("{downloaded}", this.completedCount.toString())
       .replace("{total}", this.totalCount.toString())
       .replace("{progress}", avgProgress.toString());
-    this.statusBarItem.setText(`📤 ${text}`);
+    this.statusBarItem.setText(`${icon} ${text}`);
     this.statusBarItem.show();
   }
 

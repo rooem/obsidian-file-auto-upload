@@ -4,6 +4,7 @@ import { UploadServiceManager } from "../uploader/UploaderManager";
 import { StatusBar } from "../components/StatusBar";
 import { UploadEventHandler } from "./UploadEventHandler";
 import { DeleteEventHandler } from "./DeleteEventHandler";
+import { DownloadHandler } from "./DownloadHandler";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
 import {
@@ -26,6 +27,7 @@ export class EventHandlerManager {
   private uploadServiceManager: UploadServiceManager;
   private uploadEventHandler: UploadEventHandler;
   private deleteEventHandler: DeleteEventHandler;
+  private downloadHandler: DownloadHandler;
 
   constructor(
     app: App,
@@ -48,6 +50,8 @@ export class EventHandlerManager {
       configurationManager,
       uploadServiceManager,
     );
+
+    this.downloadHandler = new DownloadHandler(app, statusBarManager);
   }
 
   public async handleClipboardPaste(
@@ -108,6 +112,8 @@ export class EventHandlerManager {
 
     this.handleUploadViewFile(menu, editor, view);
 
+    this.handleDownloadFile(menu, editor, view);
+
     this.handleDeleteFile(menu, editor, view);
   }
 
@@ -155,6 +161,30 @@ export class EventHandlerManager {
           if (this.canHandle(processItems)) {
             void this.uploadEventHandler.handleFileUploadEvent(processItems);
           }
+        });
+    });
+  }
+
+  private handleDownloadFile(
+    menu: Menu,
+    editor: Editor,
+    _view: MarkdownView,
+  ): void {
+    const publicDomain = this.configurationManager.getPublicDomain();
+    const uploadedFileLinks = findUploadedFileLinks(
+      editor.getSelection(),
+      publicDomain,
+    );
+    if (!uploadedFileLinks || uploadedFileLinks.length === 0) {
+      return;
+    }
+
+    menu.addItem((item: MenuItem) => {
+      item
+        .setTitle(t("download.menuTitle"))
+        .setIcon("download")
+        .onClick(() => {
+          void this.downloadHandler.downloadFiles(uploadedFileLinks);
         });
     });
   }
