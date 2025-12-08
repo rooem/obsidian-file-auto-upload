@@ -19,6 +19,7 @@ import {
   DeleteProcessItem,
   TextProcessItem,
   FileProcessItem,
+  DownloadProcessItem,
 } from "../types/index";
 
 export class EventHandlerManager {
@@ -51,7 +52,11 @@ export class EventHandlerManager {
       uploadServiceManager,
     );
 
-    this.downloadHandler = new DownloadHandler(app, statusBarManager);
+    this.downloadHandler = new DownloadHandler(
+      app,
+      configurationManager,
+      statusBarManager,
+    );
   }
 
   public async handleClipboardPaste(
@@ -118,7 +123,11 @@ export class EventHandlerManager {
   }
 
   public dispose(): void {
-    const handlers = [this.uploadEventHandler, this.deleteEventHandler];
+    const handlers = [
+      this.uploadEventHandler,
+      this.deleteEventHandler,
+      this.downloadHandler,
+    ];
     const statuses = handlers.map((handler) => handler.getQueueStatus());
 
     const totalQueueLength = statuses.reduce(
@@ -179,12 +188,21 @@ export class EventHandlerManager {
       return;
     }
 
+    const processItems: DownloadProcessItem[] = uploadedFileLinks.map(
+      (url) => ({
+        id: generateUniqueId("dl"),
+        eventType: EventType.DOWNLOAD,
+        type: "download",
+        url,
+      }),
+    );
+
     menu.addItem((item: MenuItem) => {
       item
         .setTitle(t("download.menuTitle"))
         .setIcon("download")
         .onClick(() => {
-          void this.downloadHandler.downloadFiles(uploadedFileLinks);
+          this.downloadHandler.handleDownloadFiles(processItems);
         });
     });
   }
@@ -259,15 +277,15 @@ export class EventHandlerManager {
     items: DataTransferItemList,
   ): Promise<Array<TextProcessItem | FileProcessItem>> {
     const queue: Array<TextProcessItem | FileProcessItem> = [];
+    
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      const uploadId = generateUniqueId("u");
       if (item.kind === "string" && item.type === "text/plain") {
         const text = await new Promise<string>((resolve) =>
           item.getAsString(resolve),
         );
         queue.push({
-          id: uploadId,
+          id: generateUniqueId("u"),
           eventType: EventType.UPLOAD,
           type: "text",
           value: text,
@@ -287,6 +305,7 @@ export class EventHandlerManager {
         if (!file) {
           continue;
         }
+        const uploadId = generateUniqueId("u",file);
         const extension = file.name.split(".").pop()?.toLowerCase();
         queue.push({
           id: uploadId,
@@ -313,7 +332,7 @@ export class EventHandlerManager {
         const arrayBuffer = await this.app.vault.adapter.readBinary(filePath);
         const fileName = filePath.split("/").pop() || "file";
         const file = new File([new Blob([arrayBuffer])], fileName);
-        const uploadId = generateUniqueId("u");
+        const uploadId = generateUniqueId("u",file);
         queue.push({
           id: uploadId,
           eventType: EventType.UPLOAD,

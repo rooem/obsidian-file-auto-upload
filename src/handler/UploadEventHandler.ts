@@ -67,35 +67,36 @@ export class UploadEventHandler extends BaseEventHandler {
     }
   }
 
-  private async insertPlaceholder(processItem: FileProcessItem): Promise<void> {
+  private insertPlaceholder(processItem: FileProcessItem): void {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.file) {
+    if (!activeView) {
       return;
     }
 
-    const file = activeView.file;
-    const content = await this.app.vault.cachedRead(file);
+    const editor = activeView.editor;
     const placeholderText = `[${processItem.value.name}]${this.getPlaceholderSuffix(processItem)}\n`;
-
-    await this.app.vault.modify(file, content + placeholderText);
+    editor.replaceSelection(placeholderText);
   }
 
-  private async replaceLocalLinkWithPlaceholder(processItem: FileProcessItem): Promise<void> {
+  private replaceLocalLinkWithPlaceholder(processItem: FileProcessItem): void {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.file || !processItem.localPath) {
+    if (!activeView || !processItem.localPath) {
       return;
     }
 
-    const file = activeView.file;
-    const content = await this.app.vault.cachedRead(file);
+    const editor = activeView.editor;
+    const content = editor.getValue();
     const escapedPath = processItem.localPath.replace(
       /[.*+?^${}()|[\]\\]/g,
       "\\$&",
     );
     const linkRegex = new RegExp(`(!?\\[[^\\]]*\\])\\(${escapedPath}\\)`, "g");
     const placeholder = `$1${this.getPlaceholderSuffix(processItem)}`;
+    const newContent = content.replace(linkRegex, placeholder);
 
-    await this.app.vault.modify(file, content.replace(linkRegex, placeholder));
+    if (newContent !== content) {
+      editor.setValue(newContent);
+    }
   }
 
   private getPlaceholderSuffix(processItem: FileProcessItem): string {
@@ -137,34 +138,33 @@ export class UploadEventHandler extends BaseEventHandler {
     }
   }
 
-  private async replacePlaceholder(id: string, text: string): Promise<void> {
+  private replacePlaceholder(id: string, text: string): void {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.file) {
+    if (!activeView) {
       return;
     }
 
-    const file = activeView.file;
-    const content = await this.app.vault.cachedRead(file);
+    const editor = activeView.editor;
+    const content = editor.getValue();
     const marker = `<!--${id}-->`;
     const markerIndex = content.indexOf(marker);
 
     if (markerIndex === -1) {
-      await this.app.vault.modify(file, content + text + "\n");
+      const lastLine = editor.lastLine();
+      editor.replaceRange(text + "\n", { line: lastLine + 1, ch: 0 });
       return;
     }
 
     const linkStartIndex = content.lastIndexOf("[", markerIndex);
     if (linkStartIndex === -1) {
-      await this.app.vault.modify(file, content + text + "\n");
+      const lastLine = editor.lastLine();
+      editor.replaceRange(text + "\n", { line: lastLine + 1, ch: 0 });
       return;
     }
 
-    await this.app.vault.modify(
-      file,
-      content.substring(0, linkStartIndex) +
-        text +
-        content.substring(markerIndex + marker.length),
-    );
+    const startPos = editor.offsetToPos(linkStartIndex);
+    const endPos = editor.offsetToPos(markerIndex + marker.length);
+    editor.replaceRange(text, startPos, endPos);
   }
 
   private async saveToVault(processItem: FileProcessItem): Promise<void> {

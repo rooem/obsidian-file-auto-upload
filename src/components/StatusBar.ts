@@ -1,14 +1,24 @@
 import { Plugin } from "obsidian";
 import { t } from "../i18n";
 
-type OperationType = "upload" | "download";
+interface OperationState {
+  total: number;
+  completed: number;
+  progressMap: Map<string, number>;
+}
 
 export class StatusBar {
   private statusBarItem: HTMLElement;
-  private totalCount = 0;
-  private completedCount = 0;
-  private progressMap: Map<string, number> = new Map();
-  private currentOperation: OperationType = "upload";
+  private upload: OperationState = {
+    total: 0,
+    completed: 0,
+    progressMap: new Map(),
+  };
+  private download: OperationState = {
+    total: 0,
+    completed: 0,
+    progressMap: new Map(),
+  };
 
   constructor(plugin: Plugin) {
     this.statusBarItem = plugin.addStatusBarItem();
@@ -16,72 +26,81 @@ export class StatusBar {
   }
 
   startUpload(id: string): void {
-    this.start(id, "upload");
+    this.upload.total++;
+    this.upload.progressMap.set(id, 0);
+    this.updateDisplay();
   }
 
   startDownload(id: string): void {
-    this.start(id, "download");
-  }
-
-  private start(id: string, operation: OperationType): void {
-    this.totalCount++;
-    this.currentOperation = operation;
-    this.progressMap.set(id, 0);
+    this.download.total++;
+    this.download.progressMap.set(id, 0);
     this.updateDisplay();
   }
 
   updateProgress(id: string, progress: number): void {
-    this.progressMap.set(id, progress);
+    if (this.upload.progressMap.has(id)) {
+      this.upload.progressMap.set(id, progress);
+    } else if (this.download.progressMap.has(id)) {
+      this.download.progressMap.set(id, progress);
+    }
     this.updateDisplay();
   }
 
   finishUpload(id: string): void {
-    this.finish(id);
+    this.upload.progressMap.delete(id);
+    this.upload.completed++;
+    this.checkReset(this.upload);
+    this.updateDisplay();
   }
 
   finishDownload(id: string): void {
-    this.finish(id);
+    this.download.progressMap.delete(id);
+    this.download.completed++;
+    this.checkReset(this.download);
+    this.updateDisplay();
   }
 
-  private finish(id: string): void {
-    this.progressMap.delete(id);
-    this.completedCount++;
-    if (this.completedCount >= this.totalCount) {
-      this.statusBarItem.hide();
-      this.totalCount = 0;
-      this.completedCount = 0;
-    } else {
-      this.updateDisplay();
+  private checkReset(state: OperationState): void {
+    if (state.completed >= state.total) {
+      state.total = 0;
+      state.completed = 0;
     }
+  }
+
+  private getAvgProgress(progressMap: Map<string, number>): number {
+    if (progressMap.size === 0) return 0;
+    return Math.round(
+      [...progressMap.values()].reduce((a, b) => a + b, 0) / progressMap.size,
+    );
   }
 
   private updateDisplay(): void {
-    if (this.totalCount === 0) {
-      this.statusBarItem.hide();
-      return;
+    const parts: string[] = [];
+
+    if (this.upload.total > 0) {
+      const progress = this.getAvgProgress(this.upload.progressMap);
+      const text = t("statusBar.uploading")
+        .replace("{uploaded}", this.upload.completed.toString())
+        .replace("{total}", this.upload.total.toString())
+        .replace("{progress}", progress.toString());
+      parts.push(`⬆️ ${text}`);
     }
 
-    const avgProgress =
-      this.progressMap.size > 0
-        ? Math.round(
-            [...this.progressMap.values()].reduce((a, b) => a + b, 0) /
-              this.progressMap.size,
-          )
-        : 0;
+    if (this.download.total > 0) {
+      const progress = this.getAvgProgress(this.download.progressMap);
+      const text = t("statusBar.downloading")
+        .replace("{downloaded}", this.download.completed.toString())
+        .replace("{total}", this.download.total.toString())
+        .replace("{progress}", progress.toString());
+      parts.push(`⬇️ ${text}`);
+    }
 
-    const key =
-      this.currentOperation === "upload"
-        ? "statusBar.uploading"
-        : "statusBar.downloading";
-    const icon = this.currentOperation === "upload" ? "📤" : "📥";
-
-    const text = t(key)
-      .replace("{uploaded}", this.completedCount.toString())
-      .replace("{downloaded}", this.completedCount.toString())
-      .replace("{total}", this.totalCount.toString())
-      .replace("{progress}", avgProgress.toString());
-    this.statusBarItem.setText(`${icon} ${text}`);
-    this.statusBarItem.show();
+    if (parts.length === 0) {
+      this.statusBarItem.hide();
+    } else {
+      this.statusBarItem.setText(parts.join(" | "));
+      this.statusBarItem.show();
+    }
   }
 
   dispose(): void {

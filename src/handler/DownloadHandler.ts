@@ -1,25 +1,36 @@
-import { App, MarkdownView, Notice, requestUrl } from "obsidian";
+import { MarkdownView, Notice, requestUrl } from "obsidian";
+import { BaseEventHandler } from "./BaseEventHandler";
 import { StatusBar } from "../components/StatusBar";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
-import { generateUniqueId, isImageExtension } from "../utils/FileUtils";
+import { isImageExtension } from "../utils/FileUtils";
+import { ProcessItem, DownloadProcessItem } from "../types/index";
 
-export class DownloadHandler {
+export class DownloadHandler extends BaseEventHandler {
+  private statusBar: StatusBar;
+
   constructor(
-    private app: App,
-    private statusBar: StatusBar,
-  ) {}
-
-  async downloadFiles(urls: string[]): Promise<void> {
-    for (const url of urls) {
-      await this.downloadFile(url);
-    }
+    app: import("obsidian").App,
+    configurationManager: import("../settings/ConfigurationManager").ConfigurationManager,
+    statusBar: StatusBar,
+  ) {
+    super(app, configurationManager, 3);
+    this.statusBar = statusBar;
   }
 
-  private async downloadFile(url: string): Promise<void> {
-    const id = generateUniqueId("dl");
+  public handleDownloadFiles(items: DownloadProcessItem[]): void {
+    this.processItems(items);
+  }
+
+  protected async processItem(processItem: ProcessItem): Promise<void> {
+    if (processItem.type !== "download") {
+      return;
+    }
+
+    const item = processItem as DownloadProcessItem;
+    const url = item.url;
     const decodedUrl = decodeURIComponent(url);
-    const fileName = decodedUrl.split("/").pop() || "file";
+    const fileName = decodeURIComponent(decodedUrl.split("/").pop() || "file");
 
     try {
       const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -27,15 +38,13 @@ export class DownloadHandler {
         return;
       }
 
-      this.statusBar.startDownload(id);
+      this.statusBar.startDownload(item.id);
 
       const response = await requestUrl({ url });
-      this.statusBar.updateProgress(id, 100);
+      this.statusBar.updateProgress(item.id, 100);
 
-       // Replace remote URL with local path in the document
-      const decodedFileName = decodeURIComponent(fileName);
       const fullPath = await this.app.fileManager.getAvailablePathForAttachment(
-        decodedFileName,
+        fileName,
         activeView.file.path,
       );
       await this.app.vault.createBinary(fullPath, response.arrayBuffer);
@@ -48,33 +57,32 @@ export class DownloadHandler {
       new Notice(t("download.failed").replace("{error}", errorMsg));
       logger.error("DownloadHandler", "Download failed", { url, error });
     } finally {
-      this.statusBar.finishDownload(id);
+      this.statusBar.finishDownload(item.id);
     }
   }
 
-  private async replaceUrlWithLocalPath(
+  private replaceUrlWithLocalPath(
     url: string,
     localPath: string,
     fileName: string,
-  ): Promise<void> {
+  ): void {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.file) {
+    if (!activeView) {
       return;
     }
 
-    const file = activeView.file;
-    const content = await this.app.vault.cachedRead(file);
+    const editor = activeView.editor;
+    const content = editor.getValue();
     const extension = fileName.split(".").pop()?.toLowerCase() || "";
     const prefix = isImageExtension(extension) ? "!" : "";
     const localMarkdown = `${prefix}[${fileName}](${localPath})`;
 
-    // Replace the URL in markdown links
     const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const linkRegex = new RegExp(`!?\\[[^\\]]*\\]\\(${escapedUrl}\\)`, "g");
     const newContent = content.replace(linkRegex, localMarkdown);
 
     if (newContent !== content) {
-      await this.app.vault.modify(file, newContent);
+      editor.setValue(newContent);
     }
   }
 }

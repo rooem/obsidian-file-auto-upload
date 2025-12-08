@@ -1,6 +1,7 @@
 export enum EventType {
   UPLOAD,
   DELETE,
+  DOWNLOAD,
 }
 
 // 可辨识联合类型
@@ -28,4 +29,13 @@ export interface DeleteProcessItem extends BaseProcessItem {
   originalSelection: string;
 }
 
-export type ProcessItem = TextProcessItem | FileProcessItem | DeleteProcessItem;
+export interface DownloadProcessItem extends BaseProcessItem {
+  type: "download";
+  url: string;
+}
+
+export type ProcessItem =
+  | TextProcessItem
+  | FileProcessItem
+  | DeleteProcessItem
+  | DownloadProcessItem;
