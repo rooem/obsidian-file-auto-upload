@@ -63,6 +63,19 @@ export class AutoUploadSettings {
           }),
       );
 
+    // new Setting(containerEl)
+    //   .setName(t("settings.applyNetworkFiles"))
+    //   .setDesc(t("settings.applyNetworkFiles.desc"))
+    //   .addToggle((toggle) =>
+    //     toggle
+    //       .setValue(settings.applyNetworkFiles)
+    //       .onChange(async (value: boolean) => {
+    //         await plugin.configurationManager.saveSettings({
+    //           applyNetworkFiles: value,
+    //         });
+    //       }),
+    //   );
+
     new Setting(containerEl)
       .setName(t("settings.fileTypes"))
       .setDesc(t("settings.fileTypes.desc"))

@@ -45,28 +45,17 @@ export class DownloadHandler extends BaseEventHandler {
       const response = await requestUrl({ url });
       this.statusBar.updateProgress(item.id, 100);
 
-      const randomStringIndex = fileName.indexOf("_");
-      const secondUnderscoreIndex = fileName.indexOf(
-        "_",
-        randomStringIndex + 1,
-      );
-      const actualFileName =
-        randomStringIndex > 0
-          ? fileName.substring(secondUnderscoreIndex + 1)
-          : fileName;
+      const firstUnderscoreIndex = fileName.indexOf("_");
+      const secondUnderscoreIndex = fileName.indexOf('_', firstUnderscoreIndex + 1);
+      const actualFileName = secondUnderscoreIndex > 0 ? fileName.substring(secondUnderscoreIndex + 1) : fileName;
       const fullPath = await this.app.fileManager.getAvailablePathForAttachment(
         actualFileName,
         activeView.file.path,
       );
-      await this.app.vault.createBinary(fullPath, response.arrayBuffer);
+      const created = await this.app.vault.createBinary(fullPath, response.arrayBuffer);
+      const localPath = created.path.replace(created.name, encodeURIComponent(created.name));
 
-      const saveedName = fullPath.replace(/\\/g, "/").split("/").pop() || "";
-      const actualFullPath = fullPath.replace(
-        saveedName,
-        encodeURIComponent(saveedName),
-      );
-
-      this.replacePlaceholder(item.id, actualFullPath, actualFileName);
+      await this.replacePlaceholder(item.id, localPath, actualFileName);
 
       new Notice(t("download.success").replace("{fileName}", actualFileName));
     } catch (error) {
@@ -79,17 +68,10 @@ export class DownloadHandler extends BaseEventHandler {
   }
 
   private replaceUrlWithDownloading(url: string, id: string): void {
-    this.replaceUrlWithPlaceholder(
-      url,
-      `⏳${t("download.progressing")}<!--${id}-->`,
-    );
+    this.replaceUrlWithPlaceholder(url, `⏳${t("download.progressing")}<!--${id}-->`);
   }
 
-  private replacePlaceholder(
-    id: string,
-    localPath: string,
-    fileName: string,
-  ): void {
+  private replacePlaceholder(id: string, localPath: string, fileName: string): void {
     const markdown = `[${fileName}](${localPath})`;
     this.replacePlaceholderWithMarkdown(id, markdown, fileName);
   }

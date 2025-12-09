@@ -396,20 +396,31 @@ export class EventHandlerManager {
       return queue;
     }
 
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) return queue;
+
     for (const filePath of filePathList) {
       try {
         const decodedPath = decodeURIComponent(filePath);
-        const arrayBuffer =
-          await this.app.vault.adapter.readBinary(decodedPath);
-        const fileName = decodedPath.split("/").pop() || "file";
-        const file = new File([new Blob([arrayBuffer])], fileName);
-        const uploadId = generateUniqueId("u", file);
+        const tfile = this.app.metadataCache.getFirstLinkpathDest(decodedPath,activeFile.path);
+        let arrayBuffer, file;
+        if (tfile instanceof TFile) {
+          arrayBuffer = await this.app.vault.readBinary(tfile);
+          const fileName = tfile.name || "file";
+          file = new File([new Blob([arrayBuffer])], fileName);
+        } else {
+          arrayBuffer =
+            await this.app.vault.adapter.readBinary(decodedPath);
+          const fileName = decodedPath.split("/").pop() || "file";
+          file = new File([new Blob([arrayBuffer])], fileName);
+        }
+
         queue.push({
-          id: uploadId,
+          id: generateUniqueId("u", file),
           eventType: EventType.UPLOAD,
           type: "file",
           value: file,
-          extension: fileName.split(".").pop()?.toLowerCase(),
+          extension: file.name.split(".").pop()?.toLowerCase(),
           localPath: filePath,
         } as FileProcessItem);
       } catch (error) {
