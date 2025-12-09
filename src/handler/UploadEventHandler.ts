@@ -124,10 +124,10 @@ export class UploadEventHandler extends BaseEventHandler {
         },
       );
 
-      if (result.success && result.url) {
+      if (result.success && result.data) {
         const markdown = isImageExtension(processItem.extension)
-          ? `![${file.name}](${encodeURI(result.url)})`
-          : `[${file.name}](${encodeURI(result.url)})`;
+          ? `![${file.name}](${encodeURI(result.data.url)})`
+          : `[${file.name}](${encodeURI(result.data.url)})`;
         this.replacePlaceholder(processItem.id, markdown);
 
         // Delete local file if setting is enabled

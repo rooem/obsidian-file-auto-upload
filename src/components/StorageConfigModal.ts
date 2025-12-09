@@ -1,5 +1,4 @@
 import { App, Modal, Plugin, Setting } from "obsidian";
-import { BaseModalComponent } from "./BaseUIComponent";
 import { t } from "../i18n";
 
 interface ObsidianApp extends App {
@@ -13,20 +12,16 @@ interface ObsidianApp extends App {
  * Modal dialog for storage configuration prompt
  * Shown when user attempts upload without configured storage
  */
-export class StorageConfigModal extends BaseModalComponent {
+export class StorageConfigModal extends Modal {
   private plugin: Plugin;
 
   constructor(plugin: Plugin) {
-    const modal = new Modal(plugin.app);
-    super(plugin.app, null, modal);
+    super(plugin.app);
     this.plugin = plugin;
   }
 
-  /**
-   * Render the modal content
-   */
-  render() {
-    const contentEl = this.getModalContent();
+  onOpen() {
+    const { contentEl } = this;
     new Setting(contentEl).setName(t("modal.storageConfig.title")).setHeading();
 
     const messageDiv = contentEl.createDiv();
@@ -40,7 +35,7 @@ export class StorageConfigModal extends BaseModalComponent {
       cls: "mod-cta",
     });
     openSettingsBtn.onclick = () => {
-      this.closeModal();
+      this.close();
       const app = this.plugin.app as ObsidianApp;
       if (app.setting) {
         app.setting.open();
@@ -49,12 +44,8 @@ export class StorageConfigModal extends BaseModalComponent {
     };
   }
 
-  /**
-   * Clean up when modal is closed
-   */
-  protected onModalClose(): void {
-    super.onModalClose();
-    const contentEl = this.getModalContent();
+  onClose() {
+    const { contentEl } = this;
     contentEl.empty();
   }
 }

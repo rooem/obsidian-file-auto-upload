@@ -56,8 +56,7 @@ export class ConfigurationManager {
 
   public showStorageConfigModal(): void {
     const modal = new StorageConfigModal(this.plugin);
-    modal.render();
-    modal.getModal().open();
+    modal.open();
   }
 
   async saveSettings(

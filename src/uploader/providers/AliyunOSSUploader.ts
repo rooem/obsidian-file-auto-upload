@@ -1,6 +1,7 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import { UploaderType } from "../UploaderRegistry";
 import { AmazonS3Uploader } from "./AmazonS3Uploader";
+import { Result } from "../../types";
 
 export class AliyunOSSUploader extends AmazonS3Uploader {
   protected type = UploaderType.ALIYUN_OSS;
@@ -17,7 +18,7 @@ export class AliyunOSSUploader extends AmazonS3Uploader {
     });
   }
 
-  public checkConnectionConfig(): { success: boolean; error?: string } {
+  public checkConnectionConfig(): Result {
     return this.validateCommonConfig();
   }
 

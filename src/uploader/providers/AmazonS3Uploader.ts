@@ -17,9 +17,9 @@ import {
 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import {
-  UploadResult,
+  Result,
+  UploadData,
   IUploader,
-  FileExistsResult,
   FileInfo,
   UploadProgressCallback,
 } from "../../types";
@@ -43,7 +43,7 @@ export class AmazonS3Uploader implements IUploader {
     this.s3Client = this.createS3Client();
   }
 
-  protected validateCommonConfig(): { success: boolean; error?: string } {
+  protected validateCommonConfig(): Result {
     if (!this.config.endpoint) {
       return { success: false, error: t("error.missingEndpoint") };
     }
@@ -81,7 +81,7 @@ export class AmazonS3Uploader implements IUploader {
     });
   }
 
-  public checkConnectionConfig(): { success: boolean; error?: string } {
+  public checkConnectionConfig(): Result {
     const commonResult = this.validateCommonConfig();
     if (!commonResult.success) {
       return commonResult;
@@ -93,7 +93,7 @@ export class AmazonS3Uploader implements IUploader {
     return { success: true };
   }
 
-  public async testConnection(): Promise<{ success: boolean; error?: string }> {
+  public async testConnection(): Promise<Result> {
     const checkResult = this.checkConnectionConfig();
     if (!checkResult.success) {
       return { success: false, error: checkResult.error };
@@ -110,8 +110,8 @@ export class AmazonS3Uploader implements IUploader {
         "test/connection-test.txt",
       );
 
-      if (result.success && result.key) {
-        await this.deleteFile(result.key);
+      if (result.success && result.data?.key) {
+        await this.deleteFile(result.data.key);
         return { success: true };
       } else {
         return {
@@ -135,7 +135,7 @@ export class AmazonS3Uploader implements IUploader {
     file: File,
     key?: string,
     onProgress?: UploadProgressCallback,
-  ): Promise<UploadResult> {
+  ): Promise<Result<UploadData>> {
     try {
       const fileKey = key || generateFileKey(file.name);
       const arrayBuffer = await file.arrayBuffer();
@@ -194,8 +194,7 @@ export class AmazonS3Uploader implements IUploader {
       });
       return {
         success: true,
-        url: publicUrl,
-        key: fileKey,
+        data: { url: publicUrl, key: fileKey },
       };
     } catch (error) {
       logger.error("AmazonS3Uploader", "Upload failed", {
@@ -206,9 +205,7 @@ export class AmazonS3Uploader implements IUploader {
     }
   }
 
-  public async deleteFile(
-    key: string,
-  ): Promise<{ success: boolean; error?: string }> {
+  public async deleteFile(key: string): Promise<Result> {
     logger.debug("AmazonS3Uploader", "Starting S3 delete", { key });
 
     try {
@@ -239,7 +236,7 @@ export class AmazonS3Uploader implements IUploader {
     }
   }
 
-  public async fileExists(key: string): Promise<FileExistsResult> {
+  public async fileExists(key: string): Promise<Result<boolean>> {
     try {
       const headParams = {
         Bucket: this.config.bucket_name,
@@ -249,25 +246,21 @@ export class AmazonS3Uploader implements IUploader {
       const command = new HeadObjectCommand(headParams);
       await this.s3Client.send(command);
 
-      return { exists: true };
+      return { success: true, data: true };
     } catch (error) {
       if (error instanceof Error && error.name === "NotFound") {
-        return { exists: false };
+        return { success: true, data: false };
       }
       const errorMsg =
         error instanceof Error ? error.message || error.name : String(error);
       return {
-        exists: false,
+        success: false,
         error: `File existence check error: ${errorMsg || "Unknown error"}`,
       };
     }
   }
 
-  public async getFileInfo(key: string): Promise<{
-    success: boolean;
-    info?: FileInfo;
-    error?: string;
-  }> {
+  public async getFileInfo(key: string): Promise<Result<FileInfo>> {
     try {
       const headParams = {
         Bucket: this.config.bucket_name,
@@ -285,7 +278,7 @@ export class AmazonS3Uploader implements IUploader {
 
       return {
         success: true,
-        info: fileInfo,
+        data: fileInfo,
       };
     } catch (error) {
       logger.error("AmazonS3Uploader", "S3 get file info error", error);
@@ -298,7 +291,7 @@ export class AmazonS3Uploader implements IUploader {
     }
   }
 
-  public async fileExistsByPrefix(prefix: string): Promise<UploadResult> {
+  public async fileExistsByPrefix(prefix: string): Promise<Result<UploadData>> {
     try {
       const command = new ListObjectsV2Command({
         Bucket: this.config.bucket_name,
@@ -316,16 +309,14 @@ export class AmazonS3Uploader implements IUploader {
       ) {
         return {
           success: true,
-          url: this.getPublicUrl(response.Contents[0].Key),
-          key: response.Contents[0].Key,
+          data: {
+            url: this.getPublicUrl(response.Contents[0].Key),
+            key: response.Contents[0].Key,
+          },
         };
       }
 
-      return {
-        success: false,
-        url: "",
-        key: "",
-      };
+      return { success: false };
     } catch (error) {
       logger.error(
         "AmazonS3Uploader",

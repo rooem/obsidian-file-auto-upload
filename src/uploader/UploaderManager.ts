@@ -1,13 +1,8 @@
-import { IUploader } from "../types";
+import { IUploader, Result, UploadData } from "../types";
 import { UploaderTypeInfo } from "./UploaderRegistry";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { handleError } from "../utils/ErrorHandler";
-import type {
-  FileAutoUploadSettings,
-  ConfigChangeListener,
-  UploadResult,
-  FileInfo,
-} from "../types";
+import type { FileAutoUploadSettings, ConfigChangeListener, FileInfo } from "../types";
 import { logger } from "../utils/Logger";
 
 /**
@@ -73,7 +68,7 @@ export class UploadServiceManager {
     return uploader;
   }
 
-  checkConnectionConfig(): { success: boolean; error?: string } {
+  checkConnectionConfig(): Result {
     try {
       const uploader = this.getUploader();
       const result = uploader.checkConnectionConfig();
@@ -96,7 +91,7 @@ export class UploadServiceManager {
     }
   }
 
-  async testConnection(): Promise<{ success: boolean; error?: string }> {
+  async testConnection(): Promise<Result> {
     try {
       const uploader = this.getUploader();
       const result = await uploader.testConnection();
@@ -119,13 +114,13 @@ export class UploadServiceManager {
     file: File,
     key: string,
     onProgress?: (progress: number) => void,
-  ): Promise<UploadResult> {
+  ): Promise<Result<UploadData>> {
     const uploader = this.getUploader();
 
     if (this.configurationManager.getSettings().skipDuplicateFiles) {
       const prefix = key?.substring(0, key.indexOf("_") + 1);
       const result = await uploader.fileExistsByPrefix(prefix);
-      if (result && result.success) {
+      if (result && result.success && result.data) {
         logger.debug("UploaderManager", "uploadFile file exists, skipping");
         if (onProgress) {
           onProgress(100);
@@ -137,7 +132,7 @@ export class UploadServiceManager {
     return await uploader.uploadFile(file, key, onProgress);
   }
 
-  async deleteFile(key: string): Promise<{ success: boolean; error?: string }> {
+  async deleteFile(key: string): Promise<Result> {
     try {
       const uploader = this.getUploader();
       return await uploader.deleteFile(key);
@@ -147,29 +142,19 @@ export class UploadServiceManager {
     }
   }
 
-  async fileExists(key: string): Promise<{ exists: boolean; error?: string }> {
+  async fileExists(key: string): Promise<Result<boolean>> {
     try {
       const uploader = this.getUploader();
-      const result = await uploader.fileExists(key);
-      return {
-        exists: result.exists,
-        error: result.error,
-      };
+      return await uploader.fileExists(key);
     } catch (error) {
-      return {
-        exists: false,
-        ...handleError(error, "error.fileExistenceCheckFailed"),
-      };
+      return handleError(error, "error.fileExistenceCheckFailed");
     }
   }
-  async getFileInfo(key: string): Promise<{
-    success: boolean;
-    info?: FileInfo;
-    error?: string;
-  }> {
+  async getFileInfo(key: string): Promise<Result<FileInfo>> {
     try {
       const uploader = this.getUploader();
-      return await uploader.getFileInfo(key);
+      const result = await uploader.getFileInfo(key);
+      return result;
     } catch (error) {
       return handleError(error, "error.getFileInfoFailed");
     }

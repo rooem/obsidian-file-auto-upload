@@ -3,6 +3,23 @@
  */
 
 /**
+ * Generic result type for operations
+ */
+export interface Result<T = void> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+/**
+ * Upload data returned on successful upload
+ */
+export interface UploadData {
+  url: string;
+  key: string;
+}
+
+/**
  * Base uploader configuration interface
  */
 export interface UploaderConfig {
@@ -22,16 +39,6 @@ export interface S3Config extends UploaderConfig {
 }
 
 /**
- * Upload result interface
- */
-export interface UploadResult {
-  success: boolean;
-  url?: string;
-  key?: string;
-  error?: string;
-}
-
-/**
  * Upload progress callback type
  */
 export type UploadProgressCallback = (progress: number) => void;
@@ -46,36 +53,26 @@ export interface FileInfo {
 }
 
 /**
- * File existence check result interface
- */
-export interface FileExistsResult {
-  exists: boolean;
-  error?: string;
-}
-
-/**
  * Uploader interface - defines methods that all uploaders must implement
  */
 export interface IUploader {
-  checkConnectionConfig(): { success: boolean; error?: string };
+  checkConnectionConfig(): Result;
 
   uploadFile(
     file: File,
     key?: string,
     onProgress?: UploadProgressCallback,
-  ): Promise<UploadResult>;
+  ): Promise<Result<UploadData>>;
 
-  deleteFile(key: string): Promise<{ success: boolean; error?: string }>;
+  deleteFile(key: string): Promise<Result>;
 
-  fileExists(key: string): Promise<FileExistsResult>;
+  fileExists(key: string): Promise<Result<boolean>>;
 
-  fileExistsByPrefix(prefix: string): Promise<UploadResult>;
+  fileExistsByPrefix(prefix: string): Promise<Result<UploadData>>;
 
-  getFileInfo(
-    key: string,
-  ): Promise<{ success: boolean; info?: FileInfo; error?: string }>;
+  getFileInfo(key: string): Promise<Result<FileInfo>>;
 
-  testConnection(): Promise<{ success: boolean; error?: string }>;
+  testConnection(): Promise<Result>;
 
   getPublicUrl(key: string): string;
 

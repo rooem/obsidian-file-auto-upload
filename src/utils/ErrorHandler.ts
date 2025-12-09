@@ -28,19 +28,6 @@ export function handleError(error: unknown, contextKey?: string): ErrorResult {
 }
 
 /**
- * Create failure result with i18n error message
- * @param errorKey - i18n key for error message
- * @param fallback - Fallback message if key not found
- * @returns ErrorResult
- */
-export function failure(errorKey: string, fallback?: string): ErrorResult {
-  return {
-    success: false,
-    error: t(errorKey) || fallback || errorKey,
-  };
-}
-
-/**
  * Create failure result with context and error details
  * @param contextKey - i18n key for context
  * @param error - Error object or message

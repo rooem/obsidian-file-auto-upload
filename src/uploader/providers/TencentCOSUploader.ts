@@ -1,10 +1,11 @@
 import { AmazonS3Uploader } from "./AmazonS3Uploader";
 import { UploaderType } from "../UploaderRegistry";
+import { Result } from "../../types";
 
 export class TencentCOSUploader extends AmazonS3Uploader {
   protected type = UploaderType.TENCENT_COS;
 
-  public checkConnectionConfig(): { success: boolean; error?: string } {
+  public checkConnectionConfig(): Result {
     return this.validateCommonConfig();
   }
 

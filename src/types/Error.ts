@@ -42,14 +42,6 @@ export interface AppError {
 }
 
 /**
- * Validation result interface
- */
-export interface ValidationResult {
-  valid: boolean;
-  errors: string[];
-}
-
-/**
  * Custom error class for upload operations
  */
 export class UploadError extends Error {

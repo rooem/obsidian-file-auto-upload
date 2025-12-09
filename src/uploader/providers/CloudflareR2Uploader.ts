@@ -1,6 +1,7 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import { UploaderType } from "../UploaderRegistry";
 import { AmazonS3Uploader } from "./AmazonS3Uploader";
+import { Result } from "../../types";
 import { t } from "../../i18n";
 
 export class CloudflareR2Uploader extends AmazonS3Uploader {
@@ -18,7 +19,7 @@ export class CloudflareR2Uploader extends AmazonS3Uploader {
     });
   }
 
-  public checkConnectionConfig(): { success: boolean; error?: string } {
+  public checkConnectionConfig(): Result {
     const commonResult = this.validateCommonConfig();
     if (!commonResult.success) {
       return commonResult;

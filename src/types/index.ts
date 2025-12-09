@@ -4,12 +4,12 @@
 
 // Uploader types
 export type {
+  Result,
+  UploadData,
   UploaderConfig,
   S3Config,
-  UploadResult,
   UploadProgressCallback,
   FileInfo,
-  FileExistsResult,
   IUploader,
 } from "./Uploader";
 
@@ -23,7 +23,7 @@ export type {
 // Error types
 export { ErrorCode, UploadError } from "./Error";
 
-export type { AppError, ValidationResult } from "./Error";
+export type { AppError } from "./Error";
 
 export { EventType } from "./Event";
 
