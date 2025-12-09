@@ -29,6 +29,9 @@ export default {
   "settings.dragAutoUpload": "Drag & drop auto upload",
   "settings.dragAutoUpload.desc":
     "Automatically upload files when dragging into Obsidian",
+  "settings.deleteAfterUpload": "Delete local file after upload",
+  "settings.deleteAfterUpload.desc":
+    "Automatically delete local file after successful upload",
   "settings.fileTypes": "File types",
   "settings.fileTypes.desc":
     "File types for auto upload, separate multiple types with commas",

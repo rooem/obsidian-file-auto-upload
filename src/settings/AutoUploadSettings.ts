@@ -38,6 +38,19 @@ export class AutoUploadSettings {
       );
 
     new Setting(containerEl)
+      .setName(t("settings.deleteAfterUpload"))
+      .setDesc(t("settings.deleteAfterUpload.desc"))
+      .addToggle((toggle) =>
+        toggle
+          .setValue(settings.deleteAfterUpload)
+          .onChange(async (value: boolean) => {
+            await plugin.configurationManager.saveSettings({
+              deleteAfterUpload: value,
+            });
+          }),
+      );
+
+    new Setting(containerEl)
       .setName(t("settings.fileTypes"))
       .setDesc(t("settings.fileTypes.desc"))
       .addTextArea((toggle) => {

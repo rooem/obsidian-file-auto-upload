@@ -11,6 +11,7 @@ export interface FileAutoUploadSettings {
   autoUpload: boolean;
   clipboardAutoUpload: boolean;
   dragAutoUpload: boolean;
+  deleteAfterUpload: boolean;
   autoUploadFileTypes: string[];
   applyNetworkFiles: boolean;
   uploaderType: string;

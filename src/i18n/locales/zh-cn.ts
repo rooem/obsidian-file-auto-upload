@@ -27,6 +27,8 @@ export default {
   "settings.clipboardAutoUpload.desc": "从剪贴板粘贴时自动上传文件",
   "settings.dragAutoUpload": "拖放自动上传",
   "settings.dragAutoUpload.desc": "拖动文件到 Obsidian 时自动上传",
+  "settings.deleteAfterUpload": "上传后删除本地文件",
+  "settings.deleteAfterUpload.desc": "上传完成后自动删除本地文件",
   "settings.fileTypes": "文件类型",
   "settings.fileTypes.desc": "自动上传的文件类型，多个类型用逗号分隔",
   "settings.fileTypes.empty": "请输入文件类型",
