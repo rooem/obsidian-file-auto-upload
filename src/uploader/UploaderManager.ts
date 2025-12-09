@@ -140,24 +140,6 @@ export class UploadServiceManager {
     }
   }
 
-  async fileExists(key: string): Promise<Result<boolean>> {
-    try {
-      const uploader = this.getUploader();
-      return await uploader.fileExists(key);
-    } catch (error) {
-      return handleError(error, "error.fileExistenceCheckFailed");
-    }
-  }
-  async getFileInfo(key: string): Promise<Result<FileInfo>> {
-    try {
-      const uploader = this.getUploader();
-      const result = await uploader.getFileInfo(key);
-      return result;
-    } catch (error) {
-      return handleError(error, "error.getFileInfoFailed");
-    }
-  }
-
   dispose(): void {
     this.uploaderInstances.forEach((uploader) => {
       if (uploader.dispose) {

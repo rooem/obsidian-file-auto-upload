@@ -8,6 +8,7 @@ export type {
   UploadData,
   UploaderConfig,
   S3Config,
+  WebdavConfig,
   UploadProgressCallback,
   FileInfo,
   IUploader,

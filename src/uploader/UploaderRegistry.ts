@@ -12,6 +12,7 @@ import { AmazonS3Uploader } from "./providers/AmazonS3Uploader";
 import { AliyunOSSUploader } from "./providers/AliyunOSSUploader";
 import { TencentCOSUploader } from "./providers/TencentCOSUploader";
 import { CloudflareR2Uploader } from "./providers/CloudflareR2Uploader";
+import { WebdavUploader } from "./providers/WebdavUploader";
 import type { IUploader, UploaderConfig } from "../types";
 
 /**
@@ -22,6 +23,7 @@ export const UploaderType = {
   CLOUDFLARE_R2: "cloudflare-r2",
   ALIYUN_OSS: "aliyun-oss",
   TENCENT_COS: "tencent-cos",
+  WEBDAV: "webdav",
 } as const;
 
 /**
@@ -48,5 +50,9 @@ export const UploaderTypeInfo: Record<string, { clazz: UploaderConstructor; serv
   [UploaderType.TENCENT_COS]: {
     clazz: TencentCOSUploader,
     serviceName: "Tencent COS",
+  },
+  [UploaderType.WEBDAV]: {
+    clazz: WebdavUploader,
+    serviceName: "WebDAV",
   },
 };

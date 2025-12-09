@@ -9,6 +9,12 @@ export default {
   "settings.accessKeyId.desc": "Access key ID",
   "settings.secretAccessKey": "Secret access key",
   "settings.secretAccessKey.desc": "Secret access key",
+  "settings.username": "Username",
+  "settings.username.desc": "WebDAV username",
+  "settings.password": "Password",
+  "settings.password.desc": "WebDAV password",
+  "settings.basePath": "Base path",
+  "settings.basePath.desc": "Base path for uploads (optional)",
   "settings.region": "Region",
   "settings.region.desc": "Storage region",
   "settings.bucketName": "Bucket name",
@@ -72,6 +78,8 @@ export default {
   "error.missingSecretAccessKey": "Missing secret access key configuration",
   "error.missingBucketName": "Missing bucket name configuration",
   "error.missingPublicUrl": "Missing public URL configuration",
+  "error.missingUsername": "Missing username configuration",
+  "error.missingPassword": "Missing password configuration",
 
   // Operation Errors
   "error.uploadError": "Upload error",

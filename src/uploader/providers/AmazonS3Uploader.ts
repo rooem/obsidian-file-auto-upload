@@ -11,7 +11,6 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
-  HeadObjectCommand,
   ListObjectsV2Command,
   ListObjectsV2CommandOutput,
 } from "@aws-sdk/client-s3";
@@ -234,61 +233,6 @@ export class AmazonS3Uploader implements IUploader {
     } catch (error) {
       logger.error("AmazonS3Uploader", "S3 delete error", { key, error });
       return handleError(error, "error.deleteError");
-    }
-  }
-
-  public async fileExists(key: string): Promise<Result<boolean>> {
-    try {
-      const headParams = {
-        Bucket: this.config.bucket_name,
-        Key: key,
-      };
-
-      const command = new HeadObjectCommand(headParams);
-      await this.s3Client.send(command);
-
-      return { success: true, data: true };
-    } catch (error) {
-      if (error instanceof Error && error.name === "NotFound") {
-        return { success: true, data: false };
-      }
-      const errorMsg =
-        error instanceof Error ? error.message || error.name : String(error);
-      return {
-        success: false,
-        error: `File existence check error: ${errorMsg || "Unknown error"}`,
-      };
-    }
-  }
-
-  public async getFileInfo(key: string): Promise<Result<FileInfo>> {
-    try {
-      const headParams = {
-        Bucket: this.config.bucket_name,
-        Key: key,
-      };
-
-      const command = new HeadObjectCommand(headParams);
-      const result = await this.s3Client.send(command);
-
-      const fileInfo: FileInfo = {
-        size: result.ContentLength || 0,
-        lastModified: result.LastModified || new Date(),
-        contentType: result.ContentType || "application/octet-stream",
-      };
-
-      return {
-        success: true,
-        data: fileInfo,
-      };
-    } catch (error) {
-      logger.error("AmazonS3Uploader", "S3 get file info error", error);
-      const errorMsg =
-        error instanceof Error ? error.message || error.name : String(error);
-      return {
-        success: false,
-        error: `Get file info error: ${errorMsg || "Unknown error"}`,
-      };
     }
   }
 

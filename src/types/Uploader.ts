@@ -39,6 +39,16 @@ export interface S3Config extends UploaderConfig {
 }
 
 /**
+ * WebDAV configuration interface
+ */
+export interface WebdavConfig extends UploaderConfig {
+  endpoint: string;
+  username: string;
+  password: string;
+  base_path?: string;
+}
+
+/**
  * Upload progress callback type
  */
 export type UploadProgressCallback = (progress: number) => void;
@@ -66,11 +76,7 @@ export interface IUploader {
 
   deleteFile(key: string): Promise<Result>;
 
-  fileExists(key: string): Promise<Result<boolean>>;
-
   fileExistsByPrefix(prefix: string): Promise<Result<UploadData>>;
-
-  getFileInfo(key: string): Promise<Result<FileInfo>>;
 
   testConnection(): Promise<Result>;
 

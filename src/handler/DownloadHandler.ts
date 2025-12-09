@@ -5,6 +5,7 @@ import { t } from "../i18n";
 import { logger } from "../utils/Logger";
 import { ProcessItem, DownloadProcessItem, EventType } from "../types/index";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
+import { UploaderType } from "../uploader/UploaderRegistry";
 
 export class DownloadHandler extends BaseEventHandler {
   private statusBar: StatusBar;
@@ -42,7 +43,23 @@ export class DownloadHandler extends BaseEventHandler {
       // 替换URL为下载中状态
       this.replaceUrlWithDownloading(url, item.id);
 
-      const response = await requestUrl({ url });
+      // 检查是否是WebDAV服务，如果是则需要添加认证头
+      let requestOptions: any = { url };
+      const currentServiceType = this.configurationManager.getCurrentStorageService();
+      
+      if (currentServiceType === UploaderType.WEBDAV) {
+        const config = this.configurationManager.getCurrentStorageConfig();
+        const credentials = `${config.username}:${config.password}`;
+        const authHeader = "Basic " + btoa(credentials);
+        requestOptions = {
+          url,
+          headers: {
+            Authorization: authHeader,
+          },
+        };
+      }
+
+      const response = await requestUrl(requestOptions);
       this.statusBar.updateProgress(item.id, 100);
 
       const firstUnderscoreIndex = fileName.indexOf("_");

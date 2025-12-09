@@ -9,6 +9,12 @@ export default {
   "settings.accessKeyId.desc": "Access key ID",
   "settings.secretAccessKey": "访问密钥",
   "settings.secretAccessKey.desc": "Secret access key",
+  "settings.username": "用户名",
+  "settings.username.desc": "WebDAV 用户名",
+  "settings.password": "密码",
+  "settings.password.desc": "WebDAV 密码",
+  "settings.basePath": "基础路径",
+  "settings.basePath.desc": "上传的基础路径（可选）",
   "settings.region": "区域",
   "settings.region.desc": "Region",
   "settings.bucketName": "存储桶",
@@ -64,6 +70,8 @@ export default {
   "error.missingSecretAccessKey": "缺少密钥配置",
   "error.missingBucketName": "缺少存储桶名称配置",
   "error.missingPublicUrl": "缺少公共 URL 配置",
+  "error.missingUsername": "缺少用户名配置",
+  "error.missingPassword": "缺少密码配置",
 
   // Operation Errors
   "error.uploadError": "上传错误",
