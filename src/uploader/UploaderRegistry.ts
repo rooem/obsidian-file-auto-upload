@@ -12,6 +12,7 @@ import { AmazonS3Uploader } from "./providers/AmazonS3Uploader";
 import { AliyunOSSUploader } from "./providers/AliyunOSSUploader";
 import { TencentCOSUploader } from "./providers/TencentCOSUploader";
 import { CloudflareR2Uploader } from "./providers/CloudflareR2Uploader";
+import type { IUploader, UploaderConfig } from "../types";
 
 /**
  * Supported uploader types
@@ -24,9 +25,14 @@ export const UploaderType = {
 } as const;
 
 /**
+ * Uploader class constructor type
+ */
+export type UploaderConstructor = new (config: UploaderConfig) => IUploader;
+
+/**
  * Registry mapping uploader types to their implementation classes
  */
-export const UploaderTypeInfo = {
+export const UploaderTypeInfo: Record<string, { clazz: UploaderConstructor; serviceName: string }> = {
   [UploaderType.AMAZON_S3]: {
     clazz: AmazonS3Uploader,
     serviceName: "Amazon S3",
@@ -43,4 +49,4 @@ export const UploaderTypeInfo = {
     clazz: TencentCOSUploader,
     serviceName: "Tencent COS",
   },
-} as const;
+};

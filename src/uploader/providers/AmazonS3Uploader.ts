@@ -22,9 +22,10 @@ import {
   IUploader,
   FileInfo,
   UploadProgressCallback,
+  UploaderConfig,
+  S3Config,
 } from "../../types";
 import { UploaderType } from "../UploaderRegistry";
-import { S3Config } from "../../types";
 import { t } from "../../i18n";
 import { handleError } from "../../utils/ErrorHandler";
 import { logger } from "../../utils/Logger";
@@ -38,8 +39,8 @@ export class AmazonS3Uploader implements IUploader {
   protected s3Client: S3Client;
   protected type: string = UploaderType.AMAZON_S3;
 
-  constructor(config: S3Config) {
-    this.config = config;
+  constructor(config: UploaderConfig) {
+    this.config = config as S3Config;
     this.s3Client = this.createS3Client();
   }
 

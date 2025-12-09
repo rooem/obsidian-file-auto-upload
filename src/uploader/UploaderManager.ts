@@ -1,5 +1,5 @@
 import { IUploader, Result, UploadData } from "../types";
-import { UploaderTypeInfo } from "./UploaderRegistry";
+import { UploaderTypeInfo, UploaderConstructor } from "./UploaderRegistry";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { handleError } from "../utils/ErrorHandler";
 import type { FileAutoUploadSettings, ConfigChangeListener, FileInfo } from "../types";
@@ -56,14 +56,12 @@ export class UploadServiceManager {
     });
 
     const config = this.configurationManager.getCurrentStorageConfig();
-    const uploaderInfo =
-      UploaderTypeInfo[serviceType as keyof typeof UploaderTypeInfo];
+    const uploaderInfo = UploaderTypeInfo[serviceType];
     if (!uploaderInfo) {
       throw new Error(`Unknown uploader type: ${serviceType}`);
     }
-    const uploader = new uploaderInfo.clazz(
-      config as import("../types").S3Config,
-    ) as IUploader;
+    const UploaderClass: UploaderConstructor = uploaderInfo.clazz;
+    const uploader = new UploaderClass(config);
     this.uploaderInstances.set(serviceType, uploader);
     return uploader;
   }
