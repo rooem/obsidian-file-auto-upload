@@ -2,7 +2,12 @@ import { IUploader } from "../types";
 import { UploaderTypeInfo } from "./UploaderRegistry";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { handleError } from "../utils/ErrorHandler";
-import type { FileAutoUploadSettings, ConfigChangeListener, UploadResult, FileInfo } from "../types";
+import type {
+  FileAutoUploadSettings,
+  ConfigChangeListener,
+  UploadResult,
+  FileInfo,
+} from "../types";
 import { logger } from "../utils/Logger";
 
 /**
@@ -116,13 +121,15 @@ export class UploadServiceManager {
     onProgress?: (progress: number) => void,
   ): Promise<UploadResult> {
     const uploader = this.getUploader();
-    
+
     if (this.configurationManager.getSettings().skipDuplicateFiles) {
-      const prefix = key?.substring(0, key.indexOf('_') + 1);
+      const prefix = key?.substring(0, key.indexOf("_") + 1);
       const result = await uploader.fileExistsByPrefix(prefix);
       if (result && result.success) {
         logger.debug("UploaderManager", "uploadFile file exists, skipping");
-        onProgress ? onProgress(100) : null;
+        if (onProgress) {
+          onProgress(100);
+        }
         return result;
       }
     }

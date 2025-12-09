@@ -10,11 +10,10 @@ export class ProgressDebouncer {
   /**
    * Update progress only at key milestones (0%, 25%, 50%, 75%, 100%)
    */
-  update(
-    progress: number,
-    callback: (progress: number) => void,
-  ): void {
-    const milestone = this.milestones.find((m) => progress >= m && m > this.lastMilestone);
+  update(progress: number, callback: (progress: number) => void): void {
+    const milestone = this.milestones.find(
+      (m) => progress >= m && m > this.lastMilestone,
+    );
     if (milestone !== undefined) {
       this.lastMilestone = milestone;
       callback(milestone);

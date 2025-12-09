@@ -4,11 +4,16 @@ import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { UploadServiceManager } from "../uploader/UploaderManager";
 import { StatusBar } from "../components/StatusBar";
 import { logger } from "../utils/Logger";
-import { ProcessItem, TextProcessItem, FileProcessItem, EventType } from "../types/index";
+import {
+  ProcessItem,
+  TextProcessItem,
+  FileProcessItem,
+  EventType,
+} from "../types/index";
 import {
   isFileTypeSupported,
   isImageExtension,
-  generateFileKey
+  generateFileKey,
 } from "../utils/FileUtils";
 
 import { t } from "../i18n";
@@ -31,7 +36,7 @@ export class UploadEventHandler extends BaseEventHandler {
     this.statusBarManager = statusBarManager;
   }
 
-  public async handleFileUploadEvent(items: ProcessItem[]): Promise<void> {
+  public handleFileUploadEvent(items: ProcessItem[]): void {
     logger.debug("UploadEventHandler", "Files queued for upload", {
       itemsLength: items.length,
     });
@@ -39,9 +44,9 @@ export class UploadEventHandler extends BaseEventHandler {
     for (const processItem of items) {
       if (processItem.type === "file") {
         if (processItem.localPath) {
-          await this.replaceLocalLinkWithPlaceholder(processItem);
+          this.replaceLocalLinkWithPlaceholder(processItem);
         } else {
-          await this.insertPlaceholder(processItem);
+          this.insertPlaceholder(processItem);
         }
       }
     }
@@ -53,7 +58,7 @@ export class UploadEventHandler extends BaseEventHandler {
     if (processItem.eventType !== EventType.UPLOAD) {
       return;
     }
-    
+
     try {
       const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
       if (!activeView) {
@@ -88,7 +93,10 @@ export class UploadEventHandler extends BaseEventHandler {
     if (!processItem.localPath) {
       return;
     }
-    this.replaceUrlWithPlaceholder(processItem.localPath, this.getPlaceholderSuffix(processItem));
+    this.replaceUrlWithPlaceholder(
+      processItem.localPath,
+      this.getPlaceholderSuffix(processItem),
+    );
   }
 
   private getPlaceholderSuffix(processItem: FileProcessItem): string {
@@ -120,9 +128,26 @@ export class UploadEventHandler extends BaseEventHandler {
         const markdown = isImageExtension(processItem.extension)
           ? `![${file.name}](${encodeURI(result.url)})`
           : `[${file.name}](${encodeURI(result.url)})`;
-        await this.replacePlaceholder(processItem.id, markdown);
+        this.replacePlaceholder(processItem.id, markdown);
+
+        // Delete local file if setting is enabled
+        if (
+          processItem.localPath &&
+          this.configurationManager.getSettings().deleteAfterUpload
+        ) {
+          try {
+            await this.app.vault.adapter.remove(
+              decodeURIComponent(processItem.localPath),
+            );
+          } catch (e) {
+            logger.warn("UploadEventHandler", "Failed to delete local file", {
+              path: processItem.localPath,
+              error: e,
+            });
+          }
+        }
       } else {
-        await this.replacePlaceholder(
+        this.replacePlaceholder(
           processItem.id,
           `[${file.name}]❌${result.error || t("error.uploadFailed")}`,
         );
@@ -156,13 +181,10 @@ export class UploadEventHandler extends BaseEventHandler {
       const markdown = isImageExtension(processItem.extension)
         ? `![${file.name}](${created.path})`
         : `[${file.name}](${created.path})`;
-      await this.replacePlaceholder(processItem.id, markdown);
+      this.replacePlaceholder(processItem.id, markdown);
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      await this.replacePlaceholder(
-        processItem.id,
-        `[${file.name}]❌${errorMsg}`,
-      );
+      this.replacePlaceholder(processItem.id, `[${file.name}]❌${errorMsg}`);
     }
   }
 }

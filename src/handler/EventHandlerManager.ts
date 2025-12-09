@@ -1,4 +1,12 @@
-import { App, Notice, MarkdownView, Menu, MenuItem, Editor, TFile } from "obsidian";
+import {
+  App,
+  Notice,
+  MarkdownView,
+  Menu,
+  MenuItem,
+  Editor,
+  TFile,
+} from "obsidian";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { UploadServiceManager } from "../uploader/UploaderManager";
 import { StatusBar } from "../components/StatusBar";
@@ -224,7 +232,10 @@ export class EventHandlerManager {
         .setIcon("download")
         .onClick(async () => {
           const content = await this.app.vault.read(file);
-          const uploadedFileLinks = findUploadedFileLinks(content, publicDomain);
+          const uploadedFileLinks = findUploadedFileLinks(
+            content,
+            publicDomain,
+          );
           if (!uploadedFileLinks || uploadedFileLinks.length === 0) {
             new Notice(t("download.noFiles"), 1000);
             return;
@@ -388,7 +399,8 @@ export class EventHandlerManager {
     for (const filePath of filePathList) {
       try {
         const decodedPath = decodeURIComponent(filePath);
-        const arrayBuffer = await this.app.vault.adapter.readBinary(decodedPath);
+        const arrayBuffer =
+          await this.app.vault.adapter.readBinary(decodedPath);
         const fileName = decodedPath.split("/").pop() || "file";
         const file = new File([new Blob([arrayBuffer])], fileName);
         const uploadId = generateUniqueId("u", file);

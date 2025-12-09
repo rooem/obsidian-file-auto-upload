@@ -13,7 +13,7 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
-  ListObjectsV2CommandOutput
+  ListObjectsV2CommandOutput,
 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import {
@@ -306,8 +306,14 @@ export class AmazonS3Uploader implements IUploader {
         MaxKeys: 1,
       });
 
-      const response: ListObjectsV2CommandOutput = await this.s3Client.send(command);
-      if (response && response.Contents && response.Contents.length > 0 && response.Contents[0].Key) {
+      const response: ListObjectsV2CommandOutput =
+        await this.s3Client.send(command);
+      if (
+        response &&
+        response.Contents &&
+        response.Contents.length > 0 &&
+        response.Contents[0].Key
+      ) {
         return {
           success: true,
           url: this.getPublicUrl(response.Contents[0].Key),
@@ -317,11 +323,15 @@ export class AmazonS3Uploader implements IUploader {
 
       return {
         success: false,
-        url: '',
+        url: "",
         key: "",
       };
     } catch (error) {
-      logger.error("AmazonS3Uploader", "check file exists by prefix error", error);
+      logger.error(
+        "AmazonS3Uploader",
+        "check file exists by prefix error",
+        error,
+      );
       return handleError(error, "error.uploadError");
     }
   }

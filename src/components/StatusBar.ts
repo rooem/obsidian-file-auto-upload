@@ -68,7 +68,9 @@ export class StatusBar {
   }
 
   private getAvgProgress(progressMap: Map<string, number>): number {
-    if (progressMap.size === 0) return 0;
+    if (progressMap.size === 0) {
+      return 0;
+    }
     return Math.round(
       [...progressMap.values()].reduce((a, b) => a + b, 0) / progressMap.size,
     );

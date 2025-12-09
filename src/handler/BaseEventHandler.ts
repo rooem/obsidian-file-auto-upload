@@ -70,7 +70,10 @@ export abstract class BaseEventHandler {
   /**
    * Replace markdown link URL with placeholder
    */
-  protected replaceUrlWithPlaceholder(url: string, placeholder: string): boolean {
+  protected replaceUrlWithPlaceholder(
+    url: string,
+    placeholder: string,
+  ): boolean {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (!activeView) {
       return false;
@@ -92,7 +95,11 @@ export abstract class BaseEventHandler {
   /**
    * Replace placeholder marker with final markdown content
    */
-  protected replacePlaceholderWithMarkdown(id: string, markdown: string, fileName?: string): void {
+  protected replacePlaceholderWithMarkdown(
+    id: string,
+    markdown: string,
+    fileName?: string,
+  ): void {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (!activeView) {
       return;
@@ -116,9 +123,10 @@ export abstract class BaseEventHandler {
       return;
     }
 
-    const hasImagePrefix = linkStartIndex > 0 && content[linkStartIndex - 1] === "!";
+    const hasImagePrefix =
+      linkStartIndex > 0 && content[linkStartIndex - 1] === "!";
     let finalMarkdown = markdown;
-    
+
     if (hasImagePrefix && markdown.startsWith("!")) {
       finalMarkdown = markdown.substring(1);
     } else if (!hasImagePrefix && fileName) {

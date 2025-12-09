@@ -1,4 +1,4 @@
-import * as crypto from 'crypto';
+import * as crypto from "crypto";
 
 export const IMAGE_EXTENSIONS = [
   "jpg",
@@ -71,14 +71,18 @@ export function isFileTypeSupported(
  * @param fileName - Original file name
  * @returns Generated unique key
  */
-export function generateUniqueId(type: string, file?: File, length: number = 6): string {
+export function generateUniqueId(
+  type: string,
+  file?: File,
+  length: number = 6,
+): string {
   if (!file) {
     return `${type}${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`;
   }
 
   const text = `${file.name}_${file.size}_${file.type}`;
-  const digest = crypto.createHash('sha256').update(text).digest('base64');
-  const hash = digest.replace(/[+/=]/g, '').substring(0, length);
+  const digest = crypto.createHash("sha256").update(text).digest("base64");
+  const hash = digest.replace(/[+/=]/g, "").substring(0, length);
   return `${type}${hash}`;
 }
 
@@ -91,10 +95,10 @@ export function generateUniqueId(type: string, file?: File, length: number = 6):
  * @param fileName - Original file name
  * @returns Generated unique key
  */
-export function generateFileKey(fileName: string, randomString?: string): string {
+export function generateFileKey(fileName: string, uniqueId?: string): string {
   const now = new Date();
-  if (!randomString) {
-    randomString = Math.random()
+  if (!uniqueId) {
+    uniqueId = Math.random()
       .toString(36)
       .substring(
         RANDOM_STRING_START_INDEX,
@@ -102,12 +106,14 @@ export function generateFileKey(fileName: string, randomString?: string): string
       );
   }
 
-  const timestamp = randomString + "_" + now.getFullYear().toString() +
-    (now.getMonth() + 1).toString().padStart(2, '0') +
-    now.getDate().toString().padStart(2, '0') +
-    now.getHours().toString().padStart(2, '0') +
-    now.getMinutes().toString().padStart(2, '0') +
-    now.getSeconds().toString().padStart(2, '0');
+  const timestamp =
+    uniqueId +
+    "_" +
+    now.getFullYear().toString() +
+    (now.getMonth() + 1).toString().padStart(2, "0") +
+    now.getDate().toString().padStart(2, "0") +
+    now.getHours().toString().padStart(2, "0") +
+    now.getMinutes().toString().padStart(2, "0");
 
   const extension = fileName.split(".").pop();
   const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf("."));

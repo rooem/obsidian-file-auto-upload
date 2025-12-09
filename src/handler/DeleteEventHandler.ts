@@ -81,5 +81,4 @@ export class DeleteEventHandler extends BaseEventHandler {
       new Notice(t("delete.error").replace("{fileLink}", fileLink));
     }
   }
-
 }

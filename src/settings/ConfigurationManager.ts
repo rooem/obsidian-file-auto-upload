@@ -98,7 +98,10 @@ export class ConfigurationManager {
     }
 
     if (!("salt" in loadedData) || !("data" in loadedData)) {
-      logger.debug("ConfigurationManager", "Data not encrypted, returning as-is");
+      logger.debug(
+        "ConfigurationManager",
+        "Data not encrypted, returning as-is",
+      );
       return loadedData;
     }
 

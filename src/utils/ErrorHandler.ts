@@ -27,7 +27,6 @@ export function handleError(error: unknown, contextKey?: string): ErrorResult {
   };
 }
 
-
 /**
  * Create failure result with i18n error message
  * @param errorKey - i18n key for error message

@@ -19,14 +19,7 @@ export const DEFAULT_SETTINGS: FileAutoUploadSettings = {
   dragAutoUpload: true,
   skipDuplicateFiles: false,
   deleteAfterUpload: false,
-  autoUploadFileTypes: [
-    "jpg",
-    "jpeg",
-    "png",
-    "gif",
-    "pdf",
-    "mp4",
-  ],
+  autoUploadFileTypes: ["jpg", "jpeg", "png", "gif", "pdf", "mp4"],
   applyNetworkFiles: true,
   uploaderType: UploaderType.AMAZON_S3,
   uploaderConfig: {
