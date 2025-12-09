@@ -117,7 +117,7 @@ export class UploadServiceManager {
   ): Promise<Result<UploadData>> {
     const uploader = this.getUploader();
 
-    if (this.configurationManager.getSettings().skipDuplicateFiles) {
+    if (this.configurationManager.isSkipDuplicateFiles()) {
       const prefix = key?.substring(0, key.indexOf("_") + 1);
       const result = await uploader.fileExistsByPrefix(prefix);
       if (result && result.success && result.data) {

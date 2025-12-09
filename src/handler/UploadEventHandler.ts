@@ -133,7 +133,7 @@ export class UploadEventHandler extends BaseEventHandler {
         // Delete local file if setting is enabled
         if (
           processItem.localPath &&
-          this.configurationManager.getSettings().deleteAfterUpload
+          this.configurationManager.isDeleteAfterUpload()
         ) {
           try {
             await this.app.vault.adapter.remove(

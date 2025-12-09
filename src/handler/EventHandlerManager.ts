@@ -72,9 +72,8 @@ export class EventHandlerManager {
     _editor: Editor,
     _view: MarkdownView,
   ): Promise<void> {
-    const settings = this.configurationManager.getSettings();
     if (
-      !settings.clipboardAutoUpload ||
+      !this.configurationManager.isClipboardAutoUpload() ||
       !evt.clipboardData ||
       !evt.clipboardData.items
     ) {
@@ -95,9 +94,8 @@ export class EventHandlerManager {
     _editor: Editor,
     _view: MarkdownView,
   ): Promise<void> {
-    const settings = this.configurationManager.getSettings();
     if (
-      !settings.dragAutoUpload ||
+      !this.configurationManager.isDragAutoUpload() ||
       !evt.dataTransfer ||
       !evt.dataTransfer.items
     ) {

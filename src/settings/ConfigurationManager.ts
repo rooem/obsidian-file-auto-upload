@@ -88,6 +88,22 @@ export class ConfigurationManager {
     return this.settings.autoUploadFileTypes;
   }
 
+  public isDeleteAfterUpload(): boolean {
+    return this.settings.deleteAfterUpload;
+  }
+
+  public isSkipDuplicateFiles(): boolean {
+    return this.settings.skipDuplicateFiles;
+  }
+
+  public isDragAutoUpload(): boolean {
+    return this.settings.dragAutoUpload;
+  }
+
+  public isClipboardAutoUpload(): boolean {
+    return this.settings.clipboardAutoUpload;
+  }
+
   private async load(): Promise<object> {
     const loadedData: unknown = await this.plugin.loadData();
 
