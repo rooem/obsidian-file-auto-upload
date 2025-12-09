@@ -3,7 +3,6 @@ import { BaseEventHandler } from "./BaseEventHandler";
 import { StatusBar } from "../components/StatusBar";
 import { t } from "../i18n";
 import { logger } from "../utils/Logger";
-import { isImageExtension } from "../utils/FileUtils";
 import { ProcessItem, DownloadProcessItem, EventType } from "../types/index";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 
@@ -53,10 +52,11 @@ export class DownloadHandler extends BaseEventHandler {
         activeView.file.path,
       );
       await this.app.vault.createBinary(fullPath, response.arrayBuffer);
-   
-      // Use actual saved file name from fullPath (may have number suffix if duplicate)
-      const savedFileName = fullPath.split("/").pop() || actualFileName;
-      await this.replacePlaceholder(item.id, fullPath, decodeURIComponent(savedFileName));
+
+      const saveedName = fullPath.replace(/\\/g, '/').split('/').pop() || '';
+      const actualFullPath = fullPath.replace(saveedName, encodeURIComponent(saveedName));
+
+      await this.replacePlaceholder(item.id, actualFullPath, actualFileName);
 
       new Notice(t("download.success").replace("{fileName}", actualFileName));
     } catch (error) {
@@ -69,56 +69,11 @@ export class DownloadHandler extends BaseEventHandler {
   }
 
   private replaceUrlWithDownloading(url: string, id: string): void {
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView) {
-      return;
-    }
-
-    const editor = activeView.editor;
-    const content = editor.getValue();
-    const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const linkRegex = new RegExp(`(!?\\[[^\\]]*\\])\\(${escapedUrl}\\)`, "g");
-    const placeholder = `$1⏳${t("download.progressing")}<!--${id}-->`;
-    const newContent = content.replace(linkRegex, placeholder);
-
-    if (newContent !== content) {
-      editor.setValue(newContent);
-    }
+    this.replaceUrlWithPlaceholder(url, `⏳${t("download.progressing")}<!--${id}-->`);
   }
 
-  private replacePlaceholder(
-    id: string,
-    localPath: string,
-    fileName: string,
-  ): void {
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView) {
-      return;
-    }
-
-    const editor = activeView.editor;
-    const content = editor.getValue();
-    const localMarkdown = `[${fileName}](${localPath})`;
-
-    const marker = `<!--${id}-->`;
-    const markerIndex = content.indexOf(marker);
-    if (markerIndex === -1) {
-      return;
-    }
-
-    const linkStartIndex = content.lastIndexOf("[", markerIndex);
-    if (linkStartIndex === -1) {
-      return;
-    }
-
-    // Check if there's already an image prefix (!)
-    const extension = fileName.split(".").pop()?.toLowerCase() || "";
-    const hasImagePrefix = linkStartIndex > 0 && content[linkStartIndex - 1] === "!";
-    const needsImagePrefix = isImageExtension(extension) && !hasImagePrefix;
-    const finalMarkdown = needsImagePrefix ? `!${localMarkdown}` : localMarkdown;
-
-    const startPos = editor.offsetToPos(linkStartIndex);
-    const endPos = editor.offsetToPos(markerIndex + marker.length);
-    editor.replaceRange(finalMarkdown, startPos, endPos);
+  private replacePlaceholder(id: string, localPath: string, fileName: string): void {
+    const markdown = `[${fileName}](${localPath})`;
+    this.replacePlaceholderWithMarkdown(id, markdown, fileName);
   }
 }

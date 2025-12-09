@@ -13,6 +13,7 @@ export interface FileAutoUploadSettings {
   dragAutoUpload: boolean;
   deleteAfterUpload: boolean;
   autoUploadFileTypes: string[];
+  skipDuplicateFiles: boolean;
   applyNetworkFiles: boolean;
   uploaderType: string;
   uploaderConfig: UploaderConfig;

@@ -32,6 +32,8 @@ export default {
   "settings.fileTypes": "文件类型",
   "settings.fileTypes.desc": "自动上传的文件类型，多个类型用逗号分隔",
   "settings.fileTypes.empty": "请输入文件类型",
+  "settings.skipDuplicateFiles": "跳过重复文件",
+  "settings.skipDuplicateFiles.desc": "同一文件不重复上传，直接复用已上传的链接",
   "settings.applyNetworkFiles": "应用于网络文件",
   "settings.applyNetworkFiles.desc": "将上传规则应用于剪贴板中的网络文件链接",
   "settings.language": "语言",

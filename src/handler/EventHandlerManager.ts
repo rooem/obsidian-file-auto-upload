@@ -387,8 +387,9 @@ export class EventHandlerManager {
 
     for (const filePath of filePathList) {
       try {
-        const arrayBuffer = await this.app.vault.adapter.readBinary(filePath);
-        const fileName = filePath.split("/").pop() || "file";
+        const decodedPath = decodeURIComponent(filePath);
+        const arrayBuffer = await this.app.vault.adapter.readBinary(decodedPath);
+        const fileName = decodedPath.split("/").pop() || "file";
         const file = new File([new Blob([arrayBuffer])], fileName);
         const uploadId = generateUniqueId("u", file);
         queue.push({

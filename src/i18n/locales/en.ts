@@ -36,6 +36,9 @@ export default {
   "settings.fileTypes.desc":
     "File types for auto upload, separate multiple types with commas",
   "settings.fileTypes.empty": "Please enter file types",
+  "settings.skipDuplicateFiles": "Skip duplicate files",
+  "settings.skipDuplicateFiles.desc":
+    "Skip uploading duplicate files and reuse existing links",
   "settings.applyNetworkFiles": "Apply to network files",
   "settings.applyNetworkFiles.desc":
     "Apply upload rules to network file links in clipboard",

@@ -21,7 +21,7 @@ export class AliyunOSSUploader extends AmazonS3Uploader {
     return this.validateCommonConfig();
   }
 
-  protected getPublicUrl(key: string): string {
+  public getPublicUrl(key: string): string {
     return this.getBucketSubdomainUrl(key);
   }
 }

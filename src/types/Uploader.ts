@@ -69,11 +69,15 @@ export interface IUploader {
 
   fileExists(key: string): Promise<FileExistsResult>;
 
+  fileExistsByPrefix(prefix: string): Promise<UploadResult>;
+
   getFileInfo(
     key: string,
   ): Promise<{ success: boolean; info?: FileInfo; error?: string }>;
 
   testConnection(): Promise<{ success: boolean; error?: string }>;
+
+  getPublicUrl(key: string): string;
 
   /**
    * Clean up resources held by the uploader

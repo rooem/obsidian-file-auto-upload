@@ -112,10 +112,21 @@ export class UploadServiceManager {
 
   async uploadFile(
     file: File,
-    key?: string,
+    key: string,
     onProgress?: (progress: number) => void,
   ): Promise<UploadResult> {
     const uploader = this.getUploader();
+    
+    if (this.configurationManager.getSettings().skipDuplicateFiles) {
+      const prefix = key?.substring(0, key.indexOf('_') + 1);
+      const result = await uploader.fileExistsByPrefix(prefix);
+      if (result && result.success) {
+        logger.debug("UploaderManager", "uploadFile file exists, skipping");
+        onProgress ? onProgress(100) : null;
+        return result;
+      }
+    }
+
     return await uploader.uploadFile(file, key, onProgress);
   }
 
@@ -144,7 +155,6 @@ export class UploadServiceManager {
       };
     }
   }
-
   async getFileInfo(key: string): Promise<{
     success: boolean;
     info?: FileInfo;
