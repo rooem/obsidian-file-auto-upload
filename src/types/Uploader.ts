@@ -77,7 +77,7 @@ export interface IUploader {
 
   deleteFile(key: string): Promise<Result>;
 
-  fileExistsByPrefix(prefix: string): Promise<Result<UploadData>>;
+  fileExistsByPrefix(key: string): Promise<Result<UploadData>>;
 
   testConnection(): Promise<Result>;
 

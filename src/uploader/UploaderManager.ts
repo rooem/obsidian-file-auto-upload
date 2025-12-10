@@ -116,8 +116,7 @@ export class UploadServiceManager {
     const uploader = this.getUploader();
 
     if (this.configurationManager.isSkipDuplicateFiles()) {
-      const prefix = key?.substring(0, key.indexOf("_") + 1);
-      const result = await uploader.fileExistsByPrefix(prefix);
+      const result = await uploader.fileExistsByPrefix(key);
       if (result && result.success && result.data) {
         logger.debug("UploaderManager", "uploadFile file exists, skipping");
         if (onProgress) {

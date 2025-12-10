@@ -182,9 +182,7 @@ export class AmazonS3Uploader implements IUploader {
           };
         }
 
-        if (onProgress) {
-          onProgress(100);
-        }
+        onProgress?.(100);
       }
 
       const publicUrl = this.getPublicUrl(fileKey);
@@ -236,8 +234,13 @@ export class AmazonS3Uploader implements IUploader {
     }
   }
 
-  public async fileExistsByPrefix(prefix: string): Promise<Result<UploadData>> {
+  public async fileExistsByPrefix(key: string): Promise<Result<UploadData>> {
     try {
+      const prefix = key?.substring(0, key.indexOf("_"));
+      if (!prefix) {
+        return { success: false };
+      }
+
       const command = new ListObjectsV2Command({
         Bucket: this.config.bucket_name,
         Prefix: prefix,
