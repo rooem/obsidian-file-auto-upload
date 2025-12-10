@@ -6,6 +6,7 @@ import {
   MenuItem,
   Editor,
   TFile,
+  normalizePath,
 } from "obsidian";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { UploadServiceManager } from "../uploader/UploaderManager";
@@ -399,16 +400,15 @@ export class EventHandlerManager {
 
     for (const filePath of filePathList) {
       try {
-        const decodedPath = decodeURIComponent(filePath);
-        const tfile = this.app.metadataCache.getFirstLinkpathDest(decodedPath,activeFile.path);
+        const decodedPath = normalizePath(decodeURIComponent(filePath));
+        const tfile = this.app.metadataCache.getFirstLinkpathDest(decodedPath, activeFile.path);
         let arrayBuffer, file;
         if (tfile instanceof TFile) {
           arrayBuffer = await this.app.vault.readBinary(tfile);
           const fileName = tfile.name || "file";
           file = new File([new Blob([arrayBuffer])], fileName);
         } else {
-          arrayBuffer =
-            await this.app.vault.adapter.readBinary(decodedPath);
+          arrayBuffer = await this.app.vault.adapter.readBinary(decodedPath);
           const fileName = decodedPath.split("/").pop() || "file";
           file = new File([new Blob([arrayBuffer])], fileName);
         }

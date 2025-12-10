@@ -1,4 +1,4 @@
-import { MarkdownView, Notice, requestUrl, App } from "obsidian";
+import { MarkdownView, Notice, requestUrl, App, normalizePath } from "obsidian";
 import { BaseEventHandler } from "./BaseEventHandler";
 import { StatusBar } from "../components/StatusBar";
 import { t } from "../i18n";
@@ -65,9 +65,11 @@ export class DownloadHandler extends BaseEventHandler {
       const firstUnderscoreIndex = fileName.indexOf("_");
       const secondUnderscoreIndex = fileName.indexOf('_', firstUnderscoreIndex + 1);
       const actualFileName = secondUnderscoreIndex > 0 ? fileName.substring(secondUnderscoreIndex + 1) : fileName;
-      const fullPath = await this.app.fileManager.getAvailablePathForAttachment(
-        actualFileName,
-        activeView.file.path,
+      const fullPath = normalizePath(
+        await this.app.fileManager.getAvailablePathForAttachment(
+          actualFileName,
+          activeView.file.path,
+        )
       );
       const created = await this.app.vault.createBinary(fullPath, response.arrayBuffer);
       const localPath = created.path.replace(created.name, encodeURIComponent(created.name));

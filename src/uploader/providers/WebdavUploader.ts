@@ -1,9 +1,5 @@
 /**
- * WebDAV Uploader
- *
- * Provides upload functionality for WebDAV servers.
- *
- * @implements {IUploader}
+ * WebDAV Uploader - Provides upload functionality for WebDAV servers.
  */
 
 import {
@@ -18,7 +14,16 @@ import { t } from "../../i18n";
 import { handleError } from "../../utils/ErrorHandler";
 import { logger } from "../../utils/Logger";
 import { generateFileKey } from "../../utils/FileUtils";
-import { requestUrl } from "obsidian";
+import { requestUrl, RequestUrlParam } from "obsidian";
+
+/** HTTP status codes for WebDAV operations */
+const HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  NO_CONTENT: 204,
+  NOT_FOUND: 404,
+  METHOD_NOT_ALLOWED: 405,
+} as const;
 
 export class WebdavUploader implements IUploader {
   private config: WebdavConfig;
@@ -27,59 +32,34 @@ export class WebdavUploader implements IUploader {
     this.config = config as WebdavConfig;
   }
 
+  // ==================== Public API ====================
+
   public checkConnectionConfig(): Result {
-    if (!this.config.endpoint) {
-      return { success: false, error: t("error.missingEndpoint") };
-    }
-    if (!this.config.username) {
-      return { success: false, error: t("error.missingUsername") };
-    }
-    if (!this.config.password) {
-      return { success: false, error: t("error.missingPassword") };
+    const requiredFields = [
+      { key: "endpoint", error: t("error.missingEndpoint") },
+      { key: "username", error: t("error.missingUsername") },
+      { key: "password", error: t("error.missingPassword") },
+    ];
+
+    for (const field of requiredFields) {
+      if (!this.config[field.key as keyof WebdavConfig]) {
+        return { success: false, error: field.error };
+      }
     }
     return { success: true };
   }
 
   public async testConnection(): Promise<Result> {
     const checkResult = this.checkConnectionConfig();
-    if (!checkResult.success) {
-      return checkResult;
-    }
+    if (!checkResult.success) return checkResult;
 
     try {
-      // First test with a simple HEAD request to check authentication
-      const testUrl = this.getFullUrl("test-connection-check");
-      const headResponse = await requestUrl({
-        url: testUrl,
-        method: "HEAD",
-        headers: {
-          Authorization: this.getAuthHeader(),
-        },
-        throw: false,
-      });
+      const isAuthValid = await this.verifyAuthentication();
+      if (!isAuthValid.success) return isAuthValid;
 
-      // If we get 404, that means authentication works but file doesn't exist
-      if (headResponse.status === 404 || headResponse.status === 200) {
-        // Now try to upload a test file
-        const testContent = `WebDAV connection test - ${new Date().toISOString()}`;
-        const testFile = new File([testContent], "test.txt", {
-          type: "text/plain",
-        });
-
-        const result = await this.uploadFile(testFile, "test/connection-test.txt");
-
-        if (result.success && result.data?.key) {
-          await this.deleteFile(result.data.key);
-          return { success: true };
-        }
-        return { success: false, error: result.error || "Connection test failed" };
-      }
-      return { success: false, error: `Server returned HTTP ${headResponse.status} during connection test` };
+      return await this.performUploadTest();
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
+      return this.formatError(error);
     }
   }
 
@@ -90,45 +70,26 @@ export class WebdavUploader implements IUploader {
   ): Promise<Result<UploadData>> {
     try {
       const fileKey = key || generateFileKey(file.name);
-      const url = this.getFullUrl(fileKey);
-
-      // Ensure parent directories exist
+      
       await this.ensureDirectoryExists(fileKey);
-
-      const arrayBuffer = await file.arrayBuffer();
-
-      const response = await requestUrl({
-        url: url,
+      
+      const response = await this.request({
+        url: this.buildUrl(fileKey),
         method: "PUT",
-        headers: {
-          Authorization: this.getAuthHeader(),
-          "Content-Type": file.type || "application/octet-stream",
-        },
-        body: arrayBuffer,
-        throw: false,
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: await file.arrayBuffer(),
       });
 
-      if (response.status !== 200 && response.status !== 201 && response.status !== 204) {
-        return {
-          success: false,
-          error: `${t("error.uploadFailed")}: HTTP ${response.status}`,
-        };
+      if (!this.isSuccessStatus(response.status)) {
+        return { success: false, error: `${t("error.uploadFailed")}: HTTP ${response.status}` };
       }
 
-      if (onProgress) {
-        onProgress(100);
-      }
-
+      onProgress?.(100);
+      
       const publicUrl = this.getPublicUrl(fileKey);
-      logger.debug("WebdavUploader", "Upload successful", {
-        fileName: file.name,
-        url: publicUrl,
-      });
+      logger.debug("WebdavUploader", "Upload successful", { fileName: file.name, url: publicUrl });
 
-      return {
-        success: true,
-        data: { url: publicUrl, key: fileKey },
-      };
+      return { success: true, data: { url: publicUrl, key: fileKey } };
     } catch (error) {
       logger.error("WebdavUploader", "Upload failed", { fileName: file.name, error });
       return handleError(error, "error.uploadError");
@@ -137,35 +98,19 @@ export class WebdavUploader implements IUploader {
 
   public async deleteFile(key: string): Promise<Result> {
     try {
-      const basePath = this.config.base_path?.replace(/^\/|\/$/g, "") || "";
-      key = key.replace(basePath, "");
-      const url = this.getFullUrl(key);
-      logger.debug("WebdavUploader", "Attempting to delete file", { key, url });
+      const normalizedKey = this.normalizeKey(key);
+      const url = this.buildUrl(normalizedKey);
+      
+      logger.debug("WebdavUploader", "Deleting file", { key: normalizedKey, url });
 
-      const response = await requestUrl({
-        url: url,
-        method: "DELETE",
-        headers: {
-          Authorization: this.getAuthHeader(),
-        },
-        throw: false,
-      });
+      const response = await this.request({ url, method: "DELETE" });
 
-      logger.debug("WebdavUploader", "Delete response", {
-        key,
-        status: response.status,
-        headers: response.headers
-      });
-
-      if (response.status === 204 || response.status === 404) {
-        logger.debug("WebdavUploader", "Delete successful", { key });
+      if (response.status === HTTP_STATUS.NO_CONTENT || response.status === HTTP_STATUS.NOT_FOUND) {
+        logger.debug("WebdavUploader", "Delete successful", { key: normalizedKey });
         return { success: true };
       }
 
-      return {
-        success: false,
-        error: `${t("error.deleteFailed")}: HTTP ${response.status}`,
-      };
+      return { success: false, error: `${t("error.deleteFailed")}: HTTP ${response.status}` };
     } catch (error) {
       logger.error("WebdavUploader", "Delete error", { key, error });
       return handleError(error, "error.deleteError");
@@ -174,89 +119,131 @@ export class WebdavUploader implements IUploader {
 
   public async fileExistsByPrefix(prefix: string): Promise<Result<UploadData>> {
     try {
-      // Use HEAD request to check if the exact file exists
-      const url = this.getFullUrl(prefix);
-      const response = await requestUrl({
-        url: url,
+      const response = await this.request({
+        url: this.buildUrl(prefix),
         method: "HEAD",
-        headers: {
-          Authorization: this.getAuthHeader(),
-        },
-        throw: false,
       });
 
-      // If we get 200, the file exists
-      if (response.status === 200) {
+      if (response.status === HTTP_STATUS.OK) {
         return {
           success: true,
-          data: {
-            url: this.getPublicUrl(prefix),
-            key: prefix,
-          },
+          data: { url: this.getPublicUrl(prefix), key: prefix },
         };
       }
-
       return { success: false };
     } catch (error) {
-      logger.error("WebdavUploader", "Check file exists by prefix error", error);
+      logger.error("WebdavUploader", "Check file exists error", error);
       return handleError(error, "error.uploadError");
     }
   }
 
   public getPublicUrl(key: string): string {
-    return this.getFullUrl(key);
+    if (this.config.public_domain) {
+      const domain = this.config.public_domain.replace(/\/+$/, "");
+      return `${domain}/${this.buildPath(key)}`;
+    }
+    return this.buildAuthenticatedUrl(key);
   }
 
   public dispose(): void {
     logger.debug("WebdavUploader", "Disposed");
   }
 
+  // ==================== Private Helpers ====================
+
+  private async request(params: Omit<RequestUrlParam, "headers"> & { headers?: Record<string, string> }) {
+    return requestUrl({
+      ...params,
+      headers: { Authorization: this.buildAuthHeader(), ...params.headers },
+      throw: false,
+    });
+  }
+
+  private async verifyAuthentication(): Promise<Result> {
+    const response = await this.request({
+      url: this.buildUrl("test-connection-check"),
+      method: "HEAD",
+    });
+
+    if (response.status === HTTP_STATUS.NOT_FOUND || response.status === HTTP_STATUS.OK) {
+      return { success: true };
+    }
+    return { success: false, error: `Server returned HTTP ${response.status}` };
+  }
+
+  private async performUploadTest(): Promise<Result> {
+    const testFile = new File(
+      [`WebDAV connection test - ${new Date().toISOString()}`],
+      "test.txt",
+      { type: "text/plain" }
+    );
+
+    const result = await this.uploadFile(testFile, "test/connection-test.txt");
+    
+    if (result.success && result.data?.key) {
+      await this.deleteFile(result.data.key);
+      return { success: true };
+    }
+    return { success: false, error: result.error || "Connection test failed" };
+  }
+
   private async ensureDirectoryExists(key: string): Promise<void> {
-    const parts = key.split("/");
-    if (parts.length <= 1) return;
+    const parts = key.split("/").slice(0, -1);
+    if (parts.length === 0) return;
 
     let currentPath = "";
-    for (let i = 0; i < parts.length - 1; i++) {
-      currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
-      const url = this.getFullUrl(currentPath);
+    for (const part of parts) {
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      
+      const response = await this.request({
+        url: this.buildUrl(currentPath) + "/",
+        method: "MKCOL",
+      });
 
-      try {
-        const response = await requestUrl({
-          url: url + "/",
-          method: "MKCOL",
-          headers: {
-            Authorization: this.getAuthHeader(),
-          },
-          throw: false,
-        });
-
-        // Log directory creation result for debugging
-        if (response.status !== 201 && response.status !== 405) {
-          // 405 might mean directory already exists
-          logger.debug("WebdavUploader", "MKCOL response", {
-            path: url,
-            status: response.status,
-          });
-        }
-      } catch {
-        // Directory may already exist, ignore errors
+      if (response.status !== HTTP_STATUS.CREATED && response.status !== HTTP_STATUS.METHOD_NOT_ALLOWED) {
+        logger.debug("WebdavUploader", "MKCOL response", { path: currentPath, status: response.status });
       }
     }
   }
 
-  private getAuthHeader(): string {
-    // Don't encode the credentials for Basic auth
-    const credentials = `${this.config.username}:${this.config.password}`;
-    return "Basic " + btoa(credentials);
+  private buildAuthHeader(): string {
+    return "Basic " + btoa(`${this.config.username}:${this.config.password}`);
   }
 
-  private getFullPath(key: string): string {
+  private buildPath(key: string): string {
     const basePath = this.config.base_path?.replace(/^\/|\/$/g, "") || "";
     return basePath ? `${basePath}/${key}` : key;
   }
 
-  private getFullUrl(key: string): string {
+  private buildUrl(key: string): string {
     const endpoint = this.config.endpoint.replace(/\/+$/, "");
-    return `${endpoint}/${this.getFullPath(key)}`;
+    return `${endpoint}/${this.buildPath(key)}`;
+  }
+
+  private buildAuthenticatedUrl(key: string): string {
+    try {
+      const url = new URL(this.config.endpoint);
+      url.username = encodeURIComponent(this.config.username);
+      url.password = encodeURIComponent(this.config.password);
+      return `${url.origin}${url.pathname}/${this.buildPath(key)}`.replace(/([^:]\/)\/+/g, "$1");
+    } catch {
+      return `${this.config.endpoint}/${this.buildPath(key)}`;
+    }
+  }
+
+  private normalizeKey(key: string): string {
+    const basePath = this.config.base_path?.replace(/^\/|\/$/g, "") || "";
+    return key.replace(basePath, "").replace(/^\//, "");
+  }
+
+  private isSuccessStatus(status: number): boolean {
+    return status === HTTP_STATUS.OK || status === HTTP_STATUS.CREATED || status === HTTP_STATUS.NO_CONTENT;
+  }
+
+  private formatError(error: unknown): Result {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }

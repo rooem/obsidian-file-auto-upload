@@ -1,4 +1,4 @@
-import { App, MarkdownView } from "obsidian";
+import { App, MarkdownView, normalizePath } from "obsidian";
 import { BaseEventHandler } from "./BaseEventHandler";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { UploadServiceManager } from "../uploader/UploaderManager";
@@ -137,7 +137,7 @@ export class UploadEventHandler extends BaseEventHandler {
         ) {
           try {
             await this.app.vault.adapter.remove(
-              decodeURIComponent(processItem.localPath),
+              normalizePath(decodeURIComponent(processItem.localPath)),
             );
           } catch (e) {
             logger.warn("UploadEventHandler", "Failed to delete local file", {

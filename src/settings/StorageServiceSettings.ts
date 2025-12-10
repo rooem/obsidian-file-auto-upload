@@ -82,6 +82,17 @@ export class StorageServiceSettings {
             .onChange(this.createConfigUpdater(plugin, "base_path"))
             .inputEl.setCssStyles(inputStyle),
         );
+
+      new Setting(containerEl)
+        .setName(t("settings.publicUrl"))
+        .setDesc(t("settings.publicUrl.desc"))
+        .addText((text) =>
+          text
+            .setPlaceholder("https://your-domain.com")
+            .setValue((settings.uploaderConfig.public_domain as string) || "")
+            .onChange(this.createConfigUpdater(plugin, "public_domain"))
+            .inputEl.setCssStyles(inputStyle),
+        );
     } else {
       new Setting(containerEl)
         .setName(t("settings.accessKeyId"))

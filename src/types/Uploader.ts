@@ -46,6 +46,7 @@ export interface WebdavConfig extends UploaderConfig {
   username: string;
   password: string;
   base_path?: string;
+  public_domain?: string;
 }
 
 /**
