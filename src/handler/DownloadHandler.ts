@@ -74,7 +74,7 @@ export class DownloadHandler extends BaseEventHandler {
       const created = await this.app.vault.createBinary(fullPath, response.arrayBuffer);
       const localPath = created.path.replace(created.name, encodeURIComponent(created.name));
 
-      await this.replacePlaceholder(item.id, localPath, actualFileName);
+      this.replacePlaceholder(item.id, localPath, actualFileName);
 
       new Notice(t("download.success").replace("{fileName}", actualFileName));
     } catch (error) {

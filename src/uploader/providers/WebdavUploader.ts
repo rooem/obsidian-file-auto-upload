@@ -109,7 +109,7 @@ export class WebdavUploader implements IUploader {
     return setInterval(() => {
       progress = Math.min(95, progress + increment);
       onProgress(progress);
-    }, 200);
+    }, 300);
   }
 
   public async deleteFile(key: string): Promise<Result> {
@@ -122,6 +122,8 @@ export class WebdavUploader implements IUploader {
       const response = await this.request({ url, method: "DELETE" });
 
       if (response.status === HTTP_STATUS.NO_CONTENT || response.status === HTTP_STATUS.NOT_FOUND) {
+        const pre = normalizedKey.substring(0, normalizedKey.indexOf("_"));
+        this.prefixCache.delete(pre);
         logger.debug("WebdavUploader", "Delete successful", { key: normalizedKey });
         return { success: true };
       }
@@ -204,6 +206,7 @@ export class WebdavUploader implements IUploader {
   }
 
   public dispose(): void {
+    this.prefixCache.clear();
     logger.debug("WebdavUploader", "Disposed");
   }
 

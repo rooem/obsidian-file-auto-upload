@@ -46,12 +46,9 @@ export class ConfigurationManager {
     this.configChangeListeners.add(listener);
   }
 
-  public removeConfigChangeListener(listener: ConfigChangeListener): boolean {
-    const removed = this.configChangeListeners.delete(listener);
-    if (removed) {
-      logger.debug("ConfigurationManager", "Config change listener removed");
-    }
-    return removed;
+  public removeAllListener(): void {
+    this.configChangeListeners.clear();
+    logger.debug("ConfigurationManager", "Config change listener all removed");;
   }
 
   public showStorageConfigModal(): void {
@@ -63,7 +60,7 @@ export class ConfigurationManager {
     newSettings: Partial<FileAutoUploadSettings>,
     needNotify?: boolean,
   ): Promise<void> {
-    this.settings = { ...this.settings, ...newSettings };
+    this.settings = { ...this.settings, ...newSettings } as FileAutoUploadSettings;
 
     await this.saveData(this.settings);
 

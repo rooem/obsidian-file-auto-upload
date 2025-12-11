@@ -2,7 +2,7 @@
  * Concurrency controller for limiting parallel operations
  */
 export class ConcurrencyController {
-  private queue: Array<() => void> = [];
+  private queue: Array<{ resolve: () => void; reject: (error: Error) => void }> = [];
   private running = 0;
   private aborted = false;
 
@@ -19,8 +19,8 @@ export class ConcurrencyController {
     }
 
     while (this.running >= this.maxConcurrent && !this.aborted) {
-      await new Promise<void>((resolve) => {
-        this.queue.push(resolve);
+      await new Promise<void>((resolve, reject) => {
+        this.queue.push({ resolve, reject });
       });
     }
 
@@ -35,7 +35,7 @@ export class ConcurrencyController {
       this.running--;
       const next = this.queue.shift();
       if (next) {
-        next();
+        next.resolve();
       }
     }
   }
@@ -45,11 +45,11 @@ export class ConcurrencyController {
    */
   abort(): void {
     this.aborted = true;
-    // Release all waiting tasks
+    const error = new Error("ConcurrencyController has been aborted");
     while (this.queue.length > 0) {
       const next = this.queue.shift();
       if (next) {
-        next();
+        next.reject(error);
       }
     }
   }

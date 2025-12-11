@@ -1,5 +1,3 @@
-import * as crypto from "crypto";
-
 export const IMAGE_EXTENSIONS = [
   "jpg",
   "jpeg",
@@ -65,9 +63,13 @@ export function generateUniqueId(
     return `${type}${Date.now().toString(36)}${Math.random().toString(36).substring(2, 5)}`;
   }
   const text = `${file.name}_${file.size}_${file.type}`;
-  const digest = crypto.createHash("sha256").update(text).digest("base64");
-  const hash = digest.replace(/[+/=]/g, "").substring(0, length);
-  return `${type}${hash}`;
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = ((hash << 5) - hash) + text.charCodeAt(i);
+    hash = hash & hash;
+  }
+  const hashStr = Math.abs(hash).toString(36);
+  return `${type}${hashStr.substring(0, length)}`;
 }
 
 export function generateFileKey(fileName: string, uniqueId?: string): string {
