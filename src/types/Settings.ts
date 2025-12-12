@@ -2,7 +2,7 @@
  * Settings related type definitions
  */
 
-import { UploaderConfig } from "./Uploader";
+import { StorageServiceConfig } from "./StorageService";
 
 /**
  * Plugin settings interface
@@ -15,8 +15,8 @@ export interface FileAutoUploadSettings {
   autoUploadFileTypes: string[];
   skipDuplicateFiles: boolean;
   applyNetworkFiles: boolean;
-  uploaderType: string;
-  uploaderConfig: UploaderConfig;
+  storageServiceType: string;
+  storageServiceConfig: StorageServiceConfig;
   language: string;
 }
 

@@ -1,10 +1,10 @@
 /**
- * Amazon S3 Uploader
+ * Amazon S3 StorageService
  *
  * Provides upload functionality for Amazon S3 and S3-compatible storage services.
  * Supports multipart uploads with progress tracking for large files (>5MB).
  *
- * @implements {IUploader}
+ * @implements {IStorageService}
  */
 
 import {
@@ -18,31 +18,40 @@ import { Upload } from "@aws-sdk/lib-storage";
 import {
   Result,
   UploadData,
-  IUploader,
+  IStorageService,
   FileInfo,
   UploadProgressCallback,
-  UploaderConfig,
+  StorageServiceConfig,
   S3Config,
 } from "../../types";
-import { UploaderType } from "../UploaderRegistry";
+import { StorageServiceType } from "../StorageServiceRegistry";
 import { t } from "../../i18n";
-import { handleError } from "../../utils/ErrorHandler";
-import { logger } from "../../utils/Logger";
+import { handleError } from "../../common/ErrorHandler";
+import { logger } from "../../common/Logger";
 import {
   MULTIPART_UPLOAD_THRESHOLD,
   generateFileKey,
-} from "../../utils/FileUtils";
+} from "../../common/FileUtils";
 
-export class AmazonS3Uploader implements IUploader {
+/**
+ * Amazon S3 storage service implementation
+ * Handles file operations using AWS SDK for S3-compatible services
+ */
+export class AmazonS3StorageService implements IStorageService {
   protected config: S3Config;
   protected s3Client: S3Client;
-  protected type: string = UploaderType.AMAZON_S3;
+  protected type: string = StorageServiceType.AMAZON_S3;
 
-  constructor(config: UploaderConfig) {
+  constructor(config: StorageServiceConfig) {
     this.config = config as S3Config;
     this.s3Client = this.createS3Client();
   }
 
+  /**
+   * Validate common S3 configuration parameters
+   * Checks for required fields like endpoint, credentials, and bucket
+   * @returns Validation result
+   */
   protected validateCommonConfig(): Result {
     if (!this.config.endpoint) {
       return { success: false, error: t("error.missingEndpoint") };
@@ -65,10 +74,15 @@ export class AmazonS3Uploader implements IUploader {
   public dispose(): void {
     if (this.s3Client) {
       this.s3Client.destroy();
-      logger.debug("AmazonS3Uploader", "S3 client disposed");
+      logger.debug("AmazonS3StorageService", "S3 client disposed");
     }
   }
 
+  /**
+   * Create and configure S3 client instance
+   * Sets up credentials, endpoint, and region
+   * @returns Configured S3 client
+   */
   protected createS3Client(): S3Client {
     return new S3Client({
       region: this.config.region || "auto",
@@ -81,6 +95,11 @@ export class AmazonS3Uploader implements IUploader {
     });
   }
 
+  /**
+   * Check if connection configuration is valid
+   * Validates required configuration fields
+   * @returns Validation result
+   */
   public checkConnectionConfig(): Result {
     const commonResult = this.validateCommonConfig();
     if (!commonResult.success) {
@@ -93,6 +112,11 @@ export class AmazonS3Uploader implements IUploader {
     return { success: true };
   }
 
+  /**
+   * Test connection to S3 service
+   * Uploads and deletes a test file to verify connectivity
+   * @returns Connection test result
+   */
   public async testConnection(): Promise<Result> {
     const checkResult = this.checkConnectionConfig();
     if (!checkResult.success) {
@@ -130,6 +154,10 @@ export class AmazonS3Uploader implements IUploader {
   /**
    * Upload a file to S3 storage
    * Uses multipart upload for files > 5MB with progress tracking
+   * @param file - File to upload
+   * @param key - Storage key for the file
+   * @param onProgress - Progress callback function
+   * @returns Upload result with URL and key
    */
   public async uploadFile(
     file: File,
@@ -186,7 +214,7 @@ export class AmazonS3Uploader implements IUploader {
       }
 
       const publicUrl = this.getPublicUrl(fileKey);
-      logger.debug("AmazonS3Uploader", "Upload successful", {
+      logger.debug("AmazonS3StorageService", "Upload successful", {
         fileName: file.name,
         url: publicUrl,
       });
@@ -195,7 +223,7 @@ export class AmazonS3Uploader implements IUploader {
         data: { url: publicUrl, key: fileKey },
       };
     } catch (error) {
-      logger.error("AmazonS3Uploader", "Upload failed", {
+      logger.error("AmazonS3StorageService", "Upload failed", {
         fileName: file.name,
         error,
       });
@@ -203,8 +231,13 @@ export class AmazonS3Uploader implements IUploader {
     }
   }
 
+  /**
+   * Delete a file from S3 storage
+   * @param key - Storage key of file to delete
+   * @returns Deletion result
+   */
   public async deleteFile(key: string): Promise<Result> {
-    logger.debug("AmazonS3Uploader", "Starting S3 delete", { key });
+    logger.debug("AmazonS3StorageService", "Starting S3 delete", { key });
 
     try {
       const deleteParams = {
@@ -216,10 +249,10 @@ export class AmazonS3Uploader implements IUploader {
       const result = await this.s3Client.send(command);
 
       if (result.$metadata.httpStatusCode === 204) {
-        logger.debug("AmazonS3Uploader", "S3 delete successful", { key });
+        logger.debug("AmazonS3StorageService", "S3 delete successful", { key });
         return { success: true };
       } else {
-        logger.error("AmazonS3Uploader", "S3 delete failed", {
+        logger.error("AmazonS3StorageService", "S3 delete failed", {
           key,
           statusCode: result.$metadata.httpStatusCode,
         });
@@ -229,11 +262,17 @@ export class AmazonS3Uploader implements IUploader {
         };
       }
     } catch (error) {
-      logger.error("AmazonS3Uploader", "S3 delete error", { key, error });
+      logger.error("AmazonS3StorageService", "S3 delete error", { key, error });
       return handleError(error, "error.deleteError");
     }
   }
 
+  /**
+   * Check if a file with given prefix already exists
+   * Used to skip duplicate uploads when configured
+   * @param key - File key prefix to search for
+   * @returns Result with existing file data if found
+   */
   public async fileExistsByPrefix(key: string): Promise<Result<UploadData>> {
     try {
       const prefix = key?.substring(0, key.indexOf("_"));
@@ -267,7 +306,7 @@ export class AmazonS3Uploader implements IUploader {
       return { success: false };
     } catch (error) {
       logger.error(
-        "AmazonS3Uploader",
+        "AmazonS3StorageService",
         "check file exists by prefix error",
         error,
       );
@@ -275,6 +314,12 @@ export class AmazonS3Uploader implements IUploader {
     }
   }
 
+  /**
+   * Generate public URL for a file key
+   * Uses custom domain if configured, otherwise generates standard S3 URL
+   * @param key - File key to generate URL for
+   * @returns Public URL for the file
+   */
   public getPublicUrl(key: string): string {
     if (this.config.public_domain) {
       return `${this.config.public_domain.replace(/\/$/, "")}/${key}`;
@@ -285,6 +330,8 @@ export class AmazonS3Uploader implements IUploader {
 
   /**
    * Get public URL using bucket subdomain format (for OSS/COS compatible services)
+   * @param key - File key to generate URL for
+   * @returns Public URL with bucket subdomain format
    */
   protected getBucketSubdomainUrl(key: string): string {
     if (this.config.public_domain) {
@@ -294,6 +341,11 @@ export class AmazonS3Uploader implements IUploader {
     return `https://${this.config.bucket_name}.${endpoint.replace("https://", "")}/${key}`;
   }
 
+  /**
+   * Normalize endpoint URL
+   * Ensures proper protocol and removes trailing slashes
+   * @returns Normalized endpoint URL
+   */
   protected getEndpoint(): string {
     let endpoint = this.config.endpoint;
     if (!endpoint.startsWith("http://") && !endpoint.startsWith("https://")) {

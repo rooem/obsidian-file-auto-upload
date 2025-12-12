@@ -1,19 +1,18 @@
 import { Plugin, MarkdownView, Menu, Editor, TFile } from "obsidian";
 import { FileAutoUploadSettingTab } from "./settings/FileAutoUploadSettingTab";
 import { ConfigurationManager } from "./settings/ConfigurationManager";
-import { UploadServiceManager } from "./uploader/UploaderManager";
+import { StorageServiceManager } from "./storage/StorageServiceManager";
 import { EventHandlerManager } from "./handler/EventHandlerManager";
 import { StatusBar } from "./components/StatusBar";
-import { logger } from "./utils/Logger";
+import { logger } from "./common/Logger";
 
 /**
  * Main plugin class for file auto upload functionality
+ * This class serves as the central coordinator for all plugin features
  */
 export default class FileAutoUploadPlugin extends Plugin {
   public configurationManager!: ConfigurationManager;
-  public uploadServiceManager!: UploadServiceManager;
   public eventHandlerManager!: EventHandlerManager;
-  public statusBarManager!: StatusBar;
 
   /**
    * Plugin initialization - called when plugin is loaded
@@ -33,47 +32,39 @@ export default class FileAutoUploadPlugin extends Plugin {
    */
   onunload(): void {
     logger.debug("FileAutoUploadPlugin", "Plugin unloading started");
+    this.configurationManager.removeAllListener();
     this.eventHandlerManager.dispose();
-    this.uploadServiceManager.dispose();
-    this.statusBarManager.dispose();
     logger.debug("FileAutoUploadPlugin", "Plugin unloaded successfully");
   }
 
   /**
    * Initialize configuration, upload service, status bar and event handler managers
+   * Creates instances of all required managers for plugin operation
    */
   private async initialize(): Promise<void> {
     this.configurationManager = new ConfigurationManager(this);
     await this.configurationManager.loadSettings();
 
-    this.uploadServiceManager = new UploadServiceManager(
-      this.configurationManager,
-    );
-
-    this.statusBarManager = new StatusBar(this);
-
+    const statusBar = new StatusBar(this);
     this.eventHandlerManager = new EventHandlerManager(
       this.app,
       this.configurationManager,
-      this.uploadServiceManager,
-      this.statusBarManager,
+      statusBar
     );
   }
 
   /**
    * Register Obsidian workspace events
    * Handles paste, drop, and context menu events
+   * These events trigger the file handling workflow
    */
   private registerEvents(): void {
     this.registerEvent(
       this.app.workspace.on(
         "editor-paste",
         (event: ClipboardEvent, editor: Editor, view: MarkdownView) => {
-          void this.eventHandlerManager.handleClipboardPaste(
-            event,
-            editor,
-            view,
-          );
+          this.eventHandlerManager.handleClipboardPaste(event, editor, view)
+            .catch((e) => logger.error("FileAutoUploadPlugin", "Paste handler error", e));
         },
       ),
     );
@@ -82,7 +73,8 @@ export default class FileAutoUploadPlugin extends Plugin {
       this.app.workspace.on(
         "editor-drop",
         (event: DragEvent, editor: Editor, view: MarkdownView) => {
-          void this.eventHandlerManager.handleFileDrop(event, editor, view);
+          this.eventHandlerManager.handleFileDrop(event, editor, view)
+            .catch((e) => logger.error("FileAutoUploadPlugin", "Drop handler error", e));
         },
       ),
     );

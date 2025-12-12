@@ -1,18 +1,19 @@
 import { Plugin } from "obsidian";
 import { StorageConfigModal } from "../components/StorageConfigModal";
 import { DEFAULT_SETTINGS } from "./FileAutoUploadSettingTab";
-import { EncryptionHelper } from "../utils/EncryptionHelper";
+import { EncryptionHelper } from "../common/EncryptionHelper";
 import type {
   FileAutoUploadSettings,
   ConfigChangeListener,
-  UploaderConfig,
+  StorageServiceConfig,
   EncryptedData,
 } from "../types";
-import { logger } from "../utils/Logger";
+import { logger } from "../common/Logger";
 
 /**
  * Manages plugin configuration and settings
  * Handles settings updates and notifies listeners of changes
+ * Responsible for encrypting/decrypting sensitive configuration data
  */
 export class ConfigurationManager {
   private plugin: Plugin;
@@ -25,37 +26,60 @@ export class ConfigurationManager {
 
   /**
    * Load settings from storage and merge with defaults
+   * Handles decryption of encrypted settings data
    */
   public async loadSettings(): Promise<void> {
     try {
-      const loadedSettings = await this.load();
+      const loadedData = await this.load();
       this.settings = {
         ...DEFAULT_SETTINGS,
-        ...(loadedSettings !== null ? loadedSettings : {}),
+        ...(loadedData !== null ? loadedData : {}),
       };
     } catch (error) {
       logger.error("ConfigurationManager", "Failed to load settings", error);
     }
   }
 
+  /**
+   * Get a copy of current settings
+   * Returns a shallow copy to prevent direct mutation of internal settings
+   */
   getSettings(): FileAutoUploadSettings {
     return { ...this.settings };
   }
 
+  /**
+   * Add a listener for configuration changes
+   * Listeners will be notified when settings are updated
+   */
   public addConfigChangeListener(listener: ConfigChangeListener): void {
     this.configChangeListeners.add(listener);
   }
 
+  /**
+   * Remove all configuration change listeners
+   * Used during plugin cleanup
+   */
   public removeAllListener(): void {
     this.configChangeListeners.clear();
     logger.debug("ConfigurationManager", "Config change listener all removed");;
   }
 
+  /**
+   * Show storage configuration modal dialog
+   * Allows users to configure storage service settings
+   */
   public showStorageConfigModal(): void {
     const modal = new StorageConfigModal(this.plugin);
     modal.open();
   }
 
+  /**
+   * Save partial settings updates
+   * Optionally notify listeners of changes
+   * @param newSettings - Partial settings object with updated values
+   * @param needNotify - Whether to notify listeners of the changes
+   */
   async saveSettings(
     newSettings: Partial<FileAutoUploadSettings>,
     needNotify?: boolean,
@@ -69,38 +93,77 @@ export class ConfigurationManager {
     }
   }
 
+  /**
+   * Get currently configured storage service type
+   * @returns Storage service type identifier
+   */
   public getCurrentStorageService(): string {
-    return this.settings.uploaderType;
+    return this.settings.storageServiceType;
   }
 
-  public getCurrentStorageConfig(): UploaderConfig {
-    return { ...this.settings.uploaderConfig };
+  /**
+   * Get current storage service configuration
+   * @returns Configuration object for the current storage service
+   */
+  public getCurrentStorageConfig(): StorageServiceConfig {
+    return { ...this.settings.storageServiceConfig };
   }
 
+  /**
+   * Get public domain/URL for accessing uploaded files
+   * @returns Public domain URL
+   */
   public getPublicDomain(): string {
-    return this.getCurrentStorageConfig().public_domain as string;
+    if(this.getCurrentStorageConfig().public_domain){
+      return this.getCurrentStorageConfig().public_domain as string;
+    }
+    return this.getCurrentStorageConfig().endpoint as string;
   }
 
+  /**
+   * Get list of file extensions that should be automatically uploaded
+   * @returns Array of file extensions
+   */
   public getAutoUploadFileTypes(): string[] {
     return this.settings.autoUploadFileTypes;
   }
 
+  /**
+   * Check if files should be deleted after successful upload
+   * @returns True if files should be deleted after upload
+   */
   public isDeleteAfterUpload(): boolean {
     return this.settings.deleteAfterUpload;
   }
 
+  /**
+   * Check if duplicate file uploads should be skipped
+   * @returns True if duplicate files should be skipped
+   */
   public isSkipDuplicateFiles(): boolean {
     return this.settings.skipDuplicateFiles;
   }
 
+  /**
+   * Check if drag-and-drop file uploads are enabled
+   * @returns True if drag-and-drop uploads are enabled
+   */
   public isDragAutoUpload(): boolean {
     return this.settings.dragAutoUpload;
   }
 
+  /**
+   * Check if clipboard paste file uploads are enabled
+   * @returns True if clipboard paste uploads are enabled
+   */
   public isClipboardAutoUpload(): boolean {
     return this.settings.clipboardAutoUpload;
   }
 
+  /**
+   * Load settings from plugin storage
+   * Handles decryption of encrypted data if present
+   */
   private async load(): Promise<object> {
     const loadedData: unknown = await this.plugin.loadData();
 
@@ -188,6 +251,10 @@ export class ConfigurationManager {
     });
   }
 
+  /**
+   * Generate a random salt for encryption
+   * @returns Base64 encoded salt string
+   */
   private generateSalt(): string {
     const saltArray = crypto.getRandomValues(new Uint8Array(32));
     return btoa(String.fromCharCode(...saltArray));

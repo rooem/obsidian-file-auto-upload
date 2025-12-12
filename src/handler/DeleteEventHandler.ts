@@ -1,26 +1,26 @@
 import { App, MarkdownView, Notice } from "obsidian";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
-import { UploadServiceManager } from "../uploader/UploaderManager";
+import { StorageServiceManager } from "../storage/StorageServiceManager";
 import { BaseEventHandler } from "./BaseEventHandler";
 import { EventType, ProcessItem, DeleteProcessItem } from "../types/index";
 import { t } from "../i18n";
-import { logger } from "../utils/Logger";
-import { removeMarkdownLinksByUrl } from "../utils/FileUtils";
+import { logger } from "../common/Logger";
+import { removeMarkdownLinksByUrl } from "../common/FileUtils";
 
 /**
  * Handles deletion of uploaded files from storage
  * Adds context menu option to delete files and removes links from editor
  */
 export class DeleteEventHandler extends BaseEventHandler {
-  protected uploadServiceManager: UploadServiceManager;
+  protected storageServiceManager: StorageServiceManager;
 
   constructor(
     app: App,
     configurationManager: ConfigurationManager,
-    uploadServiceManager: UploadServiceManager,
+    storageServiceManager: StorageServiceManager,
   ) {
     super(app, configurationManager);
-    this.uploadServiceManager = uploadServiceManager;
+    this.storageServiceManager = storageServiceManager;
   }
 
   public handleDeleteUploadedFiles(items: ProcessItem[]): void {
@@ -38,7 +38,7 @@ export class DeleteEventHandler extends BaseEventHandler {
     const { fileLink, fileKey, originalSelection } = item;
 
     try {
-      const result = await this.uploadServiceManager.deleteFile(fileKey);
+      const result = await this.storageServiceManager.deleteFile(fileKey);
 
       if (result.success) {
         new Notice(t("delete.success").replace("{fileLink}", fileLink));

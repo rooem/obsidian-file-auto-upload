@@ -56,7 +56,7 @@ export class LruCache<V> {
   }
 
   has(key: string): boolean {
-    return !this.get(key);
+    return this.get(key) !== null;
   }
 
   size(): number {

@@ -20,22 +20,26 @@ Automatically upload files to cloud storage services when pasting or dragging fi
 
 | Service | Region | Endpoint | Custom Domain |
 |---------|--------|----------|---------------|
-| Amazon S3 | ✅ | ✅ (optional) | ✅ |
-| Cloudflare R2 | Account ID | Auto | ✅ |
-| Alibaba Cloud OSS | ✅ | ✅ (optional) | ✅ |
-| Tencent Cloud COS | ✅ | Auto | ✅ |
+| Amazon S3 | ✅ | ✅ | ✅ |
+| Cloudflare R2 | Auto | ✅ (required) | ✅ (required) |
+| Alibaba Cloud OSS | ✅ | ✅ | ✅ |
+| Tencent Cloud COS | ✅ | ✅ | ✅ |
+| WebDAV | N/A | ✅ (required) | ✅ |
 
 ### Amazon S3
-Compatible with Amazon S3 and S3-compatible services (MinIO, DigitalOcean Spaces, etc.)
+Compatible with Amazon S3 and S3-compatible services (MinIO, DigitalOcean Spaces, etc.). Supports multipart uploads for files larger than 5MB with progress tracking.
 
 ### Cloudflare R2
-Cloudflare's S3-compatible object storage with zero egress fees.
+Cloudflare's S3-compatible object storage with zero egress fees. Requires endpoint and public domain configuration.
 
 ### Alibaba Cloud OSS
-Alibaba Cloud Object Storage Service.
+Alibaba Cloud Object Storage Service with bucket subdomain URL support.
 
 ### Tencent Cloud COS
-Tencent Cloud Object Storage.
+Tencent Cloud Object Storage with bucket subdomain URL support.
+
+### WebDAV
+WebDAV protocol support for self-hosted storage solutions.
 
 ## Installation
 
@@ -136,25 +140,23 @@ pnpm run lint
 pnpm run format
 ```
 
-### Project Structure
+### Architecture
 
-```
-src/
-├── main.ts              # Plugin entry point
-├── components/          # UI components (StatusBar, Modal)
-├── handler/             # Event handlers
-│   ├── UploadEventHandler.ts    # Handle upload events
-│   ├── DownloadHandler.ts       # Handle download events
-│   ├── DeleteEventHandler.ts    # Handle delete events
-│   └── EventHandlerManager.ts   # Coordinate all handlers
-├── uploader/            # Storage provider implementations
-│   ├── UploaderManager.ts       # Upload service manager
-│   └── providers/               # S3, R2, OSS, COS uploaders
-├── settings/            # Configuration management
-├── utils/               # Utilities (Logger, Encryption, FileUtils)
-├── i18n/                # Internationalization (en, zh-CN)
-└── types/               # TypeScript type definitions
-```
+The plugin follows a modular architecture with clear separation of concerns:
+
+1. **Main Plugin** (`main.ts`): Initializes managers and registers Obsidian events
+2. **Configuration Layer** (`settings/`): Manages encrypted settings and user preferences
+3. **Storage Layer** (`storage/`): Abstracts cloud storage operations with provider-specific implementations
+4. **Event Handling** (`handler/`): Processes user interactions (paste, drop, context menus)
+5. **UI Components** (`components/`): Status bar and configuration modals
+6. **Utilities** (`utils/`): Shared functionality (logging, encryption, file operations)
+
+**Key Features:**
+- **Encryption**: All credentials encrypted using PBKDF2 with vault-specific keys
+- **Progress Tracking**: Real-time upload/download progress via status bar
+- **Multipart Upload**: Automatic multipart upload for files >5MB with progress callbacks
+- **Duplicate Detection**: Optional skip of duplicate file uploads by prefix matching
+- **Error Handling**: Comprehensive error handling with user-friendly messages
 
 ## Troubleshooting
 

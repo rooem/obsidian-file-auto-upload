@@ -1,9 +1,9 @@
 import { App, MarkdownView } from "obsidian";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
-import { logger } from "../utils/Logger";
+import { logger } from "../common/Logger";
 import { ProcessItem } from "../types/index";
-import { ConcurrencyController } from "../utils/ConcurrencyController";
-import { isImageExtension } from "../utils/FileUtils";
+import { ConcurrencyController } from "../common/ConcurrencyController";
+import { isImageExtension } from "../common/FileUtils";
 
 /**
  * Base class for all event handlers
@@ -26,6 +26,7 @@ export abstract class BaseEventHandler {
 
   /**
    * Get current queue status
+   * @returns Object with queue length and processing status
    */
   public getQueueStatus(): { queueLength: number; isProcessing: boolean } {
     return {
@@ -62,13 +63,28 @@ export abstract class BaseEventHandler {
 
   /**
    * Escape special regex characters in string
+   * @param str - String to escape
+   * @returns Escaped string for use in regex
    */
   protected escapeRegExp(str: string): string {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   /**
+   * Generate placeholder suffix for progress indication
+   * @param id - Process item ID
+   * @param statusText - Status text to display
+   * @returns Placeholder suffix string
+   */
+  protected getPlaceholderSuffix(id: string, statusText: string): string {
+    return `⏳${statusText}<!--${id}-->`;
+  }
+
+  /**
    * Replace markdown link URL with placeholder
+   * @param url - Original URL to replace
+   * @param placeholder - Placeholder text to insert
+   * @returns True if replacement was successful
    */
   protected replaceUrlWithPlaceholder(
     url: string,
@@ -82,11 +98,18 @@ export abstract class BaseEventHandler {
     const editor = activeView.editor;
     const content = editor.getValue();
     const escapedUrl = this.escapeRegExp(url);
-    const linkRegex = new RegExp(`(!?\\[[^\\]]*\\])\\(${escapedUrl}\\)`, "g");
-    const newContent = content.replace(linkRegex, `$1${placeholder}`);
+    const linkRegex = new RegExp(`(!?\\[[^\\]]*\\])\\(${escapedUrl}\\)`);
+    const match = linkRegex.exec(content);
 
-    if (newContent !== content) {
-      editor.setValue(newContent);
+    if (match) {
+      const startOffset = match.index;
+      const endOffset = startOffset + match[0].length;
+      const replacement = match[1] + placeholder;
+      editor.replaceRange(
+        replacement,
+        editor.offsetToPos(startOffset),
+        editor.offsetToPos(endOffset)
+      );
       return true;
     }
     return false;
@@ -94,6 +117,9 @@ export abstract class BaseEventHandler {
 
   /**
    * Replace placeholder marker with final markdown content
+   * @param id - Process item ID to find placeholder for
+   * @param markdown - Final markdown content to insert
+   * @param fileName - Optional file name for image detection
    */
   protected replacePlaceholderWithMarkdown(
     id: string,

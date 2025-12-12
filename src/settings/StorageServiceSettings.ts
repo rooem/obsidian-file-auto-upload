@@ -1,6 +1,6 @@
 import { Setting } from "obsidian";
 import FileAutoUploadPlugin from "../main";
-import { UploaderType, UploaderTypeInfo } from "../uploader/UploaderRegistry";
+import { StorageServiceType, StorageServiceTypeInfo } from "../storage/StorageServiceRegistry";
 import { t } from "../i18n";
 import type { FileAutoUploadSettings } from "../types";
 
@@ -17,7 +17,7 @@ export class StorageServiceSettings {
       const current = plugin.configurationManager.getSettings();
       await plugin.configurationManager.saveSettings(
         {
-          uploaderConfig: { ...current.uploaderConfig, [key]: value },
+          storageServiceConfig: { ...current.storageServiceConfig, [key]: value },
         },
         true,
       );
@@ -36,14 +36,14 @@ export class StorageServiceSettings {
       .setName(t("settings.storage"))
       .setDesc(t("settings.storage.desc"))
       .addDropdown((dropdown) => {
-        Object.entries(UploaderTypeInfo).forEach(([key, info]) => {
+        Object.entries(StorageServiceTypeInfo).forEach(([key, info]) => {
           dropdown.addOption(key, info.serviceName);
         });
         return dropdown
-          .setValue(settings.uploaderType)
+          .setValue(settings.storageServiceType)
           .onChange(async (value: string) => {
             await plugin.configurationManager.saveSettings(
-              { uploaderType: value },
+              { storageServiceType: value },
               true,
             );
             onToggle();
@@ -51,13 +51,13 @@ export class StorageServiceSettings {
       });
 
     // Show different fields based on uploader type
-    if (settings.uploaderType === UploaderType.WEBDAV) {
+    if (settings.storageServiceType === StorageServiceType.WEBDAV) {
       new Setting(containerEl)
         .setName(t("settings.username"))
         .setDesc(t("settings.username.desc"))
         .addText((text) =>
           text
-            .setValue(settings.uploaderConfig.username as string)
+            .setValue(settings.storageServiceConfig.username as string)
             .onChange(this.createConfigUpdater(plugin, "username"))
             .inputEl.setCssStyles(inputStyle),
         );
@@ -67,7 +67,7 @@ export class StorageServiceSettings {
         .setDesc(t("settings.password.desc"))
         .addText((text) =>
           text
-            .setValue(settings.uploaderConfig.password as string)
+            .setValue(settings.storageServiceConfig.password as string)
             .onChange(this.createConfigUpdater(plugin, "password"))
             .inputEl.setCssStyles(inputStyle),
         );
@@ -78,7 +78,7 @@ export class StorageServiceSettings {
         .addText((text) =>
           text
             .setPlaceholder("uploads")
-            .setValue((settings.uploaderConfig.base_path as string) || "")
+            .setValue((settings.storageServiceConfig.base_path as string) || "")
             .onChange(this.createConfigUpdater(plugin, "base_path"))
             .inputEl.setCssStyles(inputStyle),
         );
@@ -89,7 +89,7 @@ export class StorageServiceSettings {
         .addText((text) =>
           text
             .setPlaceholder("https://your-domain.com")
-            .setValue((settings.uploaderConfig.public_domain as string) || "")
+            .setValue((settings.storageServiceConfig.public_domain as string) || "")
             .onChange(this.createConfigUpdater(plugin, "public_domain"))
             .inputEl.setCssStyles(inputStyle),
         );
@@ -99,7 +99,7 @@ export class StorageServiceSettings {
         .setDesc(t("settings.accessKeyId.desc"))
         .addText((text) =>
           text
-            .setValue(settings.uploaderConfig.access_key_id as string)
+            .setValue(settings.storageServiceConfig.access_key_id as string)
             .onChange(this.createConfigUpdater(plugin, "access_key_id"))
             .inputEl.setCssStyles(inputStyle),
         );
@@ -109,7 +109,7 @@ export class StorageServiceSettings {
         .setDesc(t("settings.secretAccessKey.desc"))
         .addText((text) =>
           text
-            .setValue(settings.uploaderConfig.secret_access_key as string)
+            .setValue(settings.storageServiceConfig.secret_access_key as string)
             .onChange(this.createConfigUpdater(plugin, "secret_access_key"))
             .inputEl.setCssStyles(inputStyle),
         );
@@ -121,7 +121,7 @@ export class StorageServiceSettings {
       .addText((text) =>
         text
           .setPlaceholder("https://xxxxxx.com")
-          .setValue(settings.uploaderConfig.endpoint as string)
+          .setValue(settings.storageServiceConfig.endpoint as string)
           .onChange(async (value: string) => {
             await this.createConfigUpdater(plugin, "endpoint")(value);
           })
@@ -129,8 +129,8 @@ export class StorageServiceSettings {
       );
 
     // Show region and bucket only for S3-compatible services
-    if (settings.uploaderType !== UploaderType.WEBDAV) {
-      if (settings.uploaderType !== UploaderType.CLOUDFLARE_R2) {
+    if (settings.storageServiceType !== StorageServiceType.WEBDAV) {
+      if (settings.storageServiceType !== StorageServiceType.CLOUDFLARE_R2) {
         new Setting(containerEl)
           .setName(t("settings.region"))
           .setDesc(t("settings.region.desc"))
@@ -147,20 +147,20 @@ export class StorageServiceSettings {
         .setDesc(t("settings.bucketName.desc"))
         .addText((text) =>
           text
-            .setValue(settings.uploaderConfig.bucket_name as string)
+            .setValue(settings.storageServiceConfig.bucket_name as string)
             .onChange(this.createConfigUpdater(plugin, "bucket_name"))
             .inputEl.setCssStyles(inputStyle),
         );
     }
 
-    if (settings.uploaderType !== UploaderType.WEBDAV) {
+    if (settings.storageServiceType !== StorageServiceType.WEBDAV) {
       new Setting(containerEl)
         .setName(t("settings.publicUrl"))
         .setDesc(t("settings.publicUrl.desc"))
         .addText((text) =>
           text
             .setPlaceholder("https://your-domain.com")
-            .setValue((settings.uploaderConfig.public_domain as string) || "")
+            .setValue((settings.storageServiceConfig.public_domain as string) || "")
             .onChange(this.createConfigUpdater(plugin, "public_domain"))
             .inputEl.setCssStyles(inputStyle),
         );
@@ -175,7 +175,7 @@ export class StorageServiceSettings {
         testResultEl.setText("");
         testResultEl.setCssStyles({ fontSize: "15px" });
         try {
-          const result = await plugin.uploadServiceManager.testConnection();
+          const result = await plugin.eventHandlerManager.testConnection();
           if (result.success) {
             testResultEl.setText(t("settings.testSuccess"));
             testResultEl.setCssStyles({
@@ -225,13 +225,13 @@ export class StorageServiceSettings {
   }
 
   private static findRegionVaule(settings: FileAutoUploadSettings): string {
-    if (!settings.uploaderConfig || !settings.uploaderConfig.endpoint) {
+    if (!settings.storageServiceConfig || !settings.storageServiceConfig.endpoint) {
       return "";
     }
 
-    const endpoint = settings.uploaderConfig.endpoint as string;
+    const endpoint = settings.storageServiceConfig.endpoint as string;
 
-    if (settings.uploaderType === UploaderType.ALIYUN_OSS) {
+    if (settings.storageServiceType === StorageServiceType.ALIYUN_OSS) {
       const ossRegex = /(?:oss-)?([a-z]+-[a-z]+-?\d*)(?:\.oss)?\.aliyuncs\.com/;
       const match = endpoint.match(ossRegex);
       if (match && match[1]) {
@@ -240,7 +240,7 @@ export class StorageServiceSettings {
       return "";
     }
 
-    if (settings.uploaderType === UploaderType.TENCENT_COS) {
+    if (settings.storageServiceType === StorageServiceType.TENCENT_COS) {
       const cosRegex = /cos\.([a-z]+-[a-z]+-?\d*)\.myqcloud\.com/;
       const match = endpoint.match(cosRegex);
       if (match && match[1]) {

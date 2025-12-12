@@ -6,7 +6,7 @@
 
 ## 功能特性
 
-- **多云存储支持**：Amazon S3、Cloudflare R2、阿里云 OSS、腾讯云 COS
+- **多云存储支持**：Amazon S3、Cloudflare R2、阿里云 OSS、腾讯云 COS、WebDAV
 - **自动上传**：粘贴和拖拽文件时自动上传
 - **下载到本地**：将云端文件下载回本地仓库
 - **批量操作**：一键上传/下载文档中的所有文件
@@ -20,22 +20,26 @@
 
 | 服务 | 区域 | 端点 | 自定义域名 |
 |------|------|------|-----------|
-| Amazon S3 | ✅ | ✅ (可选) | ✅ |
-| Cloudflare R2 | 账户 ID | 自动 | ✅ |
-| 阿里云 OSS | ✅ | ✅ (可选) | ✅ |
-| 腾讯云 COS | ✅ | 自动 | ✅ |
+| Amazon S3 | ✅ | ✅ | ✅ |
+| Cloudflare R2 | 自动 | ✅ (必需) | ✅ (必需) |
+| 阿里云 OSS | ✅ | ✅ | ✅ |
+| 腾讯云 COS | ✅ | ✅ | ✅ |
+| WebDAV | 不适用 | ✅ (必需) | ✅ |
 
 ### Amazon S3
-兼容 Amazon S3 和 S3 协议的服务（MinIO、DigitalOcean Spaces 等）
+兼容 Amazon S3 和 S3 协议的服务（MinIO、DigitalOcean Spaces 等）。支持大于 5MB 文件的分片上传和进度跟踪。
 
 ### Cloudflare R2
-Cloudflare 的 S3 兼容对象存储，零出口费用。
+Cloudflare 的 S3 兼容对象存储，零出口费用。需要配置端点和公共域名。
 
 ### 阿里云 OSS
-阿里云对象存储服务。
+阿里云对象存储服务，支持存储桶子域名 URL。
 
 ### 腾讯云 COS
-腾讯云对象存储。
+腾讯云对象存储，支持存储桶子域名 URL。
+
+### WebDAV
+支持 WebDAV 协议的自托管存储解决方案。
 
 ## 安装方法
 
@@ -136,25 +140,24 @@ pnpm run lint
 pnpm run format
 ```
 
-### 项目结构
 
-```
-src/
-├── main.ts              # 插件入口
-├── components/          # UI 组件（状态栏、弹窗）
-├── handler/             # 事件处理器
-│   ├── UploadEventHandler.ts    # 处理上传事件
-│   ├── DownloadHandler.ts       # 处理下载事件
-│   ├── DeleteEventHandler.ts    # 处理删除事件
-│   └── EventHandlerManager.ts   # 协调所有处理器
-├── uploader/            # 存储提供商实现
-│   ├── UploaderManager.ts       # 上传服务管理器
-│   └── providers/               # S3、R2、OSS、COS 上传器
-├── settings/            # 配置管理
-├── utils/               # 工具函数（日志、加密、文件工具）
-├── i18n/                # 国际化（en、zh-CN）
-└── types/               # TypeScript 类型定义
-```
+### 架构说明
+
+插件采用模块化架构，职责清晰分离：
+
+1. **主插件** (`main.ts`)：初始化管理器并注册 Obsidian 事件
+2. **配置层** (`settings/`)：管理加密设置和用户偏好
+3. **存储层** (`storage/`)：抽象云存储操作，提供特定提供商实现
+4. **事件处理** (`handler/`)：处理用户交互（粘贴、拖拽、右键菜单）
+5. **UI 组件** (`components/`)：状态栏和配置对话框
+6. **工具函数** (`utils/`)：共享功能（日志、加密、文件操作）
+
+**核心特性：**
+- **加密**：所有凭证使用 PBKDF2 和仓库特定密钥加密
+- **进度跟踪**：通过状态栏实时显示上传/下载进度
+- **分片上传**：大于 5MB 的文件自动使用分片上传并显示进度
+- **重复检测**：可选择通过前缀匹配跳过重复文件上传
+- **错误处理**：全面的错误处理和用户友好的错误消息
 
 ## 故障排除
 

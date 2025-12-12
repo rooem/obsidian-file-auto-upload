@@ -2,17 +2,18 @@
  * Central type definitions export
  */
 
-// Uploader types
+// StorageService types
 export type {
   Result,
   UploadData,
-  UploaderConfig,
+  StorageServiceConfig,
   S3Config,
   WebdavConfig,
   UploadProgressCallback,
   FileInfo,
-  IUploader,
-} from "./Uploader";
+  IStorageService,
+} from "./StorageService";
+
 
 // Settings types
 export type {

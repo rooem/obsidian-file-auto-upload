@@ -1,9 +1,9 @@
 import { App, MarkdownView, normalizePath } from "obsidian";
 import { BaseEventHandler } from "./BaseEventHandler";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
-import { UploadServiceManager } from "../uploader/UploaderManager";
+import { StorageServiceManager } from "../storage/StorageServiceManager";
 import { StatusBar } from "../components/StatusBar";
-import { logger } from "../utils/Logger";
+import { logger } from "../common/Logger";
 import {
   ProcessItem,
   TextProcessItem,
@@ -14,7 +14,7 @@ import {
   isFileTypeSupported,
   isImageExtension,
   generateFileKey,
-} from "../utils/FileUtils";
+} from "../common/FileUtils";
 
 import { t } from "../i18n";
 
@@ -22,17 +22,17 @@ import { t } from "../i18n";
  * Handles file upload operations with progress tracking
  */
 export class UploadEventHandler extends BaseEventHandler {
-  protected uploadServiceManager: UploadServiceManager;
+  protected storageServiceManager: StorageServiceManager;
   private statusBarManager: StatusBar;
 
   constructor(
     app: App,
     configurationManager: ConfigurationManager,
-    uploadServiceManager: UploadServiceManager,
+    storageServiceManager: StorageServiceManager,
     statusBarManager: StatusBar,
   ) {
     super(app, configurationManager, 3);
-    this.uploadServiceManager = uploadServiceManager;
+    this.storageServiceManager = storageServiceManager;
     this.statusBarManager = statusBarManager;
   }
 
@@ -85,7 +85,7 @@ export class UploadEventHandler extends BaseEventHandler {
     }
 
     const editor = activeView.editor;
-    const placeholderText = `[${processItem.value.name}]${this.getPlaceholderSuffix(processItem)}\n`;
+    const placeholderText = `[${processItem.value.name}]${this.getUploadPlaceholderSuffix(processItem)}\n`;
     editor.replaceSelection(placeholderText);
   }
 
@@ -95,12 +95,12 @@ export class UploadEventHandler extends BaseEventHandler {
     }
     this.replaceUrlWithPlaceholder(
       processItem.localPath,
-      this.getPlaceholderSuffix(processItem),
+      this.getUploadPlaceholderSuffix(processItem),
     );
   }
 
-  private getPlaceholderSuffix(processItem: FileProcessItem): string {
-    return `⏳${t("upload.progressing")}<!--${processItem.id}-->`;
+  private getUploadPlaceholderSuffix(processItem: FileProcessItem): string {
+    return this.getPlaceholderSuffix(processItem.id, t("upload.progressing"));
   }
 
   private async processFileItem(processItem: FileProcessItem): Promise<void> {
@@ -116,7 +116,7 @@ export class UploadEventHandler extends BaseEventHandler {
 
     try {
       const key = generateFileKey(file.name, processItem.id);
-      const result = await this.uploadServiceManager.uploadFile(
+      const result = await this.storageServiceManager.uploadFile(
         file,
         key,
         (progress) => {

@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import FileAutoUploadPlugin from "../main";
-import { UploaderType } from "../uploader/UploaderRegistry";
+import { StorageServiceType } from "../storage/StorageServiceRegistry";
 import { AutoUploadSettings } from "./AutoUploadSettings";
 import { StorageServiceSettings } from "./StorageServiceSettings";
 import { DeveloperSettings } from "./DeveloperSettings";
@@ -21,8 +21,8 @@ export const DEFAULT_SETTINGS: FileAutoUploadSettings = {
   deleteAfterUpload: false,
   autoUploadFileTypes: ["jpg", "jpeg", "png", "gif", "pdf", "mp4"],
   applyNetworkFiles: true,
-  uploaderType: UploaderType.AMAZON_S3,
-  uploaderConfig: {
+  storageServiceType: StorageServiceType.AMAZON_S3,
+  storageServiceConfig: {
     endpoint: "",
     region: "",
     access_key_id: "",

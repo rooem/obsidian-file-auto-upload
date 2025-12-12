@@ -1,21 +1,24 @@
-import { MarkdownView, Notice, requestUrl, App, normalizePath } from "obsidian";
+import { MarkdownView, Notice, App } from "obsidian";
 import { BaseEventHandler } from "./BaseEventHandler";
 import { StatusBar } from "../components/StatusBar";
 import { t } from "../i18n";
-import { logger } from "../utils/Logger";
+import { logger } from "../common/Logger";
 import { ProcessItem, DownloadProcessItem, EventType } from "../types/index";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
-import { UploaderType } from "../uploader/UploaderRegistry";
+import { StorageServiceManager } from "../storage/StorageServiceManager";
 
 export class DownloadHandler extends BaseEventHandler {
   private statusBar: StatusBar;
+  private storageServiceManager: StorageServiceManager;
 
   constructor(
     app: App,
     configurationManager: ConfigurationManager,
+    storageServiceManager: StorageServiceManager,
     statusBar: StatusBar,
   ) {
     super(app, configurationManager, 3);
+    this.storageServiceManager = storageServiceManager;
     this.statusBar = statusBar;
   }
 
@@ -30,8 +33,6 @@ export class DownloadHandler extends BaseEventHandler {
 
     const item = processItem as DownloadProcessItem;
     const url = item.url;
-    const decodedUrl = decodeURIComponent(url);
-    const fileName = decodeURIComponent(decodedUrl.split("/").pop() || "file");
     try {
       const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
       if (!activeView?.file) {
@@ -39,44 +40,22 @@ export class DownloadHandler extends BaseEventHandler {
       }
 
       this.statusBar.startDownload(item.id);
-
-      // 替换URL为下载中状态
       this.replaceUrlWithDownloading(url, item.id);
 
-      // 检查是否是WebDAV服务，如果是则需要添加认证头
-      let requestOptions: any = { url };
-      const currentServiceType = this.configurationManager.getCurrentStorageService();
-      
-      if (currentServiceType === UploaderType.WEBDAV) {
-        const config = this.configurationManager.getCurrentStorageConfig();
-        const credentials = `${config.username}:${config.password}`;
-        const authHeader = "Basic " + btoa(credentials);
-        requestOptions = {
-          url,
-          headers: {
-            Authorization: authHeader,
-          },
-        };
-      }
-
-      const response = await requestUrl(requestOptions);
-      this.statusBar.updateProgress(item.id, 100);
-
-      const firstUnderscoreIndex = fileName.indexOf("_");
-      const secondUnderscoreIndex = fileName.indexOf('_', firstUnderscoreIndex + 1);
-      const actualFileName = secondUnderscoreIndex > 0 ? fileName.substring(secondUnderscoreIndex + 1) : fileName;
-      const fullPath = normalizePath(
-        await this.app.fileManager.getAvailablePathForAttachment(
-          actualFileName,
-          activeView.file.path,
-        )
+      const result = await this.storageServiceManager.downloadAndSaveFile(
+        this.app,
+        url,
+        activeView.file.path,
+        (progress) => this.statusBar.updateProgress(item.id, progress)
       );
-      const created = await this.app.vault.createBinary(fullPath, response.arrayBuffer);
-      const localPath = created.path.replace(created.name, encodeURIComponent(created.name));
 
-      this.replacePlaceholder(item.id, localPath, actualFileName);
-
-      new Notice(t("download.success").replace("{fileName}", actualFileName));
+      if (result.success && result.data) {
+        this.replacePlaceholder(item.id, result.data.localPath, result.data.fileName);
+        new Notice(t("download.success").replace("{fileName}", result.data.fileName));
+      } else {
+        new Notice(t("download.failed").replace("{error}", result.error || "Unknown error"));
+        logger.error("DownloadHandler", "Download failed", { url, error: result.error });
+      }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       new Notice(t("download.failed").replace("{error}", errorMsg));
@@ -87,7 +66,7 @@ export class DownloadHandler extends BaseEventHandler {
   }
 
   private replaceUrlWithDownloading(url: string, id: string): void {
-    this.replaceUrlWithPlaceholder(url, `⏳${t("download.progressing")}<!--${id}-->`);
+    this.replaceUrlWithPlaceholder(url, this.getPlaceholderSuffix(id, t("download.progressing")));
   }
 
   private replacePlaceholder(id: string, localPath: string, fileName: string): void {

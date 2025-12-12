@@ -1,5 +1,5 @@
 /**
- * Uploader related type definitions
+ * StorageService related type definitions
  */
 
 /**
@@ -20,16 +20,16 @@ export interface UploadData {
 }
 
 /**
- * Base uploader configuration interface
+ * Base storage service configuration interface
  */
-export interface UploaderConfig {
+export interface StorageServiceConfig {
   [key: string]: unknown;
 }
 
 /**
  * S3 configuration interface
  */
-export interface S3Config extends UploaderConfig {
+export interface S3Config extends StorageServiceConfig {
   endpoint: string;
   region?: string;
   access_key_id: string;
@@ -41,7 +41,7 @@ export interface S3Config extends UploaderConfig {
 /**
  * WebDAV configuration interface
  */
-export interface WebdavConfig extends UploaderConfig {
+export interface WebdavConfig extends StorageServiceConfig {
   endpoint: string;
   username: string;
   password: string;
@@ -64,9 +64,9 @@ export interface FileInfo {
 }
 
 /**
- * Uploader interface - defines methods that all uploaders must implement
+ * StorageService interface - defines methods that all storage services must implement
  */
-export interface IUploader {
+export interface IStorageService {
   checkConnectionConfig(): Result;
 
   uploadFile(
@@ -84,7 +84,7 @@ export interface IUploader {
   getPublicUrl(key: string): string;
 
   /**
-   * Clean up resources held by the uploader
+   * Clean up resources held by the storage service
    * Optional method for releasing connections, clearing caches, etc.
    */
   dispose?(): void;

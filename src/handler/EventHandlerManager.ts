@@ -9,19 +9,19 @@ import {
   normalizePath,
 } from "obsidian";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
-import { UploadServiceManager } from "../uploader/UploaderManager";
+import { StorageServiceManager } from "../storage/StorageServiceManager";
 import { StatusBar } from "../components/StatusBar";
 import { UploadEventHandler } from "./UploadEventHandler";
 import { DeleteEventHandler } from "./DeleteEventHandler";
 import { DownloadHandler } from "./DownloadHandler";
 import { t } from "../i18n";
-import { logger } from "../utils/Logger";
+import { logger } from "../common/Logger";
 import {
   findSupportedFilePath as findSupportedViewFilePath,
   findUploadedFileLinks,
   extractFileKeyFromUrl,
   generateUniqueId,
-} from "../utils/FileUtils";
+} from "../common/FileUtils";
 import {
   EventType,
   ProcessItem,
@@ -29,12 +29,20 @@ import {
   TextProcessItem,
   FileProcessItem,
   DownloadProcessItem,
+  Result
 } from "../types/index";
 
+/**
+ * Central manager for handling various Obsidian events
+ * Coordinates upload, download, and delete operations based on user interactions
+ */
 export class EventHandlerManager {
   private app: App;
   private configurationManager: ConfigurationManager;
-  private uploadServiceManager: UploadServiceManager;
+  private storageServiceManager: StorageServiceManager;
+  private statusBar: StatusBar;
+
+
   private uploadEventHandler: UploadEventHandler;
   private deleteEventHandler: DeleteEventHandler;
   private downloadHandler: DownloadHandler;
@@ -42,37 +50,55 @@ export class EventHandlerManager {
   constructor(
     app: App,
     configurationManager: ConfigurationManager,
-    uploadServiceManager: UploadServiceManager,
-    statusBarManager: StatusBar,
+    statusBar: StatusBar,
   ) {
     this.app = app;
     this.configurationManager = configurationManager;
-    this.uploadServiceManager = uploadServiceManager;
+    this.statusBar = statusBar;
+    this.storageServiceManager = new StorageServiceManager(configurationManager);
     this.uploadEventHandler = new UploadEventHandler(
       app,
       configurationManager,
-      uploadServiceManager,
-      statusBarManager,
+      this.storageServiceManager,
+      statusBar,
     );
 
     this.deleteEventHandler = new DeleteEventHandler(
       app,
       configurationManager,
-      uploadServiceManager,
+      this.storageServiceManager,
     );
 
     this.downloadHandler = new DownloadHandler(
       app,
       configurationManager,
-      statusBarManager,
+      this.storageServiceManager,
+      statusBar,
     );
   }
 
+  /**
+   * Test connection to storage service
+   * Performs actual connection test by uploading and deleting a test file
+   * @returns Result indicating test success or failure
+   */
+  async testConnection(): Promise<Result> {
+   return await this.storageServiceManager.testConnection();
+  }
+
+  /**
+   * Handle clipboard paste events
+   * Triggers file upload workflow for pasted files
+   * @param evt - Clipboard event containing pasted data
+   * @param _editor - Editor instance (unused)
+   * @param _view - Markdown view instance (unused)
+   */
   public async handleClipboardPaste(
     evt: ClipboardEvent,
     _editor: Editor,
     _view: MarkdownView,
   ): Promise<void> {
+    // Check if clipboard auto-upload is enabled
     if (
       !this.configurationManager.isClipboardAutoUpload() ||
       !evt.clipboardData ||
@@ -81,6 +107,7 @@ export class EventHandlerManager {
       return;
     }
 
+    // Process clipboard items if they contain files
     if (this.canHandle(evt.clipboardData.items)) {
       evt.preventDefault();
       const processItems = await this.getProcessItemList(
@@ -90,11 +117,19 @@ export class EventHandlerManager {
     }
   }
 
+  /**
+   * Handle file drop events
+   * Triggers file upload workflow for dropped files
+   * @param evt - Drag event containing dropped files
+   * @param _editor - Editor instance (unused)
+   * @param _view - Markdown view instance (unused)
+   */
   public async handleFileDrop(
     evt: DragEvent,
     _editor: Editor,
     _view: MarkdownView,
   ): Promise<void> {
+    // Check if drag auto-upload is enabled
     if (
       !this.configurationManager.isDragAutoUpload() ||
       !evt.dataTransfer ||
@@ -103,6 +138,7 @@ export class EventHandlerManager {
       return;
     }
 
+    // Process dropped items if they contain files
     if (this.canHandle(evt.dataTransfer.items)) {
       evt.preventDefault();
       const processItems = await this.getProcessItemList(
@@ -112,7 +148,14 @@ export class EventHandlerManager {
     }
   }
 
+  /**
+   * Handle file context menu in file explorer
+   * Adds upload/download options for markdown files
+   * @param menu - Context menu to add items to
+   * @param file - Target file for the context menu
+   */
   public handleFileMenu(menu: Menu, file: TFile): void {
+    // Only handle markdown files
     if (file.extension !== "md") {
       return;
     }
@@ -120,6 +163,13 @@ export class EventHandlerManager {
     this.handleUploadAllFilesFromFile(menu, file);
   }
 
+  /**
+   * Handle editor context menu
+   * Adds upload/download/delete options based on selected content
+   * @param menu - Context menu to add items to
+   * @param editor - Editor instance with selected content
+   * @param view - Markdown view instance
+   */
   public handleEditorContextMenu(
     menu: Menu,
     editor: Editor,
@@ -137,6 +187,10 @@ export class EventHandlerManager {
     this.handleDeleteFile(menu, editor, view);
   }
 
+  /**
+   * Dispose of event handler manager and notify about pending operations
+   * Shows warning notice if there are operations in progress
+   */
   public dispose(): void {
     const handlers = [
       this.uploadEventHandler,
@@ -158,9 +212,16 @@ export class EventHandlerManager {
       );
     }
 
-    handlers.forEach((handler) => handler.dispose());
+    handlers.forEach((handler) => handler?.dispose());
+
+    this.storageServiceManager.dispose();
+    this.statusBar.dispose();
   }
 
+  /**
+   * Handle upload of local files referenced in editor selection
+   * Adds "Upload local files" option to context menu
+   */
   private handleUploadViewFile(
     menu: Menu,
     editor: Editor,
@@ -189,6 +250,10 @@ export class EventHandlerManager {
     });
   }
 
+  /**
+   * Handle download of remote files linked in editor selection
+   * Adds "Download files" option to context menu
+   */
   private handleDownloadFile(
     menu: Menu,
     editor: Editor,
@@ -222,6 +287,10 @@ export class EventHandlerManager {
     });
   }
 
+  /**
+   * Handle download of all files linked in a markdown file
+   * Adds "Download all files" option to file context menu
+   */
   private handleDownloadAllFilesFromFile(menu: Menu, file: TFile): void {
     const publicDomain = this.configurationManager.getPublicDomain();
 
@@ -252,6 +321,10 @@ export class EventHandlerManager {
     });
   }
 
+  /**
+   * Handle upload of all local files referenced in a markdown file
+   * Adds "Upload all local files" option to file context menu
+   */
   private handleUploadAllFilesFromFile(menu: Menu, file: TFile): void {
     const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
 
@@ -275,6 +348,10 @@ export class EventHandlerManager {
     });
   }
 
+  /**
+   * Handle deletion of uploaded files linked in editor selection
+   * Adds "Delete uploaded files" option to context menu
+   */
   private handleDeleteFile(
     menu: Menu,
     editor: Editor,
@@ -319,6 +396,10 @@ export class EventHandlerManager {
     }
   }
 
+  /**
+   * Check if items can be handled for processing
+   * Validates connection configuration before proceeding
+   */
   private canHandle(items: ProcessItem[] | DataTransferItemList): boolean {
     if (items && items.length === 0) {
       return false;
@@ -328,7 +409,7 @@ export class EventHandlerManager {
       itemCount: items.length,
     });
 
-    const result = this.uploadServiceManager.checkConnectionConfig();
+    const result = this.storageServiceManager.checkConnectionConfig();
     if (!result.success) {
       logger.warn(
         "EventHandlerManager",
@@ -341,6 +422,10 @@ export class EventHandlerManager {
     return true;
   }
 
+  /**
+   * Convert DataTransferItemList to ProcessItem array
+   * Extracts files and text from clipboard/drag data
+   */
   private async getProcessItemList(
     items: DataTransferItemList,
   ): Promise<Array<TextProcessItem | FileProcessItem>> {
@@ -348,6 +433,7 @@ export class EventHandlerManager {
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
+      // Handle text content
       if (item.kind === "string" && item.type === "text/plain") {
         const text = await new Promise<string>((resolve) =>
           item.getAsString(resolve),
@@ -361,6 +447,7 @@ export class EventHandlerManager {
         continue;
       }
 
+      // Handle file content
       if (item.kind === "file") {
         const entry = item.webkitGetAsEntry();
         if (entry?.isDirectory) {
@@ -387,6 +474,10 @@ export class EventHandlerManager {
     return queue;
   }
 
+  /**
+   * Create ProcessItem array from local file paths
+   * Reads file content from the vault for upload
+   */
   private async getProcessItemListFromView(
     filePathList: string[],
   ): Promise<FileProcessItem[]> {

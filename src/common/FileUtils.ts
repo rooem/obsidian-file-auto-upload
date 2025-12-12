@@ -32,18 +32,39 @@ export const RANDOM_STRING_LENGTH = 7;
 export const RANDOM_STRING_START_INDEX = 2;
 export const MULTIPART_UPLOAD_THRESHOLD = 5 * 1024 * 1024; // 5MB
 
+/**
+ * Check if extension is a supported image format
+ * @param ext - File extension to check
+ * @returns True if extension is an image format
+ */
 export function isImageExtension(ext: string): ext is ImageExtension {
   return IMAGE_EXTENSIONS.includes(ext as ImageExtension);
 }
 
+/**
+ * Check if extension is a supported video format
+ * @param ext - File extension to check
+ * @returns True if extension is a video format
+ */
 export function isVideoExtension(ext: string): ext is VideoExtension {
   return VIDEO_EXTENSIONS.includes(ext as VideoExtension);
 }
 
+/**
+ * Check if extension is a supported audio format
+ * @param ext - File extension to check
+ * @returns True if extension is an audio format
+ */
 export function isAudioExtension(ext: string): ext is AudioExtension {
   return AUDIO_EXTENSIONS.includes(ext as AudioExtension);
 }
 
+/**
+ * Check if file type is supported for auto-upload
+ * @param autoUploadFileTypes - List of supported file types
+ * @param extension - File extension to check
+ * @returns True if file type is supported
+ */
 export function isFileTypeSupported(
   autoUploadFileTypes: string[],
   extension?: string,
@@ -54,6 +75,14 @@ export function isFileTypeSupported(
   return autoUploadFileTypes.includes(extension);
 }
 
+/**
+ * Generate unique identifier for process items
+ * Creates ID based on file metadata or timestamp for uniqueness
+ * @param type - Type prefix for the ID
+ * @param file - Optional file to generate ID from
+ * @param length - Length of hash portion of ID
+ * @returns Unique identifier string
+ */
 export function generateUniqueId(
   type: string,
   file?: File,
@@ -72,6 +101,13 @@ export function generateUniqueId(
   return `${type}${hashStr.substring(0, length)}`;
 }
 
+/**
+ * Generate unique file key for storage
+ * Creates timestamped key with unique identifier to prevent collisions
+ * @param fileName - Original file name
+ * @param uniqueId - Optional unique identifier
+ * @returns Generated file key
+ */
 export function generateFileKey(fileName: string, uniqueId?: string): string {
   const now = new Date();
   if (!uniqueId) {
@@ -107,6 +143,9 @@ export interface MarkdownLink {
 /**
  * Parse all markdown links from text (both ![](url) and [](url) formats)
  * Also handles [[wiki]] links
+ * @param text - Text to parse for markdown links
+ * @param includeWikiLinks - Whether to include wiki links in parsing
+ * @returns Array of parsed markdown links
  */
 export function parseMarkdownLinks(
   text: string,
@@ -174,6 +213,12 @@ export function parseMarkdownLinks(
   return links;
 }
 
+/**
+ * Find local file paths in markdown text that match supported types
+ * @param text - Text to search for file paths
+ * @param autoUploadFileTypes - Supported file types for upload
+ * @returns Array of supported file paths
+ */
 export function findSupportedFilePath(
   text: string,
   autoUploadFileTypes: string[],
@@ -193,6 +238,12 @@ export function findSupportedFilePath(
     );
 }
 
+/**
+ * Find uploaded file links in text that belong to the configured domain
+ * @param text - Text to search for uploaded file links
+ * @param domain - Public domain for uploaded files
+ * @returns Array of uploaded file URLs
+ */
 export function findUploadedFileLinks(text: string, domain: string): string[] {
   if (!text || !domain) return [];
 
@@ -222,6 +273,13 @@ export function findUploadedFileLinks(text: string, domain: string): string[] {
   return result;
 }
 
+/**
+ * Extract file key from full URL
+ * Handles both domain-based and custom public URL formats
+ * @param url - Full URL to uploaded file
+ * @param publicDomain - Public domain for uploaded files
+ * @returns Extracted file key
+ */
 export function extractFileKeyFromUrl(
   url: string,
   publicDomain: string,
@@ -249,6 +307,12 @@ export function extractFileKeyFromUrl(
   }
 }
 
+/**
+ * Check if URL points to an uploaded file on the configured domain
+ * @param url - URL to check
+ * @param publicDomain - Public domain for uploaded files
+ * @returns True if URL points to an uploaded file
+ */
 function isUploadedFileLink(url: string, publicDomain: string): boolean {
   try {
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
@@ -262,6 +326,12 @@ function isUploadedFileLink(url: string, publicDomain: string): boolean {
   }
 }
 
+/**
+ * Remove markdown links with specific URL from text
+ * @param text - Text to process
+ * @param targetUrl - URL to remove links for
+ * @returns Text with matching links removed
+ */
 export function removeMarkdownLinksByUrl(
   text: string,
   targetUrl: string,
