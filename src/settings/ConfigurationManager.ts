@@ -30,10 +30,14 @@ export class ConfigurationManager {
    */
   public async loadSettings(): Promise<void> {
     try {
-      const loadedData = await this.load();
+      const loadedData = (await this.load()) as Partial<FileAutoUploadSettings>;
       this.settings = {
         ...DEFAULT_SETTINGS,
-        ...(loadedData !== null ? loadedData : {}),
+        ...loadedData,
+        storageServiceConfig: {
+          ...DEFAULT_SETTINGS.storageServiceConfig,
+          ...(loadedData?.storageServiceConfig || {}),
+        },
       };
     } catch (error) {
       logger.error("ConfigurationManager", "Failed to load settings", error);
@@ -84,6 +88,16 @@ export class ConfigurationManager {
     newSettings: Partial<FileAutoUploadSettings>,
     needNotify?: boolean,
   ): Promise<void> {
+    // Deep merge storageServiceConfig to preserve all fields
+    if (newSettings.storageServiceConfig) {
+      newSettings = {
+        ...newSettings,
+        storageServiceConfig: {
+          ...this.settings.storageServiceConfig,
+          ...newSettings.storageServiceConfig,
+        },
+      };
+    }
     this.settings = { ...this.settings, ...newSettings } as FileAutoUploadSettings;
 
     await this.saveData(this.settings);

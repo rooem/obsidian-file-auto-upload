@@ -183,7 +183,7 @@ export class StorageServiceManager {
       if (currentServiceType === StorageServiceType.WEBDAV) {
         const config = this.configurationManager.getCurrentStorageConfig();
         requestOptions.headers = {
-          Authorization: "Basic " + btoa(`${config.username}:${config.password}`),
+          Authorization: "Basic " + btoa(`${config.access_key_id}:${config.secret_access_key}`),
         };
       }
 

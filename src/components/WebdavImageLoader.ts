@@ -25,16 +25,33 @@ export class WebdavImageLoader {
   createExtension() {
     const loader = this;
     return ViewPlugin.define((view: EditorView) => {
+      // 处理已存在的图片
+      const processExistingImages = () => {
+        view.dom.querySelectorAll("img").forEach((img) => {
+          loader.loadImage(img as HTMLImageElement, true);
+        });
+      };
+      
+      // 初始加载
+      processExistingImages();
+      
       const observer = new MutationObserver((mutations) => {
         for (const m of mutations) {
           m.addedNodes.forEach((n) => {
-            if (n instanceof HTMLImageElement) loader.loadImage(n, true);
+            if (n instanceof HTMLImageElement) {
+              loader.loadImage(n, true);
+            } else if (n instanceof Element) {
+              // 处理包含图片的元素
+              n.querySelectorAll("img").forEach((img) => {
+                loader.loadImage(img as HTMLImageElement, true);
+              });
+            }
           });
         }
       });
       observer.observe(view.dom, { childList: true, subtree: true });
       return {
-        update() {},
+        update() { processExistingImages(); },
         destroy() { observer.disconnect(); }
       };
     }).extension;
@@ -53,7 +70,14 @@ export class WebdavImageLoader {
 
   async loadImage(el: HTMLImageElement, useCache: boolean) {
     const url = el.src;
-    if (!url || el.dataset.webdavLoaded || !this.prefixes.some((p) => url.startsWith(p))) return;
+    if (!url || el.dataset.webdavLoaded) return;
+    
+    // 只有配置了WebDAV且有prefix时才处理
+    if (this.prefixes.length === 0) return;
+    
+    const isWebdavUrl = this.prefixes.some((p) => url.startsWith(p));
+    if (!isWebdavUrl) return;
+    
     el.dataset.webdavLoaded = "1";
 
     const cached = this.cache.get(url);
@@ -67,18 +91,21 @@ export class WebdavImageLoader {
     const promise = requestUrl({
       url,
       method: "GET",
-      headers: { Authorization: `Basic ${btoa(`${config.username}:${config.password}`)}` },
+      headers: { Authorization: `Basic ${btoa(`${config.access_key_id}:${config.secret_access_key}`)}` },
     }).then((r) => URL.createObjectURL(new Blob([r.arrayBuffer])));
 
     if (useCache) this.cache.set(url, promise);
 
     try {
       const blobUrl = await promise;
+      if (useCache) {
+        this.cache.set(url, blobUrl);
+      } else {
+        el.onload = () => URL.revokeObjectURL(blobUrl);
+      }
       el.src = blobUrl;
-      if (useCache) this.cache.set(url, blobUrl);
-      else el.onload = () => URL.revokeObjectURL(blobUrl);
-    } catch {
-      el.src = url;
+    } catch (e) {
+      console.error("WebDAV image load failed:", e);
       this.cache.delete(url);
     }
   }

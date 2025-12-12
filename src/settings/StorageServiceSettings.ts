@@ -19,8 +19,8 @@ export class StorageServiceSettings {
     [StorageServiceType.WEBDAV]: [
       ["settings.username", "settings.username.desc", "access_key_id"],
       ["settings.password", "settings.password.desc", "secret_access_key"],
-      ["settings.basePath", "settings.basePath.desc", "bucket_name", "uploads"],
       ["settings.endpoint", "settings.endpoint.desc", "endpoint", "https://xxxxxx.com"],
+      ["settings.basePath", "settings.basePath.desc", "bucket_name", "uploads"],
       ["settings.publicUrl", "settings.publicUrl.webdav.desc", "public_domain", "https://your-domain.com"],
     ],
     s3: [
@@ -128,10 +128,11 @@ export class StorageServiceSettings {
     });
   }
 
-  private static createConfigUpdater(plugin: FileAutoUploadPlugin, settings: FileAutoUploadSettings, key: string) {
+  private static createConfigUpdater(plugin: FileAutoUploadPlugin, _settings: FileAutoUploadSettings, key: string) {
     return async (value: string) => {
+      const currentConfig = plugin.configurationManager.getSettings().storageServiceConfig;
       await plugin.configurationManager.saveSettings(
-        { storageServiceConfig: { ...settings.storageServiceConfig, [key]: value } },
+        { storageServiceConfig: { ...currentConfig, [key]: value } },
         true,
       );
     };

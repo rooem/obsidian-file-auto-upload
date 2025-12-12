@@ -95,5 +95,8 @@ export default class FileAutoUploadPlugin extends Plugin {
 
     // Register WebDAV image loader extension
     this.registerEditorExtension(this.eventHandlerManager.createEditorExtension());
+    
+    // Register markdown post processor for reading view and PDF export
+    this.registerMarkdownPostProcessor(this.eventHandlerManager.createMarkdownPostProcessor());
   }
 }

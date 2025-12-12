@@ -82,7 +82,7 @@ export abstract class BaseEventHandler {
    * @returns Placeholder suffix string
    */
   protected getPlaceholderSuffix(id: string, statusText: string): string {
-    return `⏳${statusText}<!--${id}-->`;
+    return `🔄${statusText}<!--${id}-->`;
   }
 
   /**

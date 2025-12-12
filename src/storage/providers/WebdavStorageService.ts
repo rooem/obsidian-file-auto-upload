@@ -197,13 +197,13 @@ export class WebdavStorageService implements IStorageService {
      }
    }
  
-   public getPublicUrl(key: string): string {
-     if (this.config.public_domain) {
-       const domain = this.config.public_domain.replace(/\/+$/, "");
-       return `${domain}/${this.buildPath(key)}`;
-     }
-     return this.buildAuthenticatedUrl(key);
-   }
+  public getPublicUrl(key: string): string {
+    if (this.config.public_domain) {
+      const domain = this.config.public_domain.replace(/\/+$/, "");
+      return `${domain}/${this.buildPath(key)}`;
+    }
+    return this.buildUrl(key);
+  }
  
    public dispose(): void {
      this.prefixCache.clear();
@@ -279,17 +279,6 @@ export class WebdavStorageService implements IStorageService {
    private buildUrl(key: string): string {
      const endpoint = this.config.endpoint.replace(/\/+$/, "");
      return `${endpoint}/${this.buildPath(key)}`;
-   }
- 
-   private buildAuthenticatedUrl(key: string): string {
-     try {
-       const url = new URL(this.config.endpoint);
-       url.username = encodeURIComponent(this.config.access_key_id);
-       url.password = encodeURIComponent(this.config.secret_access_key);
-       return `${url.origin}${url.pathname}/${this.buildPath(key)}`.replace(/([^:]\/)\/+/g, "$1");
-     } catch {
-       return `${this.config.endpoint}/${this.buildPath(key)}`;
-     }
    }
  
    private normalizeKey(key: string): string {

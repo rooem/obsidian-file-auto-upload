@@ -9,6 +9,7 @@ import {
   normalizePath,
 } from "obsidian";
 import { Extension } from "@codemirror/state";
+import { MarkdownPostProcessorContext } from "obsidian";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { StorageServiceManager } from "../storage/StorageServiceManager";
 import { StatusBar } from "../components/StatusBar";
@@ -57,6 +58,11 @@ export class EventHandlerManager {
     this.app = app;
     this.configurationManager = configurationManager;
     this.statusBar = statusBar;
+    
+    // 监听配置变更，更新WebdavImageLoader的prefixes
+    this.configurationManager.addConfigChangeListener(() => {
+      this._webdavImageLoader?.updatePrefixes();
+    });
   }
 
   /**
@@ -178,6 +184,20 @@ export class EventHandlerManager {
    */
   public createEditorExtension(): Extension {
     return this.webdavImageLoader.createExtension();
+  }
+
+  /**
+   * Create markdown post processor for reading view and PDF export
+   */
+  public createMarkdownPostProcessor() {
+    return async (el: HTMLElement, _ctx: MarkdownPostProcessorContext) => {
+      const images = el.querySelectorAll("img");
+      const promises: Promise<void>[] = [];
+      images.forEach((img) => {
+        promises.push(this.webdavImageLoader.loadImage(img as HTMLImageElement, true));
+      });
+      await Promise.all(promises);
+    };
   }
 
   /**
