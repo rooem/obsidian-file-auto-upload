@@ -1,9 +1,10 @@
 import { App, MarkdownView } from "obsidian";
-import { ConfigurationManager } from "../settings/ConfigurationManager";
-import { logger } from "../common/Logger";
-import { ProcessItem } from "../types/index";
-import { ConcurrencyController } from "../common/ConcurrencyController";
-import { isImageExtension } from "../common/FileUtils";
+import { ConfigurationManager } from "../../settings/ConfigurationManager";
+import { logger } from "../../common/Logger";
+import { ProcessItem } from "../../types/index";
+import { ConcurrencyController } from "../../common/ConcurrencyController";
+import { isImageExtension } from "../../common/FileUtils";
+import { StorageServiceManager } from "../../storage/StorageServiceManager";
 
 
 /**
@@ -13,15 +14,18 @@ import { isImageExtension } from "../common/FileUtils";
 export abstract class BaseEventHandler {
   protected app: App;
   protected configurationManager: ConfigurationManager;
+  protected storageServiceManager: StorageServiceManager;
   protected concurrencyController: ConcurrencyController;
 
   constructor(
     app: App,
     configurationManager: ConfigurationManager,
+    storageServiceManager: StorageServiceManager,
     maxConcurrent: number = 3,
   ) {
     this.app = app;
     this.configurationManager = configurationManager;
+    this.storageServiceManager = storageServiceManager;
     this.concurrencyController = new ConcurrencyController(maxConcurrent);
   }
 

@@ -8,12 +8,14 @@ import {
   TFile,
   normalizePath,
 } from "obsidian";
+import { Extension } from "@codemirror/state";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { StorageServiceManager } from "../storage/StorageServiceManager";
 import { StatusBar } from "../components/StatusBar";
-import { UploadEventHandler } from "./UploadEventHandler";
-import { DeleteEventHandler } from "./DeleteEventHandler";
-import { DownloadHandler } from "./DownloadHandler";
+import { UploadEventHandler } from "./providers/UploadEventHandler";
+import { DeleteEventHandler } from "./providers/DeleteEventHandler";
+import { DownloadHandler } from "./providers/DownloadHandler";
+import { WebdavImageLoaderService } from "../components/WebdavImageLoader";
 import { t } from "../i18n";
 import { logger } from "../common/Logger";
 import {
@@ -39,13 +41,13 @@ import {
 export class EventHandlerManager {
   private app: App;
   private configurationManager: ConfigurationManager;
-  private storageServiceManager: StorageServiceManager;
   private statusBar: StatusBar;
 
-
-  private uploadEventHandler: UploadEventHandler;
-  private deleteEventHandler: DeleteEventHandler;
-  private downloadHandler: DownloadHandler;
+  private _storageServiceManager?: StorageServiceManager;
+  private _uploadEventHandler?: UploadEventHandler;
+  private _deleteEventHandler?: DeleteEventHandler;
+  private _downloadHandler?: DownloadHandler;
+  private _webdavImageLoader?: WebdavImageLoaderService;
 
   constructor(
     app: App,
@@ -55,26 +57,6 @@ export class EventHandlerManager {
     this.app = app;
     this.configurationManager = configurationManager;
     this.statusBar = statusBar;
-    this.storageServiceManager = new StorageServiceManager(configurationManager);
-    this.uploadEventHandler = new UploadEventHandler(
-      app,
-      configurationManager,
-      this.storageServiceManager,
-      statusBar,
-    );
-
-    this.deleteEventHandler = new DeleteEventHandler(
-      app,
-      configurationManager,
-      this.storageServiceManager,
-    );
-
-    this.downloadHandler = new DownloadHandler(
-      app,
-      configurationManager,
-      this.storageServiceManager,
-      statusBar,
-    );
   }
 
   /**
@@ -187,35 +169,97 @@ export class EventHandlerManager {
     this.handleDeleteFile(menu, editor, view);
   }
 
+    /**
+   * Handle editor context menu
+   * Adds upload/download/delete options based on selected content
+   * @param menu - Context menu to add items to
+   * @param editor - Editor instance with selected content
+   * @param view - Markdown view instance
+   */
+  public createEditorExtension(): Extension {
+    return this.webdavImageLoader.createExtension();
+  }
+
   /**
    * Dispose of event handler manager and notify about pending operations
    * Shows warning notice if there are operations in progress
    */
   public dispose(): void {
     const handlers = [
-      this.uploadEventHandler,
-      this.deleteEventHandler,
-      this.downloadHandler,
-    ];
-    const statuses = handlers.map((handler) => handler.getQueueStatus());
-
-    const totalQueueLength = statuses.reduce(
-      (sum, status) => sum + status.queueLength,
-      0,
-    );
-    const isProcessing = statuses.some((status) => status.isProcessing);
-
-    if (totalQueueLength > 0 || isProcessing) {
-      new Notice(
-        t("notice.queueLost").replace("{count}", totalQueueLength.toString()),
-        3000,
+      this._uploadEventHandler,
+      this._deleteEventHandler,
+      this._downloadHandler,
+    ].filter(Boolean) as (UploadEventHandler | DeleteEventHandler | DownloadHandler)[];
+    
+    if (handlers.length > 0) {
+      const statuses = handlers.map((handler) => handler.getQueueStatus());
+      const totalQueueLength = statuses.reduce(
+        (sum, status) => sum + status.queueLength,
+        0,
       );
+      const isProcessing = statuses.some((status) => status.isProcessing);
+
+      if (totalQueueLength > 0 || isProcessing) {
+        new Notice(
+          t("notice.queueLost").replace("{count}", totalQueueLength.toString()),
+          3000,
+        );
+      }
+      handlers.forEach((handler) => handler.dispose());
     }
 
-    handlers.forEach((handler) => handler?.dispose());
-
-    this.storageServiceManager.dispose();
+    this._storageServiceManager?.dispose();
     this.statusBar.dispose();
+    this._webdavImageLoader?.destroy();
+  }
+
+  private get storageServiceManager(): StorageServiceManager {
+    if (!this._storageServiceManager) {
+      this._storageServiceManager = new StorageServiceManager(this.configurationManager);
+    }
+    return this._storageServiceManager;
+  }
+
+  private get uploadEventHandler(): UploadEventHandler {
+    if (!this._uploadEventHandler) {
+      this._uploadEventHandler = new UploadEventHandler(
+        this.app,
+        this.configurationManager,
+        this.storageServiceManager,
+        this.statusBar,
+      );
+    }
+    return this._uploadEventHandler;
+  }
+
+  private get deleteEventHandler(): DeleteEventHandler {
+    if (!this._deleteEventHandler) {
+      this._deleteEventHandler = new DeleteEventHandler(
+        this.app,
+        this.configurationManager,
+        this.storageServiceManager,
+      );
+    }
+    return this._deleteEventHandler;
+  }
+
+  private get downloadHandler(): DownloadHandler {
+    if (!this._downloadHandler) {
+      this._downloadHandler = new DownloadHandler(
+        this.app,
+        this.configurationManager,
+        this.storageServiceManager,
+        this.statusBar,
+      );
+    }
+    return this._downloadHandler;
+  }
+
+  private get webdavImageLoader(): WebdavImageLoaderService {
+    if (!this._webdavImageLoader) {
+      this._webdavImageLoader = new WebdavImageLoaderService(this.configurationManager);
+    }
+    return this._webdavImageLoader;
   }
 
   /**

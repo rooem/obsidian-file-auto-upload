@@ -1,24 +1,22 @@
 import { MarkdownView, Notice, App } from "obsidian";
 import { BaseEventHandler } from "./BaseEventHandler";
-import { StatusBar } from "../components/StatusBar";
-import { t } from "../i18n";
-import { logger } from "../common/Logger";
-import { ProcessItem, DownloadProcessItem, EventType } from "../types/index";
-import { ConfigurationManager } from "../settings/ConfigurationManager";
-import { StorageServiceManager } from "../storage/StorageServiceManager";
+import { StatusBar } from "../../components/StatusBar";
+import { t } from "../../i18n";
+import { logger } from "../../common/Logger";
+import { ProcessItem, DownloadProcessItem, EventType } from "../../types/index";
+import { ConfigurationManager } from "../../settings/ConfigurationManager";
+import { StorageServiceManager } from "../../storage/StorageServiceManager";
 
 export class DownloadHandler extends BaseEventHandler {
   private statusBar: StatusBar;
-  private storageServiceManager: StorageServiceManager;
-
+ 
   constructor(
     app: App,
     configurationManager: ConfigurationManager,
     storageServiceManager: StorageServiceManager,
     statusBar: StatusBar,
   ) {
-    super(app, configurationManager, 3);
-    this.storageServiceManager = storageServiceManager;
+    super(app, configurationManager, storageServiceManager, 3);
     this.statusBar = statusBar;
   }
 

@@ -2,7 +2,7 @@
  * WebDAV Image Loader - Intercepts image loading and adds Basic Auth for WebDAV URLs
  */
 
-import { EditorView, PluginValue, ViewPlugin, ViewUpdate } from "@codemirror/view";
+import { EditorView, ViewPlugin } from "@codemirror/view";
 import { requestUrl } from "obsidian";
 import { LruCache } from "../cache/LruCache";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
@@ -17,6 +17,25 @@ export class WebdavImageLoaderService {
 
   constructor(configManager: ConfigurationManager) {
     this.configManager = configManager;
+    this.updatePrefixes();
+  }
+
+  createExtension() {
+    const loader = this;
+    return ViewPlugin.define((view: EditorView) => {
+      const observer = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          m.addedNodes.forEach((n) => {
+            if (n instanceof HTMLImageElement) loader.loadImage(n, true);
+          });
+        }
+      });
+      observer.observe(view.dom, { childList: true, subtree: true });
+      return {
+        update() {},
+        destroy() { observer.disconnect(); }
+      };
+    }).extension;
   }
 
   updatePrefixes() {
@@ -73,33 +92,4 @@ export class WebdavImageLoaderService {
   destroy() {
     this.cache.clear();
   }
-}
-
-class WebdavImageLoaderExtension implements PluginValue {
-  private observer: MutationObserver;
-  private loader: WebdavImageLoaderService;
-
-  constructor(view: EditorView, loader: WebdavImageLoaderService) {
-    this.loader = loader;
-    this.observer = new MutationObserver((mutations) => {
-      for (const m of mutations) {
-        m.addedNodes.forEach((n) => {
-          if (n instanceof HTMLImageElement) this.loader.loadImage(n, true);
-        });
-      }
-    });
-    this.observer.observe(view.dom, { childList: true, subtree: true });
-  }
-
-  update(_: ViewUpdate) {}
-  destroy() {
-    this.observer.disconnect();
-  }
-}
-
-export function createWebdavImageExtension(configManager: ConfigurationManager) {
-  const loader = new WebdavImageLoaderService(configManager);
-  loader.updatePrefixes();
-  const plugin = ViewPlugin.define((view: EditorView) => new WebdavImageLoaderExtension(view, loader));
-  return { extension: plugin.extension, loader };
 }

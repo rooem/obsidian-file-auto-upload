@@ -29,30 +29,10 @@ export class StorageServiceManager {
     const configChangeListener: ConfigChangeListener = (
       changedSettings: Partial<FileAutoUploadSettings>,
     ) => {
-      this.handleConfigChange(changedSettings);
+      this.dispose();
     };
 
     this.configurationManager.addConfigChangeListener(configChangeListener);
-  }
-
-  /**
-   * Handle configuration changes by clearing cached service instances
-   * Ensures fresh instances are created with updated configuration
-   */
-  private handleConfigChange(
-    _changedSettings: Partial<FileAutoUploadSettings>,
-  ): void {
-    // Dispose of existing service instances before clearing
-    this.serviceInstances.forEach((service) => {
-      if (service.dispose) {
-        service.dispose();
-      }
-    });
-    this.serviceInstances.clear();
-    logger.debug(
-      "ServiceManager",
-      "All service instance caches cleared, will be recreated on next use",
-    );
   }
 
   /**
