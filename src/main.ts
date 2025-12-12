@@ -1,9 +1,9 @@
 import { Plugin, MarkdownView, Menu, Editor, TFile } from "obsidian";
 import { FileAutoUploadSettingTab } from "./settings/FileAutoUploadSettingTab";
 import { ConfigurationManager } from "./settings/ConfigurationManager";
-import { StorageServiceManager } from "./storage/StorageServiceManager";
 import { EventHandlerManager } from "./handler/EventHandlerManager";
 import { StatusBar } from "./components/StatusBar";
+import { createWebdavImageExtension, WebdavImageLoaderService } from "./components/WebdavImageLoader";
 import { logger } from "./common/Logger";
 
 /**
@@ -13,6 +13,7 @@ import { logger } from "./common/Logger";
 export default class FileAutoUploadPlugin extends Plugin {
   public configurationManager!: ConfigurationManager;
   public eventHandlerManager!: EventHandlerManager;
+  private webdavImageLoader?: WebdavImageLoaderService;
 
   /**
    * Plugin initialization - called when plugin is loaded
@@ -34,6 +35,7 @@ export default class FileAutoUploadPlugin extends Plugin {
     logger.debug("FileAutoUploadPlugin", "Plugin unloading started");
     this.configurationManager.removeAllListener();
     this.eventHandlerManager.dispose();
+    this.webdavImageLoader?.destroy();
     logger.debug("FileAutoUploadPlugin", "Plugin unloaded successfully");
   }
 
@@ -51,6 +53,11 @@ export default class FileAutoUploadPlugin extends Plugin {
       this.configurationManager,
       statusBar
     );
+
+    // Register WebDAV image loader extension
+    const { extension, loader } = createWebdavImageExtension(this.configurationManager);
+    this.webdavImageLoader = loader;
+    this.registerEditorExtension(extension);
   }
 
   /**

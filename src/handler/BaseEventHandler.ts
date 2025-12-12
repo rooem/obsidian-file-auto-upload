@@ -5,6 +5,7 @@ import { ProcessItem } from "../types/index";
 import { ConcurrencyController } from "../common/ConcurrencyController";
 import { isImageExtension } from "../common/FileUtils";
 
+
 /**
  * Base class for all event handlers
  * Provides queue management for asynchronous operations with concurrency control

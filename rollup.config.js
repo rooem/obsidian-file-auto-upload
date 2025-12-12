@@ -14,7 +14,7 @@ export default {
     exports: "default",
     inlineDynamicImports: true,
   },
-  external: ["obsidian"],
+  external: ["obsidian", "@codemirror/state", "@codemirror/view"],
   plugins: [
     typescript({
       compilerOptions: {
