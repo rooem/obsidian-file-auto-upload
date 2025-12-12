@@ -15,7 +15,7 @@ import { StatusBar } from "../components/StatusBar";
 import { UploadEventHandler } from "./providers/UploadEventHandler";
 import { DeleteEventHandler } from "./providers/DeleteEventHandler";
 import { DownloadHandler } from "./providers/DownloadHandler";
-import { WebdavImageLoaderService } from "../components/WebdavImageLoader";
+import { WebdavImageLoader } from "../components/WebdavImageLoader";
 import { t } from "../i18n";
 import { logger } from "../common/Logger";
 import {
@@ -47,7 +47,7 @@ export class EventHandlerManager {
   private _uploadEventHandler?: UploadEventHandler;
   private _deleteEventHandler?: DeleteEventHandler;
   private _downloadHandler?: DownloadHandler;
-  private _webdavImageLoader?: WebdavImageLoaderService;
+  private _webdavImageLoader?: WebdavImageLoader;
 
   constructor(
     app: App,
@@ -255,9 +255,9 @@ export class EventHandlerManager {
     return this._downloadHandler;
   }
 
-  private get webdavImageLoader(): WebdavImageLoaderService {
+  private get webdavImageLoader(): WebdavImageLoader {
     if (!this._webdavImageLoader) {
-      this._webdavImageLoader = new WebdavImageLoaderService(this.configurationManager);
+      this._webdavImageLoader = new WebdavImageLoader(this.configurationManager);
     }
     return this._webdavImageLoader;
   }

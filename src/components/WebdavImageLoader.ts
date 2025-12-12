@@ -7,10 +7,12 @@ import { requestUrl } from "obsidian";
 import { LruCache } from "../cache/LruCache";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { WebdavConfig } from "../types";
+import { StorageServiceType } from "../storage/StorageServiceRegistry";
+
 
 const LOADING_SVG = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="%23888" stroke-width="2" fill="none" stroke-dasharray="6,30"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle></svg>`;
 
-export class WebdavImageLoaderService {
+export class WebdavImageLoader {
   private configManager: ConfigurationManager;
   private cache = new LruCache<string | Promise<string>>(100);
   private prefixes: string[] = [];
@@ -39,12 +41,12 @@ export class WebdavImageLoaderService {
   }
 
   updatePrefixes() {
-    if (this.configManager.getCurrentStorageService() !== "webdav") {
+    if (this.configManager.getCurrentStorageService() !== StorageServiceType.WEBDAV) {
       this.prefixes = [];
       return;
     }
     const config = this.configManager.getCurrentStorageConfig() as WebdavConfig;
-    this.prefixes = [config.endpoint, config.public_domain]
+    this.prefixes = [config.endpoint]
       .map((s) => s?.replace(/\/+$/, ""))
       .filter((s): s is string => !!s);
   }

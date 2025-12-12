@@ -40,8 +40,8 @@ export class WebdavStorageService implements IStorageService {
    public checkConnectionConfig(): Result {
      const requiredFields = [
        { key: "endpoint", error: t("error.missingEndpoint") },
-       { key: "username", error: t("error.missingUsername") },
-       { key: "password", error: t("error.missingPassword") },
+       { key: "access_key_id", error: t("error.missingUsername") },
+       { key: "secret_access_key", error: t("error.missingPassword") },
      ];
  
      for (const field of requiredFields) {
@@ -268,11 +268,11 @@ export class WebdavStorageService implements IStorageService {
    }
  
    private buildAuthHeader(): string {
-     return "Basic " + btoa(`${this.config.username}:${this.config.password}`);
+     return "Basic " + btoa(`${this.config.access_key_id}:${this.config.secret_access_key}`);
    }
  
    private buildPath(key: string): string {
-     const basePath = this.config.base_path?.replace(/^\/|\/$/g, "") || "";
+     const basePath = (this.config.bucket_name || "").replace(/^\/|\/$/g, "");
      return basePath ? `${basePath}/${key}` : key;
    }
  
@@ -284,8 +284,8 @@ export class WebdavStorageService implements IStorageService {
    private buildAuthenticatedUrl(key: string): string {
      try {
        const url = new URL(this.config.endpoint);
-       url.username = encodeURIComponent(this.config.username);
-       url.password = encodeURIComponent(this.config.password);
+       url.username = encodeURIComponent(this.config.access_key_id);
+       url.password = encodeURIComponent(this.config.secret_access_key);
        return `${url.origin}${url.pathname}/${this.buildPath(key)}`.replace(/([^:]\/)\/+/g, "$1");
      } catch {
        return `${this.config.endpoint}/${this.buildPath(key)}`;
@@ -293,7 +293,7 @@ export class WebdavStorageService implements IStorageService {
    }
  
    private normalizeKey(key: string): string {
-     const basePath = this.config.base_path?.replace(/^\/|\/$/g, "") || "";
+     const basePath = (this.config.bucket_name || "").replace(/^\/|\/$/g, "");
      return key.replace(basePath, "").replace(/^\//, "");
    }
  

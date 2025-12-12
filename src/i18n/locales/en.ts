@@ -21,6 +21,7 @@ export default {
   "settings.bucketName.desc": "Storage bucket name",
   "settings.publicUrl": "Public access domain",
   "settings.publicUrl.desc": "Public access domain",
+  "settings.publicUrl.webdav.desc": "WebDAV requires authentication by default. Configure a proxy URL for public access (optional)",
   "settings.testConnection": "Test connection",
   "settings.testing": "Testing...",
   "settings.testSuccess": "Connection successful!",
