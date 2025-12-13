@@ -7,6 +7,7 @@ import { requestUrl } from "obsidian";
 import { LruCache } from "../common/LruCache";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { WebdavConfig, StorageServiceType } from "../types";
+import { logger } from "../common/Logger";
 
 const LOADING_SVG = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="%23888" stroke-width="2" fill="none" stroke-dasharray="6,30"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle></svg>`;
 
@@ -116,7 +117,7 @@ export class WebdavImageLoader {
       }
       el.src = blobUrl;
     } catch (e) {
-      console.error("WebDAV image load failed:", e);
+      logger.error("WebdavImageLoader", "WebDAV image load failed", e);
       this.cache.delete(url);
     }
   }
