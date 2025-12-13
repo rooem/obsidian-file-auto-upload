@@ -1,14 +1,41 @@
 import { IStorageService, Result, UploadData, WebdavConfig } from "../types";
-import {
-  StorageServiceTypeInfo,
-  StorageServiceConstructor,
-} from "./StorageServiceRegistry";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { handleError } from "../common/ErrorHandler";
-import type { ConfigChangeListener } from "../types";
+import { ConfigChangeListener,StorageServiceType,StorageServiceConstructor } from "../types";
 import { logger } from "../common/Logger";
 import { requestUrl, RequestUrlParam, App, normalizePath } from "obsidian";
-import { StorageServiceType } from "./StorageServiceRegistry";
+import { AmazonS3StorageService } from "./providers/AmazonS3StorageService";
+import { AliyunOSSStorageService } from "./providers/AliyunOSSStorageService";
+import { TencentCOSStorageService } from "./providers/TencentCOSStorageService";
+import { CloudflareR2StorageService } from "./providers/CloudflareR2StorageService";
+import { WebdavStorageService } from "./providers/WebdavStorageService";
+
+export const StorageServiceTypeInfo: Record<
+  string,
+  { clazz: StorageServiceConstructor; serviceName: string }
+> = {
+  [StorageServiceType.AMAZON_S3]: {
+    clazz: AmazonS3StorageService,
+    serviceName: "Amazon S3",
+  },
+  [StorageServiceType.CLOUDFLARE_R2]: {
+    clazz: CloudflareR2StorageService,
+    serviceName: "Cloudflare R2",
+  },
+  [StorageServiceType.ALIYUN_OSS]: {
+    clazz: AliyunOSSStorageService,
+    serviceName: "Aliyun OSS",
+  },
+  [StorageServiceType.TENCENT_COS]: {
+    clazz: TencentCOSStorageService,
+    serviceName: "Tencent COS",
+  },
+  [StorageServiceType.WEBDAV]: {
+    clazz: WebdavStorageService,
+    serviceName: "WebDAV",
+  },
+};
+
 
 /**
  * Manages upload service instances and operations

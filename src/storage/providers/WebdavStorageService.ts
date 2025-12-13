@@ -14,7 +14,7 @@ import { t } from "../../i18n";
 import { handleError } from "../../common/ErrorHandler";
 import { logger } from "../../common/Logger";
 import { generateFileKey } from "../../common/FileUtils";
-import { LruCache } from "../../cache/LruCache";
+import { LruCache } from "../../common/LruCache";
 import { requestUrl, RequestUrlParam } from "obsidian";
 
 /** HTTP status codes for WebDAV operations */

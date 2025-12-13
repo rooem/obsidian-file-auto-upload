@@ -1,11 +1,8 @@
 import { Setting } from "obsidian";
 import FileAutoUploadPlugin from "../main";
-import {
-  StorageServiceType,
-  StorageServiceTypeInfo,
-} from "../storage/StorageServiceRegistry";
 import { t } from "../i18n";
-import type { FileAutoUploadSettings } from "../types";
+import { FileAutoUploadSettings,StorageServiceType} from "../types";
+import { StorageServiceTypeInfo } from "../storage/StorageServiceManager";
 
 /**
  * Storage service settings UI component

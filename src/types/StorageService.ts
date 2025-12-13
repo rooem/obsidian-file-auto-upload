@@ -1,6 +1,20 @@
 /**
- * StorageService related type definitions
+ * Supported storage service types
  */
+export const StorageServiceType = {
+  AMAZON_S3: "amazon-s3",
+  CLOUDFLARE_R2: "cloudflare-r2",
+  ALIYUN_OSS: "aliyun-oss",
+  TENCENT_COS: "tencent-cos",
+  WEBDAV: "webdav",
+} as const;
+
+/**
+ * StorageService class constructor type
+ */
+export type StorageServiceConstructor = new (
+  config: StorageServiceConfig,
+) => IStorageService;
 
 /**
  * Generic result type for operations
