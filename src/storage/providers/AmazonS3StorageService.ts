@@ -19,7 +19,6 @@ import {
   Result,
   UploadData,
   IStorageService,
-  FileInfo,
   UploadProgressCallback,
   StorageServiceConfig,
   S3Config,

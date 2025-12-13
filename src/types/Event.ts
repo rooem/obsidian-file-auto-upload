@@ -4,7 +4,7 @@ export enum EventType {
   DOWNLOAD,
 }
 
-// 可辨识联合类型
+// Discriminated union type
 interface BaseProcessItem {
   id: string;
   eventType: EventType;

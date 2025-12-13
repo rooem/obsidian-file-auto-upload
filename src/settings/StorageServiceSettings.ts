@@ -1,6 +1,9 @@
 import { Setting } from "obsidian";
 import FileAutoUploadPlugin from "../main";
-import { StorageServiceType, StorageServiceTypeInfo } from "../storage/StorageServiceRegistry";
+import {
+  StorageServiceType,
+  StorageServiceTypeInfo,
+} from "../storage/StorageServiceRegistry";
 import { t } from "../i18n";
 import type { FileAutoUploadSettings } from "../types";
 
@@ -15,26 +18,57 @@ export class StorageServiceSettings {
     StorageServiceType.TENCENT_COS,
   ]);
 
-  private static readonly fieldConfigs: Record<string, Array<[string, string, string, string?]>> = {
+  private static readonly fieldConfigs: Record<
+    string,
+    Array<[string, string, string, string?]>
+  > = {
     [StorageServiceType.WEBDAV]: [
       ["settings.username", "settings.username.desc", "access_key_id"],
       ["settings.password", "settings.password.desc", "secret_access_key"],
-      ["settings.endpoint", "settings.endpoint.desc", "endpoint", "https://xxxxxx.com"],
+      [
+        "settings.endpoint",
+        "settings.endpoint.desc",
+        "endpoint",
+        "https://xxxxxx.com",
+      ],
       ["settings.basePath", "settings.basePath.desc", "bucket_name", "uploads"],
-      ["settings.publicUrl", "settings.publicUrl.webdav.desc", "public_domain", "https://your-domain.com"],
+      [
+        "settings.publicUrl",
+        "settings.publicUrl.webdav.desc",
+        "public_domain",
+        "https://your-domain.com",
+      ],
     ],
     s3: [
       ["settings.accessKeyId", "settings.accessKeyId.desc", "access_key_id"],
-      ["settings.secretAccessKey", "settings.secretAccessKey.desc", "secret_access_key"],
-      ["settings.endpoint", "settings.endpoint.desc", "endpoint", "https://xxxxxx.com"],
+      [
+        "settings.secretAccessKey",
+        "settings.secretAccessKey.desc",
+        "secret_access_key",
+      ],
+      [
+        "settings.endpoint",
+        "settings.endpoint.desc",
+        "endpoint",
+        "https://xxxxxx.com",
+      ],
       ["settings.bucketName", "settings.bucketName.desc", "bucket_name"],
-      ["settings.publicUrl", "settings.publicUrl.desc", "public_domain", "https://your-domain.com"],
+      [
+        "settings.publicUrl",
+        "settings.publicUrl.desc",
+        "public_domain",
+        "https://your-domain.com",
+      ],
     ],
   };
 
   private static inputStyle = { width: "300px" };
 
-  static render(containerEl: HTMLElement, plugin: FileAutoUploadPlugin, onToggle: () => void): void {
+  static render(
+    containerEl: HTMLElement,
+    plugin: FileAutoUploadPlugin,
+    onToggle: () => void,
+  ): void {
     const settings = plugin.configurationManager.getSettings();
     const isWebdav = settings.storageServiceType === StorageServiceType.WEBDAV;
 
@@ -48,15 +82,30 @@ export class StorageServiceSettings {
         return dropdown
           .setValue(settings.storageServiceType)
           .onChange(async (value: string) => {
-            await plugin.configurationManager.saveSettings({ storageServiceType: value }, true);
+            await plugin.configurationManager.saveSettings(
+              { storageServiceType: value },
+              true,
+            );
             onToggle();
           });
       });
 
-    const fields = this.fieldConfigs[isWebdav ? StorageServiceType.WEBDAV : "s3"];
+    const fields =
+      this.fieldConfigs[isWebdav ? StorageServiceType.WEBDAV : "s3"];
     for (const [name, desc, key, placeholder] of fields) {
-      if (key === "endpoint" && this.showRegion.has(settings.storageServiceType)) {
-        this.addTextField(containerEl, plugin, settings, name, desc, key, placeholder);
+      if (
+        key === "endpoint" &&
+        this.showRegion.has(settings.storageServiceType)
+      ) {
+        this.addTextField(
+          containerEl,
+          plugin,
+          settings,
+          name,
+          desc,
+          key,
+          placeholder,
+        );
         new Setting(containerEl)
           .setName(t("settings.region"))
           .setDesc(t("settings.region.desc"))
@@ -67,7 +116,15 @@ export class StorageServiceSettings {
               .inputEl.setCssStyles(this.inputStyle),
           );
       } else {
-        this.addTextField(containerEl, plugin, settings, name, desc, key, placeholder);
+        this.addTextField(
+          containerEl,
+          plugin,
+          settings,
+          name,
+          desc,
+          key,
+          placeholder,
+        );
       }
     }
 
@@ -128,9 +185,14 @@ export class StorageServiceSettings {
     });
   }
 
-  private static createConfigUpdater(plugin: FileAutoUploadPlugin, _settings: FileAutoUploadSettings, key: string) {
+  private static createConfigUpdater(
+    plugin: FileAutoUploadPlugin,
+    _settings: FileAutoUploadSettings,
+    key: string,
+  ) {
     return async (value: string) => {
-      const currentConfig = plugin.configurationManager.getSettings().storageServiceConfig;
+      const currentConfig =
+        plugin.configurationManager.getSettings().storageServiceConfig;
       await plugin.configurationManager.saveSettings(
         { storageServiceConfig: { ...currentConfig, [key]: value } },
         true,
@@ -155,12 +217,17 @@ export class StorageServiceSettings {
           .setValue((settings.storageServiceConfig[configKey] as string) || "")
           .onChange(this.createConfigUpdater(plugin, settings, configKey))
           .inputEl.setCssStyles(this.inputStyle);
-        if (placeholder) text.setPlaceholder(placeholder);
+        if (placeholder) {
+          text.setPlaceholder(placeholder);
+        }
       });
   }
 
   private static findRegionVaule(settings: FileAutoUploadSettings): string {
-    if (!settings.storageServiceConfig || !settings.storageServiceConfig.endpoint) {
+    if (
+      !settings.storageServiceConfig ||
+      !settings.storageServiceConfig.endpoint
+    ) {
       return "";
     }
 

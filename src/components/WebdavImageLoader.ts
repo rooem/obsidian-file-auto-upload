@@ -9,7 +9,6 @@ import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { WebdavConfig } from "../types";
 import { StorageServiceType } from "../storage/StorageServiceRegistry";
 
-
 const LOADING_SVG = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="%23888" stroke-width="2" fill="none" stroke-dasharray="6,30"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle></svg>`;
 
 export class WebdavImageLoader {
@@ -23,27 +22,23 @@ export class WebdavImageLoader {
   }
 
   createExtension() {
-    const loader = this;
     return ViewPlugin.define((view: EditorView) => {
-      // 处理已存在的图片
       const processExistingImages = () => {
         view.dom.querySelectorAll("img").forEach((img) => {
-          loader.loadImage(img as HTMLImageElement, true);
+          void this.loadImage(img, true);
         });
       };
-      
-      // 初始加载
+
       processExistingImages();
-      
+
       const observer = new MutationObserver((mutations) => {
         for (const m of mutations) {
           m.addedNodes.forEach((n) => {
             if (n instanceof HTMLImageElement) {
-              loader.loadImage(n, true);
+              void this.loadImage(n, true);
             } else if (n instanceof Element) {
-              // 处理包含图片的元素
               n.querySelectorAll("img").forEach((img) => {
-                loader.loadImage(img as HTMLImageElement, true);
+                void this.loadImage(img, true);
               });
             }
           });
@@ -51,14 +46,21 @@ export class WebdavImageLoader {
       });
       observer.observe(view.dom, { childList: true, subtree: true });
       return {
-        update() { processExistingImages(); },
-        destroy() { observer.disconnect(); }
+        update() {
+          processExistingImages();
+        },
+        destroy() {
+          observer.disconnect();
+        },
       };
     }).extension;
   }
 
   updatePrefixes() {
-    if (this.configManager.getCurrentStorageService() !== StorageServiceType.WEBDAV) {
+    if (
+      this.configManager.getCurrentStorageService() !==
+      StorageServiceType.WEBDAV
+    ) {
       this.prefixes = [];
       return;
     }
@@ -70,14 +72,20 @@ export class WebdavImageLoader {
 
   async loadImage(el: HTMLImageElement, useCache: boolean) {
     const url = el.src;
-    if (!url || el.dataset.webdavLoaded) return;
-    
-    // 只有配置了WebDAV且有prefix时才处理
-    if (this.prefixes.length === 0) return;
-    
+    if (!url || el.dataset.webdavLoaded) {
+      return;
+    }
+
+    // Only process when WebDAV is configured and has prefixes
+    if (this.prefixes.length === 0) {
+      return;
+    }
+
     const isWebdavUrl = this.prefixes.some((p) => url.startsWith(p));
-    if (!isWebdavUrl) return;
-    
+    if (!isWebdavUrl) {
+      return;
+    }
+
     el.dataset.webdavLoaded = "1";
 
     const cached = this.cache.get(url);
@@ -91,10 +99,14 @@ export class WebdavImageLoader {
     const promise = requestUrl({
       url,
       method: "GET",
-      headers: { Authorization: `Basic ${btoa(`${config.access_key_id}:${config.secret_access_key}`)}` },
+      headers: {
+        Authorization: `Basic ${btoa(`${config.access_key_id}:${config.secret_access_key}`)}`,
+      },
     }).then((r) => URL.createObjectURL(new Blob([r.arrayBuffer])));
 
-    if (useCache) this.cache.set(url, promise);
+    if (useCache) {
+      this.cache.set(url, promise);
+    }
 
     try {
       const blobUrl = await promise;

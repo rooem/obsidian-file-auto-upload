@@ -44,9 +44,9 @@ export interface S3Config extends StorageServiceConfig {
  */
 export interface WebdavConfig extends StorageServiceConfig {
   endpoint: string;
-  access_key_id: string;      // WebDAV username
-  secret_access_key: string;  // WebDAV password
-  bucket_name?: string;       // WebDAV base_path
+  access_key_id: string; // WebDAV username
+  secret_access_key: string; // WebDAV password
+  bucket_name?: string; // WebDAV base_path
   public_domain?: string;
 }
 

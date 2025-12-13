@@ -94,7 +94,7 @@ export function generateUniqueId(
   const text = `${file.name}_${file.size}_${file.type}`;
   let hash = 0;
   for (let i = 0; i < text.length; i++) {
-    hash = ((hash << 5) - hash) + text.charCodeAt(i);
+    hash = (hash << 5) - hash + text.charCodeAt(i);
     hash = hash & hash;
   }
   const hashStr = Math.abs(hash).toString(36);
@@ -182,8 +182,11 @@ export function parseMarkdownLinks(
       let bracketDepth = 1;
       let j = i + 1;
       while (j < text.length && bracketDepth > 0) {
-        if (text[j] === "[") bracketDepth++;
-        else if (text[j] === "]") bracketDepth--;
+        if (text[j] === "[") {
+          bracketDepth++;
+        } else if (text[j] === "]") {
+          bracketDepth--;
+        }
         j++;
       }
 
@@ -191,8 +194,11 @@ export function parseMarkdownLinks(
         let parenDepth = 1;
         let k = j + 1;
         while (k < text.length && parenDepth > 0) {
-          if (text[k] === "(") parenDepth++;
-          else if (text[k] === ")") parenDepth--;
+          if (text[k] === "(") {
+            parenDepth++;
+          } else if (text[k] === ")") {
+            parenDepth--;
+          }
           k++;
         }
         if (parenDepth === 0) {
@@ -245,7 +251,9 @@ export function findSupportedFilePath(
  * @returns Array of uploaded file URLs
  */
 export function findUploadedFileLinks(text: string, domain: string): string[] {
-  if (!text || !domain) return [];
+  if (!text || !domain) {
+    return [];
+  }
 
   const links = parseMarkdownLinks(text);
   const processedUrls = new Set<string>();

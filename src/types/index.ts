@@ -14,7 +14,6 @@ export type {
   IStorageService,
 } from "./StorageService";
 
-
 // Settings types
 export type {
   FileAutoUploadSettings,

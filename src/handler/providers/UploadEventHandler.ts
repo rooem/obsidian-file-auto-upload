@@ -135,7 +135,7 @@ export class UploadEventHandler extends BaseEventHandler {
         ) {
           try {
             const decodedPath = decodeURIComponent(processItem.localPath);
-            const normalizedPath = normalizePath(decodedPath);         
+            const normalizedPath = normalizePath(decodedPath);
             await this.app.vault.adapter.remove(normalizedPath);
           } catch (e) {
             logger.warn("UploadEventHandler", "Failed to delete local file", {

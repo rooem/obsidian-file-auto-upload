@@ -32,7 +32,7 @@ import {
   TextProcessItem,
   FileProcessItem,
   DownloadProcessItem,
-  Result
+  Result,
 } from "../types/index";
 
 /**
@@ -58,8 +58,8 @@ export class EventHandlerManager {
     this.app = app;
     this.configurationManager = configurationManager;
     this.statusBar = statusBar;
-    
-    // 监听配置变更，更新WebdavImageLoader的prefixes
+
+    // Listen for config changes to update WebdavImageLoader prefixes
     this.configurationManager.addConfigChangeListener(() => {
       this._webdavImageLoader?.updatePrefixes();
     });
@@ -71,7 +71,7 @@ export class EventHandlerManager {
    * @returns Result indicating test success or failure
    */
   async testConnection(): Promise<Result> {
-   return await this.storageServiceManager.testConnection();
+    return await this.storageServiceManager.testConnection();
   }
 
   /**
@@ -175,7 +175,7 @@ export class EventHandlerManager {
     this.handleDeleteFile(menu, editor, view);
   }
 
-    /**
+  /**
    * Handle editor context menu
    * Adds upload/download/delete options based on selected content
    * @param menu - Context menu to add items to
@@ -188,15 +188,18 @@ export class EventHandlerManager {
 
   /**
    * Create markdown post processor for reading view and PDF export
+   * Uses concurrency limit to avoid loading too many images simultaneously
    */
   public createMarkdownPostProcessor() {
+    const MAX_CONCURRENT = 5;
     return async (el: HTMLElement, _ctx: MarkdownPostProcessorContext) => {
-      const images = el.querySelectorAll("img");
-      const promises: Promise<void>[] = [];
-      images.forEach((img) => {
-        promises.push(this.webdavImageLoader.loadImage(img as HTMLImageElement, true));
-      });
-      await Promise.all(promises);
+      const images = Array.from(el.querySelectorAll("img"));
+      for (let i = 0; i < images.length; i += MAX_CONCURRENT) {
+        const batch = images.slice(i, i + MAX_CONCURRENT);
+        await Promise.all(
+          batch.map((img) => this.webdavImageLoader.loadImage(img, true)),
+        );
+      }
     };
   }
 
@@ -209,8 +212,12 @@ export class EventHandlerManager {
       this._uploadEventHandler,
       this._deleteEventHandler,
       this._downloadHandler,
-    ].filter(Boolean) as (UploadEventHandler | DeleteEventHandler | DownloadHandler)[];
-    
+    ].filter(Boolean) as (
+      | UploadEventHandler
+      | DeleteEventHandler
+      | DownloadHandler
+    )[];
+
     if (handlers.length > 0) {
       const statuses = handlers.map((handler) => handler.getQueueStatus());
       const totalQueueLength = statuses.reduce(
@@ -235,7 +242,9 @@ export class EventHandlerManager {
 
   private get storageServiceManager(): StorageServiceManager {
     if (!this._storageServiceManager) {
-      this._storageServiceManager = new StorageServiceManager(this.configurationManager);
+      this._storageServiceManager = new StorageServiceManager(
+        this.configurationManager,
+      );
     }
     return this._storageServiceManager;
   }
@@ -277,7 +286,9 @@ export class EventHandlerManager {
 
   private get webdavImageLoader(): WebdavImageLoader {
     if (!this._webdavImageLoader) {
-      this._webdavImageLoader = new WebdavImageLoader(this.configurationManager);
+      this._webdavImageLoader = new WebdavImageLoader(
+        this.configurationManager,
+      );
     }
     return this._webdavImageLoader;
   }
@@ -551,12 +562,17 @@ export class EventHandlerManager {
     }
 
     const activeFile = this.app.workspace.getActiveFile();
-    if (!activeFile) return queue;
+    if (!activeFile) {
+      return queue;
+    }
 
     for (const filePath of filePathList) {
       try {
         const decodedPath = normalizePath(decodeURIComponent(filePath));
-        const tfile = this.app.metadataCache.getFirstLinkpathDest(decodedPath, activeFile.path);
+        const tfile = this.app.metadataCache.getFirstLinkpathDest(
+          decodedPath,
+          activeFile.path,
+        );
         let arrayBuffer, file;
         if (tfile instanceof TFile) {
           arrayBuffer = await this.app.vault.readBinary(tfile);

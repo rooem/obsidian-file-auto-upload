@@ -3,7 +3,10 @@
  * Controls the number of simultaneous operations to prevent resource exhaustion
  */
 export class ConcurrencyController {
-  private queue: Array<{ resolve: () => void; reject: (error: Error) => void }> = [];
+  private queue: Array<{
+    resolve: () => void;
+    reject: (error: Error) => void;
+  }> = [];
   private running = 0;
   private aborted = false;
 

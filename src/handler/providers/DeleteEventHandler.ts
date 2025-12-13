@@ -12,7 +12,6 @@ import { removeMarkdownLinksByUrl } from "../../common/FileUtils";
  * Adds context menu option to delete files and removes links from editor
  */
 export class DeleteEventHandler extends BaseEventHandler {
-
   constructor(
     app: App,
     configurationManager: ConfigurationManager,

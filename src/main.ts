@@ -48,7 +48,7 @@ export default class FileAutoUploadPlugin extends Plugin {
     this.eventHandlerManager = new EventHandlerManager(
       this.app,
       this.configurationManager,
-      statusBar
+      statusBar,
     );
   }
 
@@ -62,8 +62,11 @@ export default class FileAutoUploadPlugin extends Plugin {
       this.app.workspace.on(
         "editor-paste",
         (event: ClipboardEvent, editor: Editor, view: MarkdownView) => {
-          this.eventHandlerManager.handleClipboardPaste(event, editor, view)
-            .catch((e) => logger.error("FileAutoUploadPlugin", "Paste handler error", e));
+          this.eventHandlerManager
+            .handleClipboardPaste(event, editor, view)
+            .catch((e) =>
+              logger.error("FileAutoUploadPlugin", "Paste handler error", e),
+            );
         },
       ),
     );
@@ -72,8 +75,11 @@ export default class FileAutoUploadPlugin extends Plugin {
       this.app.workspace.on(
         "editor-drop",
         (event: DragEvent, editor: Editor, view: MarkdownView) => {
-          this.eventHandlerManager.handleFileDrop(event, editor, view)
-            .catch((e) => logger.error("FileAutoUploadPlugin", "Drop handler error", e));
+          this.eventHandlerManager
+            .handleFileDrop(event, editor, view)
+            .catch((e) =>
+              logger.error("FileAutoUploadPlugin", "Drop handler error", e),
+            );
         },
       ),
     );
@@ -94,9 +100,13 @@ export default class FileAutoUploadPlugin extends Plugin {
     );
 
     // Register WebDAV image loader extension
-    this.registerEditorExtension(this.eventHandlerManager.createEditorExtension());
-    
+    this.registerEditorExtension(
+      this.eventHandlerManager.createEditorExtension(),
+    );
+
     // Register markdown post processor for reading view and PDF export
-    this.registerMarkdownPostProcessor(this.eventHandlerManager.createMarkdownPostProcessor());
+    this.registerMarkdownPostProcessor(
+      this.eventHandlerManager.createMarkdownPostProcessor(),
+    );
   }
 }

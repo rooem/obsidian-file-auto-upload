@@ -17,14 +17,16 @@ export class LruCache<V> {
 
   get(key: string): V | null {
     const entry = this.map.get(key);
-    if (!entry) return null;
+    if (!entry) {
+      return null;
+    }
 
     if (this.isExpired(entry)) {
       this.map.delete(key);
       return null;
     }
 
-    // LRU 操作：提高此 key 的顺序
+    // LRU operation: promote this key's order
     this.map.delete(key);
     this.map.set(key, entry);
 
@@ -38,13 +40,13 @@ export class LruCache<V> {
     }
 
     if (this.map.has(key)) {
-      // 覆盖并提升顺序
+      // Overwrite and promote order
       this.map.delete(key);
     }
 
     this.map.set(key, { value, expireAt });
 
-    // 超过容量时淘汰最早未访问的项
+    // Evict oldest entry when capacity exceeded
     if (this.map.size > this.maxSize) {
       const oldestKey = this.map.keys().next().value as string;
       this.map.delete(oldestKey);

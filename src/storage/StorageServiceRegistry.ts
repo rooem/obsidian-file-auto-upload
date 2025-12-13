@@ -29,12 +29,17 @@ export const StorageServiceType = {
 /**
  * StorageService class constructor type
  */
-export type StorageServiceConstructor = new (config: StorageServiceConfig) => IStorageService;
+export type StorageServiceConstructor = new (
+  config: StorageServiceConfig,
+) => IStorageService;
 
 /**
  * Registry mapping storage service types to their implementation classes
  */
-export const StorageServiceTypeInfo: Record<string, { clazz: StorageServiceConstructor; serviceName: string }> = {
+export const StorageServiceTypeInfo: Record<
+  string,
+  { clazz: StorageServiceConstructor; serviceName: string }
+> = {
   [StorageServiceType.AMAZON_S3]: {
     clazz: AmazonS3StorageService,
     serviceName: "Amazon S3",
