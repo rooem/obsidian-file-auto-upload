@@ -85,7 +85,20 @@ export class ContentReplacer {
       return;
     }
 
-    const linkStartIndex = content.lastIndexOf("[", markerIndex);
+    // Find the placeholder pattern: [name]🔄text<!--id--> or ![name]🔄text<!--id-->
+    // Search backwards from marker to find the opening bracket
+    let linkStartIndex = -1;
+    for (let i = markerIndex - 1; i >= 0; i--) {
+      if (content[i] === "[") {
+        linkStartIndex = i;
+        break;
+      }
+      // Stop if we hit a newline (placeholder should be on same line)
+      if (content[i] === "\n") {
+        break;
+      }
+    }
+
     if (linkStartIndex === -1) {
       editor.replaceRange(markdown + "\n", {
         line: editor.lastLine() + 1,
@@ -94,11 +107,16 @@ export class ContentReplacer {
       return;
     }
 
+    // Include the `!` prefix for image links
+    const hasImagePrefix = linkStartIndex > 0 && content[linkStartIndex - 1] === "!";
+    if (hasImagePrefix) {
+      linkStartIndex--;
+    }
+
     const finalMarkdown = this.adjustMarkdownFormat(
-      content,
-      linkStartIndex,
       markdown,
       options,
+      hasImagePrefix,
     );
 
     editor.replaceRange(
@@ -157,14 +175,10 @@ export class ContentReplacer {
   }
 
   private adjustMarkdownFormat(
-    content: string,
-    linkStartIndex: number,
     markdown: string,
     options?: ReplaceOptions,
+    hasImagePrefix?: boolean,
   ): string {
-    const hasImagePrefix =
-      linkStartIndex > 0 && content[linkStartIndex - 1] === "!";
-
     if (hasImagePrefix && markdown.startsWith("!")) {
       return markdown.substring(1);
     }
@@ -180,9 +194,8 @@ export class ContentReplacer {
   }
 
   private removeMarkdownLinksByUrl(text: string, targetUrl: string): string {
-    const linkRegex = /(!?\[[^\]]*\])\(([^)]+)\)/g;
-    return text.replace(linkRegex, (match, linkText, url) => {
-      return url === targetUrl ? "" : match;
-    });
+    const escapedUrl = this.escapeRegExp(targetUrl);
+    const linkRegex = new RegExp(`!?\\[[^\\]]*\\]\\(${escapedUrl}\\)`, "g");
+    return text.replace(linkRegex, "");
   }
 }

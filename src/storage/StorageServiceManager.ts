@@ -13,6 +13,7 @@ import { AliyunOSSStorageService } from "./providers/AliyunOSSStorageService";
 import { TencentCOSStorageService } from "./providers/TencentCOSStorageService";
 import { CloudflareR2StorageService } from "./providers/CloudflareR2StorageService";
 import { WebdavStorageService } from "./providers/WebdavStorageService";
+import { GithubStorageService } from "./providers/GithubStorageService";
 
 export const StorageServiceTypeInfo: Record<
   string,
@@ -37,6 +38,10 @@ export const StorageServiceTypeInfo: Record<
   [StorageServiceType.WEBDAV]: {
     clazz: WebdavStorageService,
     serviceName: "WebDAV",
+  },
+  [StorageServiceType.GITHUB]: {
+    clazz: GithubStorageService,
+    serviceName: "GitHub",
   },
 };
 

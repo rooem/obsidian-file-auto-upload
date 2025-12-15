@@ -9,6 +9,7 @@ export type {
   StorageServiceConfig,
   S3Config,
   WebdavConfig,
+  GithubConfig,
   UploadProgressCallback,
   FileInfo,
   IStorageService,

@@ -7,6 +7,7 @@ export const StorageServiceType = {
   ALIYUN_OSS: "aliyun-oss",
   TENCENT_COS: "tencent-cos",
   WEBDAV: "webdav",
+  GITHUB: "github",
 } as const;
 
 /**
@@ -31,6 +32,7 @@ export interface Result<T = void> {
 export interface UploadData {
   url: string;
   key: string;
+  sha?: string; // GitHub file SHA for delete operations
 }
 
 /**
@@ -62,6 +64,18 @@ export interface WebdavConfig extends StorageServiceConfig {
   secret_access_key: string; // WebDAV password
   bucket_name?: string; // WebDAV base_path
   public_domain?: string;
+}
+
+/**
+ * GitHub configuration interface
+ * Uses S3 field names for unified storage: access_key_id=token, bucket_name=repo path
+ */
+export interface GithubConfig extends StorageServiceConfig {
+  secret_access_key: string; // GitHub personal access token
+  bucket_name: string; // Format: owner/repo
+  branch?: string; // Default: main
+  path?: string; // Upload path in repo
+  public_domain?: string; // Custom domain or jsdelivr CDN
 }
 
 /**

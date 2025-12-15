@@ -23,6 +23,16 @@ export default {
   "settings.publicUrl.desc": "Public access domain",
   "settings.publicUrl.webdav.desc":
     "Requires authentication by default. Configure a proxy URL for public access (optional)",
+  "settings.github.token": "Personal Access Token",
+  "settings.github.token.desc": "GitHub personal access token with repo permissions",
+  "settings.github.repo": "Repository",
+  "settings.github.repo.desc": "Repository path (format: owner/repo)",
+  "settings.github.branch": "Branch",
+  "settings.github.branch.desc": "Branch name (default: main)",
+  "settings.github.path": "Upload Path",
+  "settings.github.path.desc": "Path in repository for uploads (optional)",
+  "settings.github.publicUrl.desc":
+    "Custom domain or use jsdelivr cdn by default",
   "settings.testConnection": "Test connection",
   "settings.testing": "Testing...",
   "settings.testSuccess": "Connection successful!",

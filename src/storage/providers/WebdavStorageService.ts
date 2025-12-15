@@ -1,37 +1,22 @@
-/**
- * WebDAV Uploader - Provides upload functionality for WebDAV servers.
- */
-
-import {
-  Result,
-  UploadData,
-  IStorageService,
-  UploadProgressCallback,
-  StorageServiceConfig,
-  WebdavConfig,
-} from "../../types";
+import { Result, UploadData, UploadProgressCallback, StorageServiceConfig, WebdavConfig } from "../../types";
 import { t } from "../../i18n";
 import { handleError } from "../../common/ErrorHandler";
 import { logger } from "../../common/Logger";
 import { generateFileKey } from "../../common/FileUtils";
 import { LruCache } from "../../common/LruCache";
 import { requestUrl, RequestUrlParam } from "obsidian";
+import { BaseStorageService } from "./BaseStorageService";
 
-/** HTTP status codes for WebDAV operations */
-const HTTP_STATUS = {
-  OK: 200,
-  CREATED: 201,
-  NO_CONTENT: 204,
-  NOT_FOUND: 404,
-  METHOD_NOT_ALLOWED: 405,
-} as const;
+const HTTP_STATUS = { OK: 200, CREATED: 201, NO_CONTENT: 204, NOT_FOUND: 404, METHOD_NOT_ALLOWED: 405 } as const;
 
-export class WebdavStorageService implements IStorageService {
+export class WebdavStorageService extends BaseStorageService {
+  protected serviceName = "WebdavStorageService";
   private config: WebdavConfig;
   // 1000 entries max, 10 minutes TTL per entry
   private prefixCache = new LruCache<string>(1000, 10 * 60 * 1000);
 
   constructor(config: StorageServiceConfig) {
+    super();
     this.config = config as WebdavConfig;
   }
 
@@ -52,22 +37,14 @@ export class WebdavStorageService implements IStorageService {
     return { success: true };
   }
 
-  public async testConnection(): Promise<Result> {
+  public override async testConnection(): Promise<Result> {
     const checkResult = this.checkConnectionConfig();
-    if (!checkResult.success) {
-      return checkResult;
-    }
+    if (!checkResult.success) return checkResult;
 
-    try {
-      const isAuthValid = await this.verifyAuthentication();
-      if (!isAuthValid.success) {
-        return isAuthValid;
-      }
+    const isAuthValid = await this.verifyAuthentication();
+    if (!isAuthValid.success) return isAuthValid;
 
-      return await this.performUploadTest();
-    } catch (error) {
-      return this.formatError(error);
-    }
+    return super.testConnection();
   }
 
   public async uploadFile(
@@ -240,9 +217,9 @@ export class WebdavStorageService implements IStorageService {
     return this.buildUrl(key);
   }
 
-  public dispose(): void {
+  public override dispose(): void {
     this.prefixCache.clear();
-    logger.debug("WebdavUploader", "Disposed");
+    super.dispose();
   }
 
   // ==================== Private Helpers ====================
@@ -272,22 +249,6 @@ export class WebdavStorageService implements IStorageService {
       return { success: true };
     }
     return { success: false, error: `Server returned HTTP ${response.status}` };
-  }
-
-  private async performUploadTest(): Promise<Result> {
-    const testFile = new File(
-      [`WebDAV connection test - ${new Date().toISOString()}`],
-      "test.txt",
-      { type: "text/plain" },
-    );
-
-    const result = await this.uploadFile(testFile, "test/connection-test.txt");
-
-    if (result.success && result.data?.key) {
-      await this.deleteFile(result.data.key);
-      return { success: true };
-    }
-    return { success: false, error: result.error || "Connection test failed" };
   }
 
   private async ensureDirectoryExists(key: string): Promise<void> {

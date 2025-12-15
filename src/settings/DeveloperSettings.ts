@@ -23,6 +23,7 @@ export class DeveloperSettings {
 
       if (clickCount === 3) {
         this.developerMode = !this.developerMode;
+        this.debugLogging = true;
         new Notice(
           this.developerMode
             ? t("settings.developer.enabled")

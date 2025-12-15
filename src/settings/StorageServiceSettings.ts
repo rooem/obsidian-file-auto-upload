@@ -11,6 +11,7 @@ interface FieldConfig {
   key: string;
   placeholder?: string;
   isPassword?: boolean;
+  defaultValue?: string;
 }
 
 export class StorageServiceSettings {
@@ -54,6 +55,40 @@ export class StorageServiceSettings {
         placeholder: "https://public-domain.com",
       },
     ],
+    [StorageServiceType.GITHUB]: [
+      {
+        name: "settings.github.token",
+        desc: "settings.github.token.desc",
+        key: "secret_access_key",
+        isPassword: true,
+      },
+      {
+        name: "settings.github.repo",
+        desc: "settings.github.repo.desc",
+        key: "bucket_name",
+        placeholder: "owner/repo",
+      },
+      {
+        name: "settings.github.branch",
+        desc: "settings.github.branch.desc",
+        key: "branch",
+        placeholder: "main",
+        defaultValue: "main",
+      },
+      {
+        name: "settings.github.path",
+        desc: "settings.github.path.desc",
+        key: "path",
+        placeholder: "upload",
+      },
+      {
+        name: "settings.publicUrl",
+        desc: "settings.github.publicUrl.desc",
+        key: "public_domain",
+        placeholder: "https://cdn.jsdelivr.net/gh/owner/repo@main",
+        defaultValue: "https://cdn.jsdelivr.net",
+      },
+    ],
     s3: [
       {
         name: "settings.accessKeyId",
@@ -70,7 +105,7 @@ export class StorageServiceSettings {
         name: "settings.endpoint",
         desc: "settings.endpoint.desc",
         key: "endpoint",
-        placeholder: "https://xxxxxx.com",
+        placeholder: "https://service-domain.com",
       },
       {
         name: "settings.bucketName",
@@ -130,13 +165,15 @@ export class StorageServiceSettings {
     settings: FileAutoUploadSettings,
     isWebdav: boolean,
   ): void {
+    const serviceType = settings.storageServiceType;
     const fields =
+      this.FIELD_CONFIGS[serviceType] ||
       this.FIELD_CONFIGS[isWebdav ? StorageServiceType.WEBDAV : "s3"];
     for (const field of fields) {
       this.addField(containerEl, plugin, settings, field);
       if (
         field.key === "endpoint" &&
-        this.REGION_PROVIDERS.has(settings.storageServiceType)
+        this.REGION_PROVIDERS.has(serviceType)
       ) {
         this.addField(containerEl, plugin, settings, {
           name: "settings.region",
@@ -207,7 +244,7 @@ export class StorageServiceSettings {
     settings: FileAutoUploadSettings,
     field: FieldConfig,
   ): void {
-    const value = (settings.storageServiceConfig[field.key] as string) || "";
+    const value = (settings.storageServiceConfig[field.key] as string) || field.defaultValue || "";
     const updater = this.createUpdater(plugin, field.key);
 
     if (field.isPassword) {
