@@ -1,253 +1,128 @@
 import { Setting } from "obsidian";
 import FileAutoUploadPlugin from "../main";
 import { t } from "../i18n";
-import { FileAutoUploadSettings,StorageServiceType} from "../types";
+import { FileAutoUploadSettings, StorageServiceType } from "../types";
 import { StorageServiceTypeInfo } from "../storage/StorageServiceManager";
+import { PasswordSetting } from "../components/PasswordSetting";
 
-/**
- * Storage service settings UI component
- * Renders configuration for cloud storage providers (S3, R2, OSS, COS)
- */
+interface FieldConfig {
+  name: string;
+  desc: string;
+  key: string;
+  placeholder?: string;
+  isPassword?: boolean;
+}
+
 export class StorageServiceSettings {
-  private static readonly showRegion = new Set<string>([
+  private static readonly INPUT_STYLE = { width: "300px" };
+
+  private static readonly REGION_PROVIDERS = new Set<string>([
     StorageServiceType.AMAZON_S3,
     StorageServiceType.ALIYUN_OSS,
     StorageServiceType.TENCENT_COS,
   ]);
 
-  private static readonly fieldConfigs: Record<
-    string,
-    Array<[string, string, string, string?]>
-  > = {
+  private static readonly FIELD_CONFIGS: Record<string, FieldConfig[]> = {
     [StorageServiceType.WEBDAV]: [
-      ["settings.username", "settings.username.desc", "access_key_id"],
-      ["settings.password", "settings.password.desc", "secret_access_key"],
-      [
-        "settings.endpoint",
-        "settings.endpoint.desc",
-        "endpoint",
-        "https://xxxxxx.com",
-      ],
-      ["settings.basePath", "settings.basePath.desc", "bucket_name", "uploads"],
-      [
-        "settings.publicUrl",
-        "settings.publicUrl.webdav.desc",
-        "public_domain",
-        "https://your-domain.com",
-      ],
+      { name: "settings.username", desc: "settings.username.desc", key: "access_key_id" },
+      { name: "settings.password", desc: "settings.password.desc", key: "secret_access_key", isPassword: true },
+      { name: "settings.endpoint", desc: "settings.endpoint.desc", key: "endpoint", placeholder: "https://service-domain.com" },
+      { name: "settings.basePath", desc: "settings.basePath.desc", key: "bucket_name", placeholder: "upload" },
+      { name: "settings.publicUrl", desc: "settings.publicUrl.webdav.desc", key: "public_domain", placeholder: "https://public-domain.com" },
     ],
     s3: [
-      ["settings.accessKeyId", "settings.accessKeyId.desc", "access_key_id"],
-      [
-        "settings.secretAccessKey",
-        "settings.secretAccessKey.desc",
-        "secret_access_key",
-      ],
-      [
-        "settings.endpoint",
-        "settings.endpoint.desc",
-        "endpoint",
-        "https://xxxxxx.com",
-      ],
-      ["settings.bucketName", "settings.bucketName.desc", "bucket_name"],
-      [
-        "settings.publicUrl",
-        "settings.publicUrl.desc",
-        "public_domain",
-        "https://your-domain.com",
-      ],
+      { name: "settings.accessKeyId", desc: "settings.accessKeyId.desc", key: "access_key_id" },
+      { name: "settings.secretAccessKey", desc: "settings.secretAccessKey.desc", key: "secret_access_key", isPassword: true },
+      { name: "settings.endpoint", desc: "settings.endpoint.desc", key: "endpoint", placeholder: "https://xxxxxx.com" },
+      { name: "settings.bucketName", desc: "settings.bucketName.desc", key: "bucket_name" },
+      { name: "settings.publicUrl", desc: "settings.publicUrl.desc", key: "public_domain", placeholder: "https://service-domain.com" },
     ],
   };
 
-  private static inputStyle = { width: "300px" };
-
-  static render(
-    containerEl: HTMLElement,
-    plugin: FileAutoUploadPlugin,
-    onToggle: () => void,
-  ): void {
+  static render(containerEl: HTMLElement, plugin: FileAutoUploadPlugin, onToggle: () => void): void {
     const settings = plugin.configurationManager.getSettings();
     const isWebdav = settings.storageServiceType === StorageServiceType.WEBDAV;
 
+    this.renderStorageDropdown(containerEl, plugin, onToggle);
+    this.renderFields(containerEl, plugin, settings, isWebdav);
+    this.renderTestButton(containerEl, plugin);
+  }
+
+  private static renderStorageDropdown(containerEl: HTMLElement, plugin: FileAutoUploadPlugin, onToggle: () => void): void {
     new Setting(containerEl)
       .setName(t("settings.storage"))
       .setDesc(t("settings.storage.desc"))
       .addDropdown((dropdown) => {
-        Object.entries(StorageServiceTypeInfo).forEach(([key, info]) => {
-          dropdown.addOption(key, info.serviceName);
-        });
+        Object.entries(StorageServiceTypeInfo).forEach(([key, info]) => dropdown.addOption(key, info.serviceName));
         return dropdown
-          .setValue(settings.storageServiceType)
-          .onChange(async (value: string) => {
-            await plugin.configurationManager.saveSettings(
-              { storageServiceType: value },
-              true,
-            );
+          .setValue(plugin.configurationManager.getSettings().storageServiceType)
+          .onChange(async (value) => {
+            await plugin.configurationManager.saveSettings({ storageServiceType: value }, true);
             onToggle();
           });
       });
+  }
 
-    const fields =
-      this.fieldConfigs[isWebdav ? StorageServiceType.WEBDAV : "s3"];
-    for (const [name, desc, key, placeholder] of fields) {
-      if (
-        key === "endpoint" &&
-        this.showRegion.has(settings.storageServiceType)
-      ) {
-        this.addTextField(
-          containerEl,
-          plugin,
-          settings,
-          name,
-          desc,
-          key,
-          placeholder,
-        );
-        new Setting(containerEl)
-          .setName(t("settings.region"))
-          .setDesc(t("settings.region.desc"))
-          .addText((text) =>
-            text
-              .setValue(this.findRegionVaule(settings))
-              .onChange(this.createConfigUpdater(plugin, settings, "region"))
-              .inputEl.setCssStyles(this.inputStyle),
-          );
-      } else {
-        this.addTextField(
-          containerEl,
-          plugin,
-          settings,
-          name,
-          desc,
-          key,
-          placeholder,
-        );
+  private static renderFields(containerEl: HTMLElement, plugin: FileAutoUploadPlugin, settings: FileAutoUploadSettings, isWebdav: boolean): void {
+    const fields = this.FIELD_CONFIGS[isWebdav ? StorageServiceType.WEBDAV : "s3"];
+    for (const field of fields) {
+      this.addField(containerEl, plugin, settings, field);
+      if (field.key === "endpoint" && this.REGION_PROVIDERS.has(settings.storageServiceType)) {
+        this.addField(containerEl, plugin, settings, { name: "settings.region", desc: "settings.region.desc", key: "region" });
       }
     }
+  }
 
-    let testResultEl: HTMLElement;
-    new Setting(containerEl).addButton((button) => {
-      button.setButtonText(t("settings.testConnection")).onClick(async () => {
-        button.setDisabled(true);
-        button.setButtonText(t("settings.testing"));
-        testResultEl.setText("");
-        testResultEl.setCssStyles({ fontSize: "15px" });
+  private static renderTestButton(containerEl: HTMLElement, plugin: FileAutoUploadPlugin): void {
+    let resultEl: HTMLElement;
+    new Setting(containerEl).addButton((btn) => {
+      btn.setButtonText(t("settings.testConnection")).onClick(async () => {
+        btn.setDisabled(true).setButtonText(t("settings.testing"));
+        resultEl.setText("");
         try {
-          const result = await plugin.eventHandlerManager.testConnection();
-          if (result.success) {
-            testResultEl.setText(t("settings.testSuccess"));
-            testResultEl.setCssStyles({
-              color: "green",
-            });
-          } else {
-            testResultEl.setText(
-              t("settings.testFailed").replace(
-                "{error}",
-                result.error || "Unknown error",
-              ),
-            );
-            testResultEl.setCssStyles({
-              color: "red",
-            });
-          }
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          testResultEl.setText(
-            t("settings.testError").replace("{error}", errorMessage),
-          );
-          testResultEl.setCssStyles({
-            color: "red",
-          });
+          const { success, error } = await plugin.eventHandlerManager.testConnection();
+          resultEl.setText(success ? t("settings.testSuccess") : t("settings.testFailed").replace("{error}", error || "Unknown"));
+          resultEl.style.color = success ? "green" : "red";
+        } catch (e) {
+          resultEl.setText(t("settings.testError").replace("{error}", e instanceof Error ? e.message : String(e)));
+          resultEl.style.color = "red";
         } finally {
-          button.setDisabled(false);
-          button.setButtonText(t("settings.testConnection"));
+          btn.setDisabled(false).setButtonText(t("settings.testConnection"));
         }
       });
-
-      const parentElement = button.buttonEl.parentElement;
-      if (parentElement) {
-        testResultEl = parentElement.createEl("span", {
-          text: "",
-        });
-
-        testResultEl.setCssStyles({
-          marginRight: "12px",
-          fontSize: "12px",
-          whiteSpace: "nowrap",
-        });
-
-        parentElement.insertBefore(testResultEl, button.buttonEl);
+      const parent = btn.buttonEl.parentElement;
+      if (parent) {
+        resultEl = parent.createEl("span");
+        resultEl.setCssStyles({ marginRight: "12px", fontSize: "12px", whiteSpace: "nowrap" });
+        parent.insertBefore(resultEl, btn.buttonEl);
       }
     });
   }
 
-  private static createConfigUpdater(
-    plugin: FileAutoUploadPlugin,
-    _settings: FileAutoUploadSettings,
-    key: string,
-  ) {
+  private static createUpdater(plugin: FileAutoUploadPlugin, key: string) {
     return async (value: string) => {
-      const currentConfig =
-        plugin.configurationManager.getSettings().storageServiceConfig;
-      await plugin.configurationManager.saveSettings(
-        { storageServiceConfig: { ...currentConfig, [key]: value } },
-        true,
-      );
+      const config = plugin.configurationManager.getSettings().storageServiceConfig;
+      await plugin.configurationManager.saveSettings({ storageServiceConfig: { ...config, [key]: value } }, true);
     };
   }
 
-  private static addTextField(
-    containerEl: HTMLElement,
-    plugin: FileAutoUploadPlugin,
-    settings: FileAutoUploadSettings,
-    name: string,
-    desc: string,
-    configKey: string,
-    placeholder?: string,
-  ) {
-    new Setting(containerEl)
-      .setName(t(name))
-      .setDesc(t(desc))
-      .addText((text) => {
-        text
-          .setValue((settings.storageServiceConfig[configKey] as string) || "")
-          .onChange(this.createConfigUpdater(plugin, settings, configKey))
-          .inputEl.setCssStyles(this.inputStyle);
-        if (placeholder) {
-          text.setPlaceholder(placeholder);
-        }
+  private static addField(containerEl: HTMLElement, plugin: FileAutoUploadPlugin, settings: FileAutoUploadSettings, field: FieldConfig): void {
+    const value = (settings.storageServiceConfig[field.key] as string) || "";
+    const updater = this.createUpdater(plugin, field.key);
+
+    if (field.isPassword) {
+      new PasswordSetting(containerEl).setName(t(field.name)).setDesc(t(field.desc)).addPasswordText((text) => {
+        text.setValue(value);
+        text.onChange(updater);
+        text.inputEl.setCssStyles(this.INPUT_STYLE);
+        if (field.placeholder) text.setPlaceholder(field.placeholder);
       });
+    } else {
+      new Setting(containerEl).setName(t(field.name)).setDesc(t(field.desc)).addText((text) => {
+        text.setValue(value).onChange(updater).inputEl.setCssStyles(this.INPUT_STYLE);
+        if (field.placeholder) text.setPlaceholder(field.placeholder);
+      });
+    }
   }
 
-  private static findRegionVaule(settings: FileAutoUploadSettings): string {
-    if (
-      !settings.storageServiceConfig ||
-      !settings.storageServiceConfig.endpoint
-    ) {
-      return "";
-    }
-
-    const endpoint = settings.storageServiceConfig.endpoint as string;
-
-    if (settings.storageServiceType === StorageServiceType.ALIYUN_OSS) {
-      const ossRegex = /(?:oss-)?([a-z]+-[a-z]+-?\d*)(?:\.oss)?\.aliyuncs\.com/;
-      const match = endpoint.match(ossRegex);
-      if (match && match[1]) {
-        return match[1];
-      }
-      return "";
-    }
-
-    if (settings.storageServiceType === StorageServiceType.TENCENT_COS) {
-      const cosRegex = /cos\.([a-z]+-[a-z]+-?\d*)\.myqcloud\.com/;
-      const match = endpoint.match(cosRegex);
-      if (match && match[1]) {
-        return match[1];
-      }
-      return "";
-    }
-
-    return "";
-  }
 }
