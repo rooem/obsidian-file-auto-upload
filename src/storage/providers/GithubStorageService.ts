@@ -137,8 +137,11 @@ export class GithubStorageService extends BaseStorageService {
 
   public getPublicUrl(key: string): string {
     const domain = this.config.public_domain?.replace(/\/$/, "");
-    if (domain?.includes("cdn.jsdelivr.net") || domain?.includes("cdn.statically.io")) {
+    if (domain?.includes("cdn.jsdelivr.net")) {
       return `${domain}/gh/${this.config.bucket_name}@${this.branch}/${key}`;
+    }
+    if (domain?.includes("hk.gh-proxy.org") || domain?.includes("gh-proxy.org") || domain?.includes("cdn.gh-proxy.org")) {
+      return `${domain}/https://github.com/${this.config.bucket_name}/blob/${this.branch}/${key}`;
     }
     if (domain) {
       return `${domain}/${key}`;
