@@ -19,12 +19,11 @@ import { DownloadHandler } from "./providers/DownloadHandler";
 import { WebdavImageLoader } from "../components/WebdavImageLoader";
 import { t } from "../i18n";
 import { logger } from "../common/Logger";
+import { extractFileKeyFromUrl, generateUniqueId } from "../common/FileUtils";
 import {
-  findSupportedFilePath as findSupportedViewFilePath,
+  findSupportedFilePath,
   findUploadedFileLinks,
-  extractFileKeyFromUrl,
-  generateUniqueId,
-} from "../common/FileUtils";
+} from "../common/MarkdownLinkFinder";
 import {
   EventType,
   ProcessItem,
@@ -303,7 +302,7 @@ export class EventHandlerManager {
     _view: MarkdownView,
   ): void {
     const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
-    const localFiles = findSupportedViewFilePath(
+    const localFiles = findSupportedFilePath(
       editor.getSelection(),
       supportedTypes,
     );
@@ -375,10 +374,7 @@ export class EventHandlerManager {
         .setIcon("download")
         .onClick(async () => {
           const content = await this.app.vault.read(file);
-          const uploadedFileLinks = findUploadedFileLinks(
-            content,
-            publicDomain,
-          );
+          const uploadedFileLinks = findUploadedFileLinks(content, publicDomain);
           if (!uploadedFileLinks || uploadedFileLinks.length === 0) {
             new Notice(t("download.noFiles"), 1000);
             return;
@@ -409,7 +405,7 @@ export class EventHandlerManager {
         .setIcon("upload")
         .onClick(async () => {
           const content = await this.app.vault.read(file);
-          const localFiles = findSupportedViewFilePath(content, supportedTypes);
+          const localFiles = findSupportedFilePath(content, supportedTypes);
           if (!localFiles || localFiles.length === 0) {
             new Notice(t("upload.noFiles"), 1000);
             return;

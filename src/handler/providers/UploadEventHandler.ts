@@ -83,7 +83,7 @@ export class UploadEventHandler extends BaseEventHandler {
     }
 
     const editor = activeView.editor;
-    const placeholderText = `[${processItem.value.name}]${this.getUploadPlaceholderSuffix(processItem)}\n`;
+    const placeholderText = `[${processItem.value.name}]${this.contentReplacer.getPlaceholderSuffix(processItem.id, t("upload.progressing"))}\n`;
     editor.replaceSelection(placeholderText);
   }
 
@@ -91,14 +91,9 @@ export class UploadEventHandler extends BaseEventHandler {
     if (!processItem.localPath) {
       return;
     }
-    this.replaceUrlWithPlaceholder(
-      processItem.localPath,
-      this.getUploadPlaceholderSuffix(processItem),
+    this.contentReplacer.replaceUrlWithPlaceholder(
+      processItem.localPath, processItem.id, t("upload.progressing")
     );
-  }
-
-  private getUploadPlaceholderSuffix(processItem: FileProcessItem): string {
-    return this.getPlaceholderSuffix(processItem.id, t("upload.progressing"));
   }
 
   private async processFileItem(processItem: FileProcessItem): Promise<void> {
@@ -156,7 +151,10 @@ export class UploadEventHandler extends BaseEventHandler {
   }
 
   private replacePlaceholder(id: string, text: string): void {
-    this.replacePlaceholderWithMarkdown(id, text);
+     this.contentReplacer.replacePlaceholderWithMarkdown(
+      id,
+      text,
+    );
   }
 
   private async saveToVault(processItem: FileProcessItem): Promise<void> {

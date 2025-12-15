@@ -38,7 +38,7 @@ export class DownloadHandler extends BaseEventHandler {
       }
 
       this.statusBar.startDownload(item.id);
-      this.replaceUrlWithDownloading(url, item.id);
+      this.contentReplacer.replaceUrlWithPlaceholder(url, item.id, t("download.progressing"));
 
       const result = await this.storageServiceManager.downloadAndSaveFile(
         this.app,
@@ -48,11 +48,13 @@ export class DownloadHandler extends BaseEventHandler {
       );
 
       if (result.success && result.data) {
-        this.replacePlaceholder(
+        const fileName = result.data.fileName;
+        const markdown = `[${fileName}](${result.data.localPath})`;
+        this.contentReplacer.replacePlaceholderWithMarkdown(
           item.id,
-          result.data.localPath,
-          result.data.fileName,
-        );
+          markdown,
+          { fileName },
+        )
         new Notice(
           t("download.success").replace("{fileName}", result.data.fileName),
         );
@@ -75,21 +77,5 @@ export class DownloadHandler extends BaseEventHandler {
     } finally {
       this.statusBar.finishDownload(item.id);
     }
-  }
-
-  private replaceUrlWithDownloading(url: string, id: string): void {
-    this.replaceUrlWithPlaceholder(
-      url,
-      this.getPlaceholderSuffix(id, t("download.progressing")),
-    );
-  }
-
-  private replacePlaceholder(
-    id: string,
-    localPath: string,
-    fileName: string,
-  ): void {
-    const markdown = `[${fileName}](${localPath})`;
-    this.replacePlaceholderWithMarkdown(id, markdown, fileName);
   }
 }

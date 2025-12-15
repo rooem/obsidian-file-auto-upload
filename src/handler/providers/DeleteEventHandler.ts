@@ -1,11 +1,10 @@
-import { App, MarkdownView, Notice } from "obsidian";
+import { App, Notice } from "obsidian";
 import { ConfigurationManager } from "../../settings/ConfigurationManager";
 import { StorageServiceManager } from "../../storage/StorageServiceManager";
 import { BaseEventHandler } from "./BaseEventHandler";
 import { EventType, ProcessItem, DeleteProcessItem } from "../../types/index";
 import { t } from "../../i18n";
 import { logger } from "../../common/Logger";
-import { removeMarkdownLinksByUrl } from "../../common/FileUtils";
 
 /**
  * Handles deletion of uploaded files from storage
@@ -39,25 +38,7 @@ export class DeleteEventHandler extends BaseEventHandler {
 
       if (result.success) {
         new Notice(t("delete.success").replace("{fileLink}", fileLink));
-        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!activeView?.editor) {
-          logger.warn("DeleteEventHandler", "No active editor found");
-          return;
-        }
-
-        const editor = activeView.editor;
-        const currentSelection = editor.getSelection();
-        const textToProcess = currentSelection || originalSelection;
-
-        let updatedText = removeMarkdownLinksByUrl(textToProcess, fileLink);
-        const urlRegex = new RegExp(super.escapeRegExp(fileLink), "g");
-        updatedText = updatedText.replace(urlRegex, "");
-        updatedText = updatedText.replace(/\n\s*\n\s*/g, "\n\n").trim();
-
-        const fromCursor = editor.getCursor("from");
-        const toCursor = editor.getCursor("to");
-
-        editor.replaceRange(updatedText, fromCursor, toCursor);
+        this.contentReplacer.removeContentByUrl(fileLink, originalSelection);
       } else {
         logger.error("DeleteEventHandler", "Delete operation failed", {
           fileLink,
