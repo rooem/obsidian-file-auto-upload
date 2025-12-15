@@ -1,7 +1,11 @@
 import { IStorageService, Result, UploadData, WebdavConfig } from "../types";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { handleError } from "../common/ErrorHandler";
-import { ConfigChangeListener,StorageServiceType,StorageServiceConstructor } from "../types";
+import {
+  ConfigChangeListener,
+  StorageServiceType,
+  StorageServiceConstructor,
+} from "../types";
 import { logger } from "../common/Logger";
 import { requestUrl, RequestUrlParam, App, normalizePath } from "obsidian";
 import { AmazonS3StorageService } from "./providers/AmazonS3StorageService";
@@ -35,7 +39,6 @@ export const StorageServiceTypeInfo: Record<
     serviceName: "WebDAV",
   },
 };
-
 
 /**
  * Manages upload service instances and operations

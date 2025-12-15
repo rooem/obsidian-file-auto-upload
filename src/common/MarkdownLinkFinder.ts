@@ -39,8 +39,11 @@ function parseMarkdownLinks(
       let bracketDepth = 1;
       let j = i + 1;
       while (j < text.length && bracketDepth > 0) {
-        if (text[j] === "[") bracketDepth++;
-        else if (text[j] === "]") bracketDepth--;
+        if (text[j] === "[") {
+          bracketDepth++;
+        } else if (text[j] === "]") {
+          bracketDepth--;
+        }
         j++;
       }
 
@@ -48,8 +51,11 @@ function parseMarkdownLinks(
         let parenDepth = 1;
         let k = j + 1;
         while (k < text.length && parenDepth > 0) {
-          if (text[k] === "(") parenDepth++;
-          else if (text[k] === ")") parenDepth--;
+          if (text[k] === "(") {
+            parenDepth++;
+          } else if (text[k] === ")") {
+            parenDepth--;
+          }
           k++;
         }
         if (parenDepth === 0) {

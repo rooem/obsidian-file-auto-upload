@@ -92,7 +92,9 @@ export class UploadEventHandler extends BaseEventHandler {
       return;
     }
     this.contentReplacer.replaceUrlWithPlaceholder(
-      processItem.localPath, processItem.id, t("upload.progressing")
+      processItem.localPath,
+      processItem.id,
+      t("upload.progressing"),
     );
   }
 
@@ -151,10 +153,7 @@ export class UploadEventHandler extends BaseEventHandler {
   }
 
   private replacePlaceholder(id: string, text: string): void {
-     this.contentReplacer.replacePlaceholderWithMarkdown(
-      id,
-      text,
-    );
+    this.contentReplacer.replacePlaceholderWithMarkdown(id, text);
   }
 
   private async saveToVault(processItem: FileProcessItem): Promise<void> {

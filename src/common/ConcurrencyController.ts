@@ -10,7 +10,7 @@ export class ConcurrencyController {
   private running = 0;
   private aborted = false;
 
-  constructor(private maxConcurrent: number = 3) { }
+  constructor(private maxConcurrent: number = 3) {}
 
   /**
    * Add a task to the queue and execute when a slot is available

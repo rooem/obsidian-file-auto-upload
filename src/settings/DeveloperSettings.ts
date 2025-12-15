@@ -58,16 +58,6 @@ export class DeveloperSettings {
       new Setting(containerEl).setName(t("settings.developer")).setHeading();
 
       new Setting(containerEl)
-        .setName(t("settings.developer.name"))
-        .setDesc(t("settings.developer.desc"))
-        .addToggle((toggle) =>
-          toggle.setValue(this.developerMode).onChange((value: boolean) => {
-            this.developerMode = value;
-            onToggle();
-          }),
-        );
-
-      new Setting(containerEl)
         .setName(t("settings.developer.debugLogging.name"))
         .setDesc(t("settings.developer.debugLogging.desc"))
         .addToggle((toggle) =>

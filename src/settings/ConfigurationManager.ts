@@ -200,7 +200,7 @@ export class ConfigurationManager {
     const encryptedData = loadedData as EncryptedData;
 
     try {
-      const vaultName =  this.plugin.app.vault.getName();
+      const vaultName = this.plugin.app.vault.getName();
       const decrypted = await EncryptionHelper.decrypt(
         encryptedData.data,
         this.plugin.manifest.id,

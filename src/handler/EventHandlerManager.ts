@@ -374,7 +374,10 @@ export class EventHandlerManager {
         .setIcon("download")
         .onClick(async () => {
           const content = await this.app.vault.read(file);
-          const uploadedFileLinks = findUploadedFileLinks(content, publicDomain);
+          const uploadedFileLinks = findUploadedFileLinks(
+            content,
+            publicDomain,
+          );
           if (!uploadedFileLinks || uploadedFileLinks.length === 0) {
             new Notice(t("download.noFiles"), 1000);
             return;

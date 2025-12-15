@@ -12,7 +12,7 @@ export type {
   UploadProgressCallback,
   FileInfo,
   IStorageService,
-  StorageServiceConstructor
+  StorageServiceConstructor,
 } from "./StorageService";
 
 export { StorageServiceType } from "./StorageService";

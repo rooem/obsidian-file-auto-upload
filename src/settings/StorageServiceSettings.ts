@@ -24,22 +24,73 @@ export class StorageServiceSettings {
 
   private static readonly FIELD_CONFIGS: Record<string, FieldConfig[]> = {
     [StorageServiceType.WEBDAV]: [
-      { name: "settings.username", desc: "settings.username.desc", key: "access_key_id" },
-      { name: "settings.password", desc: "settings.password.desc", key: "secret_access_key", isPassword: true },
-      { name: "settings.endpoint", desc: "settings.endpoint.desc", key: "endpoint", placeholder: "https://service-domain.com" },
-      { name: "settings.basePath", desc: "settings.basePath.desc", key: "bucket_name", placeholder: "upload" },
-      { name: "settings.publicUrl", desc: "settings.publicUrl.webdav.desc", key: "public_domain", placeholder: "https://public-domain.com" },
+      {
+        name: "settings.username",
+        desc: "settings.username.desc",
+        key: "access_key_id",
+      },
+      {
+        name: "settings.password",
+        desc: "settings.password.desc",
+        key: "secret_access_key",
+        isPassword: true,
+      },
+      {
+        name: "settings.endpoint",
+        desc: "settings.endpoint.desc",
+        key: "endpoint",
+        placeholder: "https://service-domain.com",
+      },
+      {
+        name: "settings.basePath",
+        desc: "settings.basePath.desc",
+        key: "bucket_name",
+        placeholder: "upload",
+      },
+      {
+        name: "settings.publicUrl",
+        desc: "settings.publicUrl.webdav.desc",
+        key: "public_domain",
+        placeholder: "https://public-domain.com",
+      },
     ],
     s3: [
-      { name: "settings.accessKeyId", desc: "settings.accessKeyId.desc", key: "access_key_id" },
-      { name: "settings.secretAccessKey", desc: "settings.secretAccessKey.desc", key: "secret_access_key", isPassword: true },
-      { name: "settings.endpoint", desc: "settings.endpoint.desc", key: "endpoint", placeholder: "https://xxxxxx.com" },
-      { name: "settings.bucketName", desc: "settings.bucketName.desc", key: "bucket_name" },
-      { name: "settings.publicUrl", desc: "settings.publicUrl.desc", key: "public_domain", placeholder: "https://service-domain.com" },
+      {
+        name: "settings.accessKeyId",
+        desc: "settings.accessKeyId.desc",
+        key: "access_key_id",
+      },
+      {
+        name: "settings.secretAccessKey",
+        desc: "settings.secretAccessKey.desc",
+        key: "secret_access_key",
+        isPassword: true,
+      },
+      {
+        name: "settings.endpoint",
+        desc: "settings.endpoint.desc",
+        key: "endpoint",
+        placeholder: "https://xxxxxx.com",
+      },
+      {
+        name: "settings.bucketName",
+        desc: "settings.bucketName.desc",
+        key: "bucket_name",
+      },
+      {
+        name: "settings.publicUrl",
+        desc: "settings.publicUrl.desc",
+        key: "public_domain",
+        placeholder: "https://service-domain.com",
+      },
     ],
   };
 
-  static render(containerEl: HTMLElement, plugin: FileAutoUploadPlugin, onToggle: () => void): void {
+  static render(
+    containerEl: HTMLElement,
+    plugin: FileAutoUploadPlugin,
+    onToggle: () => void,
+  ): void {
     const settings = plugin.configurationManager.getSettings();
     const isWebdav = settings.storageServiceType === StorageServiceType.WEBDAV;
 
@@ -48,43 +99,79 @@ export class StorageServiceSettings {
     this.renderTestButton(containerEl, plugin);
   }
 
-  private static renderStorageDropdown(containerEl: HTMLElement, plugin: FileAutoUploadPlugin, onToggle: () => void): void {
+  private static renderStorageDropdown(
+    containerEl: HTMLElement,
+    plugin: FileAutoUploadPlugin,
+    onToggle: () => void,
+  ): void {
     new Setting(containerEl)
       .setName(t("settings.storage"))
       .setDesc(t("settings.storage.desc"))
       .addDropdown((dropdown) => {
-        Object.entries(StorageServiceTypeInfo).forEach(([key, info]) => dropdown.addOption(key, info.serviceName));
+        Object.entries(StorageServiceTypeInfo).forEach(([key, info]) =>
+          dropdown.addOption(key, info.serviceName),
+        );
         return dropdown
-          .setValue(plugin.configurationManager.getSettings().storageServiceType)
-          .onChange(async (value) => {
-            await plugin.configurationManager.saveSettings({ storageServiceType: value }, true);
-            onToggle();
+          .setValue(
+            plugin.configurationManager.getSettings().storageServiceType,
+          )
+          .onChange((value) => {
+            void plugin.configurationManager.saveSettings(
+              { storageServiceType: value },
+              true,
+            ).then(() => onToggle());
           });
       });
   }
 
-  private static renderFields(containerEl: HTMLElement, plugin: FileAutoUploadPlugin, settings: FileAutoUploadSettings, isWebdav: boolean): void {
-    const fields = this.FIELD_CONFIGS[isWebdav ? StorageServiceType.WEBDAV : "s3"];
+  private static renderFields(
+    containerEl: HTMLElement,
+    plugin: FileAutoUploadPlugin,
+    settings: FileAutoUploadSettings,
+    isWebdav: boolean,
+  ): void {
+    const fields =
+      this.FIELD_CONFIGS[isWebdav ? StorageServiceType.WEBDAV : "s3"];
     for (const field of fields) {
       this.addField(containerEl, plugin, settings, field);
-      if (field.key === "endpoint" && this.REGION_PROVIDERS.has(settings.storageServiceType)) {
-        this.addField(containerEl, plugin, settings, { name: "settings.region", desc: "settings.region.desc", key: "region" });
+      if (
+        field.key === "endpoint" &&
+        this.REGION_PROVIDERS.has(settings.storageServiceType)
+      ) {
+        this.addField(containerEl, plugin, settings, {
+          name: "settings.region",
+          desc: "settings.region.desc",
+          key: "region",
+        });
       }
     }
   }
 
-  private static renderTestButton(containerEl: HTMLElement, plugin: FileAutoUploadPlugin): void {
+  private static renderTestButton(
+    containerEl: HTMLElement,
+    plugin: FileAutoUploadPlugin,
+  ): void {
     let resultEl: HTMLElement;
     new Setting(containerEl).addButton((btn) => {
       btn.setButtonText(t("settings.testConnection")).onClick(async () => {
         btn.setDisabled(true).setButtonText(t("settings.testing"));
         resultEl.setText("");
         try {
-          const { success, error } = await plugin.eventHandlerManager.testConnection();
-          resultEl.setText(success ? t("settings.testSuccess") : t("settings.testFailed").replace("{error}", error || "Unknown"));
+          const { success, error } =
+            await plugin.eventHandlerManager.testConnection();
+          resultEl.setText(
+            success
+              ? t("settings.testSuccess")
+              : t("settings.testFailed").replace("{error}", error || "Unknown"),
+          );
           resultEl.style.color = success ? "green" : "red";
         } catch (e) {
-          resultEl.setText(t("settings.testError").replace("{error}", e instanceof Error ? e.message : String(e)));
+          resultEl.setText(
+            t("settings.testError").replace(
+              "{error}",
+              e instanceof Error ? e.message : String(e),
+            ),
+          );
           resultEl.style.color = "red";
         } finally {
           btn.setDisabled(false).setButtonText(t("settings.testConnection"));
@@ -93,36 +180,61 @@ export class StorageServiceSettings {
       const parent = btn.buttonEl.parentElement;
       if (parent) {
         resultEl = parent.createEl("span");
-        resultEl.setCssStyles({ marginRight: "12px", fontSize: "12px", whiteSpace: "nowrap" });
+        resultEl.setCssStyles({
+          marginRight: "12px",
+          fontSize: "12px",
+          whiteSpace: "nowrap",
+        });
         parent.insertBefore(resultEl, btn.buttonEl);
       }
     });
   }
 
   private static createUpdater(plugin: FileAutoUploadPlugin, key: string) {
-    return async (value: string) => {
-      const config = plugin.configurationManager.getSettings().storageServiceConfig;
-      await plugin.configurationManager.saveSettings({ storageServiceConfig: { ...config, [key]: value } }, true);
+    return (value: string) => {
+      const config =
+        plugin.configurationManager.getSettings().storageServiceConfig;
+      void plugin.configurationManager.saveSettings(
+        { storageServiceConfig: { ...config, [key]: value } },
+        true,
+      );
     };
   }
 
-  private static addField(containerEl: HTMLElement, plugin: FileAutoUploadPlugin, settings: FileAutoUploadSettings, field: FieldConfig): void {
+  private static addField(
+    containerEl: HTMLElement,
+    plugin: FileAutoUploadPlugin,
+    settings: FileAutoUploadSettings,
+    field: FieldConfig,
+  ): void {
     const value = (settings.storageServiceConfig[field.key] as string) || "";
     const updater = this.createUpdater(plugin, field.key);
 
     if (field.isPassword) {
-      new PasswordSetting(containerEl).setName(t(field.name)).setDesc(t(field.desc)).addPasswordText((text) => {
-        text.setValue(value);
-        text.onChange(updater);
-        text.inputEl.setCssStyles(this.INPUT_STYLE);
-        if (field.placeholder) text.setPlaceholder(field.placeholder);
-      });
+      new PasswordSetting(containerEl)
+        .setName(t(field.name))
+        .setDesc(t(field.desc))
+        .addPasswordText((text) => {
+          text.setValue(value);
+          text.onChange(updater);
+          text.inputEl.setCssStyles(this.INPUT_STYLE);
+          if (field.placeholder) {
+            text.setPlaceholder(field.placeholder);
+          }
+        });
     } else {
-      new Setting(containerEl).setName(t(field.name)).setDesc(t(field.desc)).addText((text) => {
-        text.setValue(value).onChange(updater).inputEl.setCssStyles(this.INPUT_STYLE);
-        if (field.placeholder) text.setPlaceholder(field.placeholder);
-      });
+      new Setting(containerEl)
+        .setName(t(field.name))
+        .setDesc(t(field.desc))
+        .addText((text) => {
+          text
+            .setValue(value)
+            .onChange(updater)
+            .inputEl.setCssStyles(this.INPUT_STYLE);
+          if (field.placeholder) {
+            text.setPlaceholder(field.placeholder);
+          }
+        });
     }
   }
-
 }

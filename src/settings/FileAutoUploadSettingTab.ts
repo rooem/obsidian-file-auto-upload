@@ -4,7 +4,7 @@ import { AutoUploadSettings } from "./AutoUploadSettings";
 import { StorageServiceSettings } from "./StorageServiceSettings";
 import { DeveloperSettings } from "./DeveloperSettings";
 import { t } from "../i18n";
-import { FileAutoUploadSettings,StorageServiceType } from "../types";
+import { FileAutoUploadSettings, StorageServiceType } from "../types";
 
 // Re-export for backward compatibility
 export type { FileAutoUploadSettings } from "../types";

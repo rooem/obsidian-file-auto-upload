@@ -66,5 +66,4 @@ export abstract class BaseEventHandler {
    * Process a single item - must be implemented by subclasses
    */
   protected abstract processItem(processItem: ProcessItem): Promise<void>;
-
 }
