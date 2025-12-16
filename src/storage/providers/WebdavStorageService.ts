@@ -97,18 +97,6 @@ export class WebdavStorageService extends BaseStorageService {
     }
   }
 
-  private simulateProgress(
-    fileSize: number,
-    onProgress: UploadProgressCallback,
-  ): ReturnType<typeof setInterval> {
-    let progress = 0;
-    const increment = Math.max(1, Math.min(10, Math.floor(100000 / fileSize)));
-    return setInterval(() => {
-      progress = Math.min(95, progress + increment);
-      onProgress(progress);
-    }, 300);
-  }
-
   public async deleteFile(key: string): Promise<Result> {
     try {
       const normalizedKey = this.normalizeKey(key);
@@ -220,6 +208,10 @@ export class WebdavStorageService extends BaseStorageService {
   public override dispose(): void {
     this.prefixCache.clear();
     super.dispose();
+  }
+
+  protected override getDownloadHeaders(): Record<string, string> {
+    return { Authorization: this.buildAuthHeader() };
   }
 
   // ==================== Private Helpers ====================

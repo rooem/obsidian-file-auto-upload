@@ -9,6 +9,8 @@ import type {
   EncryptedData,
 } from "../types";
 import { logger } from "../common/Logger";
+import { StorageServiceType } from "../types";
+import { GITHUB_CDN_OPTIONS } from "./StorageServiceSettings";
 
 /**
  * Manages plugin configuration and settings
@@ -131,56 +133,45 @@ export class ConfigurationManager {
    * @returns Public domain URL
    */
   public getPublicDomain(): string {
-    if (this.getCurrentStorageConfig().public_domain) {
-      return this.getCurrentStorageConfig().public_domain as string;
+    const config = this.getCurrentStorageConfig();
+    
+    // For GitHub with CDN enabled, return the CDN domain
+    if (this.settings.storageServiceType === StorageServiceType.GITHUB && config.use_cdn) {
+      const cdnType = (config.cdn_type as string) || "jsdelivr";
+      const template = GITHUB_CDN_OPTIONS[cdnType];
+      if (template) {
+        // Extract domain from template (e.g., "https://cdn.jsdelivr.net/gh/{repo}@{branch}" -> "https://cdn.jsdelivr.net")
+        const match = template.match(/^(https?:\/\/[^/]+)/);
+        if (match) return match[1];
+      }
     }
-    return this.getCurrentStorageConfig().endpoint as string;
+    
+    if (config.public_domain) {
+      return config.public_domain as string;
+    }
+    return config.endpoint as string;
   }
 
-  /**
-   * Get list of file extensions that should be automatically uploaded
-   * @returns Array of file extensions
-   */
   public getAutoUploadFileTypes(): string[] {
     return this.settings.autoUploadFileTypes;
   }
 
-  /**
-   * Check if files should be deleted after successful upload
-   * @returns True if files should be deleted after upload
-   */
   public isDeleteAfterUpload(): boolean {
     return this.settings.deleteAfterUpload;
   }
 
-  /**
-   * Check if duplicate file uploads should be skipped
-   * @returns True if duplicate files should be skipped
-   */
   public isSkipDuplicateFiles(): boolean {
     return this.settings.skipDuplicateFiles;
   }
 
-  /**
-   * Check if drag-and-drop file uploads are enabled
-   * @returns True if drag-and-drop uploads are enabled
-   */
   public isDragAutoUpload(): boolean {
     return this.settings.dragAutoUpload;
   }
 
-  /**
-   * Check if clipboard paste file uploads are enabled
-   * @returns True if clipboard paste uploads are enabled
-   */
   public isClipboardAutoUpload(): boolean {
     return this.settings.clipboardAutoUpload;
   }
 
-  /**
-   * Load settings from plugin storage
-   * Handles decryption of encrypted data if present
-   */
   private async load(): Promise<object> {
     const loadedData: unknown = await this.plugin.loadData();
 

@@ -1,4 +1,4 @@
-import { IStorageService, Result, UploadData, WebdavConfig } from "../types";
+import { IStorageService, Result, UploadData } from "../types";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { handleError } from "../common/ErrorHandler";
 import {
@@ -7,7 +7,7 @@ import {
   StorageServiceConstructor,
 } from "../types";
 import { logger } from "../common/Logger";
-import { requestUrl, RequestUrlParam, App, normalizePath } from "obsidian";
+import { App, normalizePath } from "obsidian";
 import { AmazonS3StorageService } from "./providers/AmazonS3StorageService";
 import { AliyunOSSStorageService } from "./providers/AliyunOSSStorageService";
 import { TencentCOSStorageService } from "./providers/TencentCOSStorageService";
@@ -224,30 +224,16 @@ export class StorageServiceManager {
     onProgress?: (progress: number) => void,
   ): Promise<Result<{ localPath: string; fileName: string }>> {
     try {
+      const service = this.getService();
+      const downloadResult = await service.downloadFile(url, onProgress);
+      if (!downloadResult.success || !downloadResult.data) {
+        return { success: false, error: downloadResult.error };
+      }
+
       const decodedUrl = decodeURIComponent(url);
       const fileName = decodeURIComponent(
         decodedUrl.split("/").pop() || "file",
       );
-
-      const currentServiceType =
-        this.configurationManager.getCurrentStorageService();
-      const requestOptions: RequestUrlParam = { url };
-
-      if (currentServiceType === StorageServiceType.WEBDAV) {
-        const config =
-          this.configurationManager.getCurrentStorageConfig() as WebdavConfig;
-        requestOptions.headers = {
-          Authorization:
-            "Basic " +
-            btoa(`${config.access_key_id}:${config.secret_access_key}`),
-        };
-      }
-
-      const response = await requestUrl(requestOptions);
-      if (onProgress) {
-        onProgress(100);
-      }
-
       const firstUnderscoreIndex = fileName.indexOf("_");
       const secondUnderscoreIndex = fileName.indexOf(
         "_",
@@ -265,7 +251,7 @@ export class StorageServiceManager {
       );
       const created = await app.vault.createBinary(
         fullPath,
-        response.arrayBuffer,
+        downloadResult.data,
       );
       const localPath = created.path.replace(
         created.name,

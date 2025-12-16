@@ -596,6 +596,7 @@ export class EventHandlerManager {
           filePath,
           error,
         });
+        new Notice(t("upload.readFileFailed").replace("{path}", filePath), 3000);
       }
     }
 

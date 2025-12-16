@@ -76,6 +76,8 @@ export interface GithubConfig extends StorageServiceConfig {
   branch?: string; // Default: main
   path?: string; // Upload path in repo
   public_domain?: string; // Custom domain or jsdelivr CDN
+  use_cdn?: boolean; // Use CDN acceleration
+  cdn_type?: string; // CDN type: jsdelivr, ghproxy, etc.
 }
 
 /**
@@ -105,6 +107,11 @@ export interface IStorageService {
   ): Promise<Result<UploadData>>;
 
   deleteFile(key: string): Promise<Result>;
+
+  downloadFile(
+    url: string,
+    onProgress?: UploadProgressCallback,
+  ): Promise<Result<ArrayBuffer>>;
 
   fileExistsByPrefix(key: string): Promise<Result<UploadData>>;
 

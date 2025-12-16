@@ -1,10 +1,11 @@
-import { requestUrl } from "obsidian";
+import { requestUrl, Notice } from "obsidian";
 import { Result, UploadData, UploadProgressCallback, StorageServiceConfig, GithubConfig } from "../../types";
 import { t } from "../../i18n";
 import { handleError } from "../../common/ErrorHandler";
 import { logger } from "../../common/Logger";
 import { generateFileKey } from "../../common/FileUtils";
 import { BaseStorageService } from "./BaseStorageService";
+import { GITHUB_CDN_OPTIONS } from "../../settings/StorageServiceSettings";
 
 const GITHUB_API_BASE = "https://api.github.com";
 
@@ -60,6 +61,7 @@ export class GithubStorageService extends BaseStorageService {
     key?: string,
     onProgress?: UploadProgressCallback,
   ): Promise<Result<UploadData>> {
+    const progressInterval = onProgress ? this.simulateProgress(file.size, onProgress) : null;
     try {
       const fileKey = key || generateFileKey(file.name);
       const filePath = this.getFilePath(fileKey);
@@ -78,17 +80,20 @@ export class GithubStorageService extends BaseStorageService {
         throw: false,
       });
 
+      if (progressInterval) clearInterval(progressInterval);
+
       if (response.status >= 400) {
         return { success: false, error: `Upload failed: ${response.text}` };
       }
 
-      const res = response.json as GithubContentResponse;
       onProgress?.(100);
+      const res = response.json as GithubContentResponse;
       const publicUrl = this.getPublicUrl(filePath);
       logger.debug("GithubStorageService", "Upload successful", { fileName: file.name, url: publicUrl });
 
       return { success: true, data: { url: publicUrl, key: filePath, sha: res.content?.sha } };
     } catch (error) {
+      if (progressInterval) clearInterval(progressInterval);
       logger.error("GithubStorageService", "Upload failed", { fileName: file.name, error });
       return handleError(error, "error.uploadError");
     }
@@ -96,11 +101,25 @@ export class GithubStorageService extends BaseStorageService {
 
   public async deleteFile(key: string, providedSha?: string): Promise<Result> {
     try {
-      key = decodeURIComponent(key)
-        .replace(new RegExp(`^/?gh/${this.config.bucket_name}@${this.branch}/`), "")
-        .replace(new RegExp(`^https://raw\\.githubusercontent\\.com/${this.config.bucket_name}/${this.branch}/`), "");
+      key = decodeURIComponent(key);
+      // Remove CDN URL prefixes based on GITHUB_CDN_OPTIONS configuration
+      for (const template of Object.values(GITHUB_CDN_OPTIONS)) {
+        const prefix = template
+          .replace("{repo}", this.config.bucket_name)
+          .replace("{branch}", this.branch)
+          .replace(/^https?:\/\/[^/]+\//, ""); // Remove domain, keep path
+        if (key.startsWith(prefix + "/")) {
+          key = key.substring(prefix.length + 1);
+          break;
+        }
+      }
+      
       const sha = providedSha || (await this.getFileSha(key));
-      if (!sha) return { success: false, error: "File not found" };
+      if (!sha) {
+        logger.debug("GithubStorageService", "Delete File not found", { key });
+        new Notice(t("delete.fileNotFound").replace("{key}", key));
+        return { success: true };
+      }
 
       const response = await requestUrl({
         url: `${this.apiBase}/${key}`,
@@ -136,13 +155,19 @@ export class GithubStorageService extends BaseStorageService {
   }
 
   public getPublicUrl(key: string): string {
+    // Use CDN if enabled
+    if (this.config.use_cdn) {
+      const cdnType = this.config.cdn_type || "jsdelivr";
+      const template = GITHUB_CDN_OPTIONS[cdnType];
+      if (template) {
+        const baseUrl = template
+          .replace("{repo}", this.config.bucket_name)
+          .replace("{branch}", this.branch);
+        return `${baseUrl}/${key}`;
+      }
+    }
+
     const domain = this.config.public_domain?.replace(/\/$/, "");
-    if (domain?.includes("cdn.jsdelivr.net")) {
-      return `${domain}/gh/${this.config.bucket_name}@${this.branch}/${key}`;
-    }
-    if (domain?.includes("hk.gh-proxy.org") || domain?.includes("gh-proxy.org") || domain?.includes("cdn.gh-proxy.org")) {
-      return `${domain}/https://github.com/${this.config.bucket_name}/blob/${this.branch}/${key}`;
-    }
     if (domain) {
       return `${domain}/${key}`;
     }

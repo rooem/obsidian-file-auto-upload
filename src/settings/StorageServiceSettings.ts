@@ -12,7 +12,16 @@ interface FieldConfig {
   placeholder?: string;
   isPassword?: boolean;
   defaultValue?: string;
+  skipWhenCdn?: boolean;
 }
+
+export const GITHUB_CDN_OPTIONS: Record<string, string> = {
+  ghproxy: "https://gh-proxy.org/https://raw.githubusercontent.com/{repo}/{branch}",
+  hk_ghproxy: "https://hk.gh-proxy.org/https://raw.githubusercontent.com/{repo}/{branch}",
+  cdn_ghproxy: "https://cdn.gh-proxy.org/https://raw.githubusercontent.com/{repo}/{branch}",
+  edgeone_ghproxy: "https://edgeone.gh-proxy.org/https://raw.githubusercontent.com/{repo}/{branch}",
+  jsdelivr: "https://cdn.jsdelivr.net/gh/{repo}@{branch}",
+};
 
 export class StorageServiceSettings {
   private static readonly INPUT_STYLE = { width: "300px" };
@@ -85,8 +94,8 @@ export class StorageServiceSettings {
         name: "settings.publicUrl",
         desc: "settings.github.publicUrl.desc",
         key: "public_domain",
-        placeholder: "https://cdn.jsdelivr.net/gh/owner/repo@main",
-        defaultValue: "https://cdn.jsdelivr.net",
+        placeholder: "https://raw.githubusercontent.com",
+        skipWhenCdn: true,
       },
     ],
     s3: [
@@ -130,7 +139,7 @@ export class StorageServiceSettings {
     const isWebdav = settings.storageServiceType === StorageServiceType.WEBDAV;
 
     this.renderStorageDropdown(containerEl, plugin, onToggle);
-    this.renderFields(containerEl, plugin, settings, isWebdav);
+    this.renderFields(containerEl, plugin, settings, isWebdav, onToggle);
     this.renderTestButton(containerEl, plugin);
   }
 
@@ -164,23 +173,67 @@ export class StorageServiceSettings {
     plugin: FileAutoUploadPlugin,
     settings: FileAutoUploadSettings,
     isWebdav: boolean,
+    onToggle: () => void,
   ): void {
     const serviceType = settings.storageServiceType;
+    const isGithub = serviceType === StorageServiceType.GITHUB;
+    const useCdn = isGithub && settings.storageServiceConfig.use_cdn === true;
     const fields =
       this.FIELD_CONFIGS[serviceType] ||
       this.FIELD_CONFIGS[isWebdav ? StorageServiceType.WEBDAV : "s3"];
+    
     for (const field of fields) {
+      if (field.skipWhenCdn && useCdn) continue;
       this.addField(containerEl, plugin, settings, field);
-      if (
-        field.key === "endpoint" &&
-        this.REGION_PROVIDERS.has(serviceType)
-      ) {
+      if (field.key === "endpoint" && this.REGION_PROVIDERS.has(serviceType)) {
         this.addField(containerEl, plugin, settings, {
           name: "settings.region",
           desc: "settings.region.desc",
           key: "region",
         });
       }
+    }
+
+    if (isGithub) {
+      this.renderGithubCdnSettings(containerEl, plugin, settings, useCdn, onToggle);
+    }
+  }
+
+  private static renderGithubCdnSettings(
+    containerEl: HTMLElement,
+    plugin: FileAutoUploadPlugin,
+    settings: FileAutoUploadSettings,
+    useCdn: boolean,
+    onToggle: () => void,
+  ): void {
+    new Setting(containerEl)
+      .setName(t("settings.github.useCdn"))
+      .setDesc(t("settings.github.useCdn.desc"))
+      .addToggle((toggle) => {
+        toggle.setValue(useCdn).onChange((value) => {
+          const config = settings.storageServiceConfig;
+          void plugin.configurationManager.saveSettings(
+            { storageServiceConfig: { ...config, use_cdn: value } },
+            true,
+          ).then(() => onToggle());
+        });
+      });
+
+    if (useCdn) {
+      const cdnType = (settings.storageServiceConfig.cdn_type as string) || "jsdelivr";
+      new Setting(containerEl)
+        .setName(t("settings.github.cdnType"))
+        .setDesc(t("settings.github.cdnType.desc"))
+        .addDropdown((dropdown) => {
+          Object.keys(GITHUB_CDN_OPTIONS).forEach((key) => dropdown.addOption(key, key));
+          dropdown.setValue(cdnType).onChange((value) => {
+            const config = settings.storageServiceConfig;
+            void plugin.configurationManager.saveSettings(
+              { storageServiceConfig: { ...config, cdn_type: value } },
+              true,
+            );
+          });
+        });
     }
   }
 

@@ -31,7 +31,11 @@ export default {
   "settings.github.branch.desc": "分支名称（默认：main）",
   "settings.github.path": "上传路径",
   "settings.github.path.desc": "仓库中的上传目录（可选）",
-  "settings.github.publicUrl.desc": "自定义域名，默认使用 jsdelivr CDN",
+  "settings.github.publicUrl.desc": "自定义域名，留空使用GitHub raw URL（可选）",
+  "settings.github.useCdn": "使用CDN加速服务",
+  "settings.github.useCdn.desc": "启用 CDN 加速访问 GitHub 文件",
+  "settings.github.cdnType": "加速服务",
+  "settings.github.cdnType.desc": "选择 CDN 加速服务",
   "settings.testConnection": "测试连接",
   "settings.testing": "测试中...",
   "settings.testSuccess": "连接成功！",
@@ -105,6 +109,7 @@ export default {
   "delete.failed": "文件删除失败：{fileLink} - {error}",
   "delete.error": "删除文件时发生错误：{fileLink}",
   "delete.unknownError": "未知错误",
+  "delete.fileNotFound": "远程文件不存在，已清理链接：{key}",
 
   // Upload Local File
   "upload.localFile": "上传文件（file auto upload）",

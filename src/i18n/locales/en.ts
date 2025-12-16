@@ -31,8 +31,11 @@ export default {
   "settings.github.branch.desc": "Branch name (default: main)",
   "settings.github.path": "Upload Path",
   "settings.github.path.desc": "Path in repository for uploads (optional)",
-  "settings.github.publicUrl.desc":
-    "Custom domain or use jsdelivr cdn by default",
+  "settings.github.publicUrl.desc": "Custom domain or use github raw url by default (optional)",
+  "settings.github.useCdn": "Use cdn acceleration",
+  "settings.github.useCdn.desc": "Enable cdn acceleration for github files",
+  "settings.github.cdnType": "CDN service",
+  "settings.github.cdnType.desc": "Select cdn acceleration service",
   "settings.testConnection": "Test connection",
   "settings.testing": "Testing...",
   "settings.testSuccess": "Connection successful!",
@@ -114,6 +117,7 @@ export default {
   "delete.failed": "Failed to delete file: {fileLink} - {error}",
   "delete.error": "Error deleting file: {fileLink}",
   "delete.unknownError": "Unknown error",
+  "delete.fileNotFound": "Remote file not found, link cleaned: {key}",
 
   // Upload Local File
   "upload.localFile": "Upload file(file auto upload)",
