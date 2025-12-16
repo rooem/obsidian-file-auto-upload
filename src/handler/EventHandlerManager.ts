@@ -85,7 +85,6 @@ export class EventHandlerManager {
     _editor: Editor,
     _view: MarkdownView,
   ): Promise<void> {
-    // Check if clipboard auto-upload is enabled
     if (
       !this.configurationManager.isClipboardAutoUpload() ||
       !evt.clipboardData ||
@@ -94,7 +93,6 @@ export class EventHandlerManager {
       return;
     }
 
-    // Process clipboard items if they contain files
     if (this.canHandle(evt.clipboardData.items)) {
       evt.preventDefault();
       const processItems = await this.getProcessItemList(
@@ -116,7 +114,6 @@ export class EventHandlerManager {
     _editor: Editor,
     _view: MarkdownView,
   ): Promise<void> {
-    // Check if drag auto-upload is enabled
     if (
       !this.configurationManager.isDragAutoUpload() ||
       !evt.dataTransfer ||
@@ -125,7 +122,6 @@ export class EventHandlerManager {
       return;
     }
 
-    // Process dropped items if they contain files
     if (this.canHandle(evt.dataTransfer.items)) {
       evt.preventDefault();
       const processItems = await this.getProcessItemList(
@@ -292,180 +288,96 @@ export class EventHandlerManager {
     return this._webdavImageLoader;
   }
 
-  /**
-   * Handle upload of local files referenced in editor selection
-   * Adds "Upload local files" option to context menu
-   */
-  private handleUploadViewFile(
-    menu: Menu,
-    editor: Editor,
-    _view: MarkdownView,
-  ): void {
-    const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
-    const localFiles = findSupportedFilePath(
-      editor.getSelection(),
-      supportedTypes,
-    );
-    if (!localFiles || localFiles.length === 0) {
-      return;
-    }
+  private handleUploadViewFile(menu: Menu, editor: Editor, _view: MarkdownView): void {
+    const localFiles = this.getLocalFiles(editor.getSelection());
+    if (!localFiles.length) return;
 
     menu.addItem((item) => {
-      item
-        .setTitle(t("upload.localFile"))
-        .setIcon("upload")
-        .onClick(async () => {
-          const processItems =
-            await this.getProcessItemListFromView(localFiles);
-          if (this.canHandle(processItems)) {
-            void this.uploadEventHandler.handleFileUploadEvent(processItems);
-          }
-        });
+      item.setTitle(t("upload.localFile")).setIcon("upload").onClick(() => this.uploadLocalFiles(localFiles));
     });
   }
 
-  /**
-   * Handle download of remote files linked in editor selection
-   * Adds "Download files" option to context menu
-   */
-  private handleDownloadFile(
-    menu: Menu,
-    editor: Editor,
-    _view: MarkdownView,
-  ): void {
-    const publicDomain = this.configurationManager.getPublicDomain();
-    const uploadedFileLinks = findUploadedFileLinks(
-      editor.getSelection(),
-      publicDomain,
-    );
-    if (!uploadedFileLinks || uploadedFileLinks.length === 0) {
-      return;
-    }
-
-    const processItems: DownloadProcessItem[] = uploadedFileLinks.map(
-      (url) => ({
-        id: generateUniqueId("dl"),
-        eventType: EventType.DOWNLOAD,
-        type: "download",
-        url,
-      }),
-    );
+  private handleDownloadFile(menu: Menu, editor: Editor, _view: MarkdownView): void {
+    const links = this.getUploadedLinks(editor.getSelection());
+    if (!links.length) return;
 
     menu.addItem((item: MenuItem) => {
-      item
-        .setTitle(t("download.menuTitle"))
-        .setIcon("download")
-        .onClick(() => {
-          this.downloadHandler.handleDownloadFiles(processItems);
-        });
+      item.setTitle(t("download.menuTitle")).setIcon("download").onClick(() => {
+        this.downloadHandler.handleDownloadFiles(this.createDownloadItems(links));
+      });
     });
   }
 
-  /**
-   * Handle download of all files linked in a markdown file
-   * Adds "Download all files" option to file context menu
-   */
   private handleDownloadAllFilesFromFile(menu: Menu, file: TFile): void {
-    const publicDomain = this.configurationManager.getPublicDomain();
-
     menu.addItem((item: MenuItem) => {
-      item
-        .setTitle(t("download.allMenuTitle"))
-        .setIcon("download")
-        .onClick(async () => {
-          const content = await this.app.vault.read(file);
-          const uploadedFileLinks = findUploadedFileLinks(
-            content,
-            publicDomain,
-          );
-          if (!uploadedFileLinks || uploadedFileLinks.length === 0) {
-            new Notice(t("download.noFiles"), 1000);
-            return;
-          }
-          const processItems: DownloadProcessItem[] = uploadedFileLinks.map(
-            (url) => ({
-              id: generateUniqueId("dl"),
-              eventType: EventType.DOWNLOAD,
-              type: "download",
-              url,
-            }),
-          );
-          this.downloadHandler.handleDownloadFiles(processItems);
-        });
+      item.setTitle(t("download.allMenuTitle")).setIcon("download").onClick(async () => {
+        const links = this.getUploadedLinks(await this.app.vault.read(file));
+        if (!links.length) {
+          new Notice(t("download.noFiles"), 1000);
+          return;
+        }
+        this.downloadHandler.handleDownloadFiles(this.createDownloadItems(links));
+      });
     });
   }
 
-  /**
-   * Handle upload of all local files referenced in a markdown file
-   * Adds "Upload all local files" option to file context menu
-   */
+  private getUploadedLinks(content: string): string[] {
+    return findUploadedFileLinks(content, this.configurationManager.getPublicDomain()) || [];
+  }
+
+  private createDownloadItems(urls: string[]): DownloadProcessItem[] {
+    return urls.map((url) => ({
+      id: generateUniqueId("dl"),
+      eventType: EventType.DOWNLOAD,
+      type: "download",
+      url,
+    }));
+  }
+
   private handleUploadAllFilesFromFile(menu: Menu, file: TFile): void {
-    const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
-
     menu.addItem((item) => {
-      item
-        .setTitle(t("upload.allLocalFiles"))
-        .setIcon("upload")
-        .onClick(async () => {
-          const content = await this.app.vault.read(file);
-          const localFiles = findSupportedFilePath(content, supportedTypes);
-          if (!localFiles || localFiles.length === 0) {
-            new Notice(t("upload.noFiles"), 1000);
-            return;
-          }
-          const processItems =
-            await this.getProcessItemListFromView(localFiles);
-          if (this.canHandle(processItems)) {
-            void this.uploadEventHandler.handleFileUploadEvent(processItems);
-          }
-        });
+      item.setTitle(t("upload.allLocalFiles")).setIcon("upload").onClick(async () => {
+        const localFiles = this.getLocalFiles(await this.app.vault.read(file));
+        if (!localFiles.length) {
+          new Notice(t("upload.noFiles"), 1000);
+          return;
+        }
+        await this.uploadLocalFiles(localFiles);
+      });
     });
   }
 
-  /**
-   * Handle deletion of uploaded files linked in editor selection
-   * Adds "Delete uploaded files" option to context menu
-   */
-  private handleDeleteFile(
-    menu: Menu,
-    editor: Editor,
-    _view: MarkdownView,
-  ): void {
+  private getLocalFiles(content: string): string[] {
+    return findSupportedFilePath(content, this.configurationManager.getAutoUploadFileTypes()) || [];
+  }
+
+  private async uploadLocalFiles(localFiles: string[]): Promise<void> {
+    const processItems = await this.getProcessItemListFromView(localFiles);
+    if (this.canHandle(processItems)) {
+      void this.uploadEventHandler.handleFileUploadEvent(processItems);
+    }
+  }
+
+  private handleDeleteFile(menu: Menu, editor: Editor, _view: MarkdownView): void {
+    const links = this.getUploadedLinks(editor.getSelection());
+    const selection = editor.getSelection();
+    if (!links.length || !selection) return;
+
     const publicDomain = this.configurationManager.getPublicDomain();
-    const uploadedFileLinks = findUploadedFileLinks(
-      editor.getSelection(),
-      publicDomain,
-    );
-    if (!uploadedFileLinks || uploadedFileLinks.length === 0) {
-      return;
-    }
-
-    const originalSelection = editor.getSelection();
-    if (!originalSelection) {
-      logger.warn("EventHandlerManager", "No text selected");
-      return;
-    }
-
-    const processItems: DeleteProcessItem[] = uploadedFileLinks.map((link) => ({
+    const processItems: DeleteProcessItem[] = links.map((link) => ({
       id: generateUniqueId("d"),
       eventType: EventType.DELETE,
       type: "text",
       fileLink: link,
       fileKey: extractFileKeyFromUrl(link, publicDomain),
-      originalSelection: originalSelection,
+      originalSelection: selection,
     }));
 
     if (this.canHandle(processItems)) {
       menu.addItem((item: MenuItem) => {
-        item
-          .setTitle(t("delete.menuTitle"))
-          .setIcon("trash")
-          .setWarning(true)
-          .onClick(() => {
-            void this.deleteEventHandler.handleDeleteUploadedFiles(
-              processItems,
-            );
-          });
+        item.setTitle(t("delete.menuTitle")).setIcon("trash").setWarning(true).onClick(() => {
+          void this.deleteEventHandler.handleDeleteUploadedFiles(processItems);
+        });
       });
     }
   }
