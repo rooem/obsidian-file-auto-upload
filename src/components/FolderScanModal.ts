@@ -36,6 +36,31 @@ export class FolderScanModal extends Modal {
     this.progressEl = contentEl.createDiv({ cls: "folder-upload-progress" });
     this.progressEl.style.display = "none";
     this.progressEl.style.marginBottom = "10px";
+    
+    // Create progress bar container
+    const progressBarContainer = this.progressEl.createDiv();
+    progressBarContainer.setCssStyles({
+      width: "100%",
+      height: "6px",
+      backgroundColor: "var(--background-modifier-border)",
+      borderRadius: "3px",
+      overflow: "hidden",
+      marginBottom: "5px",
+    });
+    
+    const progressBar = progressBarContainer.createDiv();
+    progressBar.setCssStyles({
+      height: "100%",
+      width: "0%",
+      backgroundColor: "var(--interactive-accent)",
+      borderRadius: "3px",
+      transition: "width 0.3s ease",
+    });
+    progressBar.addClass("progress-bar-fill");
+    
+    const progressText = this.progressEl.createDiv();
+    progressText.addClass("progress-text");
+    progressText.setCssStyles({ textAlign: "center", fontSize: "12px" });
 
     const buttonDiv = contentEl.createDiv();
     buttonDiv.setCssStyles({ textAlign: "center", marginTop: "20px", display: "flex", gap: "10px", justifyContent: "center" });
@@ -53,7 +78,11 @@ export class FolderScanModal extends Modal {
         this.progressEl!.style.display = "block";
         
         await this.onUpload((current, total) => {
-          this.progressEl!.setText(`${current}/${total}`);
+          const percent = Math.round((current / total) * 100);
+          const bar = this.progressEl!.querySelector(".progress-bar-fill") as HTMLElement;
+          const text = this.progressEl!.querySelector(".progress-text") as HTMLElement;
+          if (bar) bar.style.width = `${percent}%`;
+          if (text) text.setText(`${current}/${total}`);
         });
         
         this.uploadBtn!.setText(t("upload.folderUploadBtn"));
@@ -76,7 +105,11 @@ export class FolderScanModal extends Modal {
   updateScanProgress(current: number, total: number) {
     if (this.progressEl) {
       this.progressEl.style.display = "block";
-      this.progressEl.setText(`${t("upload.scanning")} ${current}/${total}`);
+      const percent = Math.round((current / total) * 100);
+      const bar = this.progressEl.querySelector(".progress-bar-fill") as HTMLElement;
+      const text = this.progressEl.querySelector(".progress-text") as HTMLElement;
+      if (bar) bar.style.width = `${percent}%`;
+      if (text) text.setText(`${t("upload.scanning")} ${current}/${total}`);
     }
   }
 }
