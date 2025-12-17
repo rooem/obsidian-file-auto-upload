@@ -1,15 +1,14 @@
 import { MarkdownView, Notice, App } from "obsidian";
 import { BaseEventHandler } from "./BaseEventHandler";
-import { StatusBar } from "../components/StatusBar";
-import { t } from "../i18n";
-import { logger } from "../common/Logger";
-import { ProcessItem, DownloadProcessItem, EventType } from "../types/index";
-import { ConfigurationManager } from "../settings/ConfigurationManager";
-import { StorageServiceManager } from "../storage/StorageServiceManager";
+import { StatusBar } from "../../components/StatusBar";
+import { t } from "../../i18n";
+import { logger } from "../../common/Logger";
+import { ProcessItem, DownloadProcessItem, EventType } from "../../types/index";
+import { ConfigurationManager } from "../../settings/ConfigurationManager";
+import { StorageServiceManager } from "../../storage/StorageServiceManager";
 
 export class DownloadHandler extends BaseEventHandler {
   private statusBar: StatusBar;
-  private storageServiceManager: StorageServiceManager;
 
   constructor(
     app: App,
@@ -17,8 +16,7 @@ export class DownloadHandler extends BaseEventHandler {
     storageServiceManager: StorageServiceManager,
     statusBar: StatusBar,
   ) {
-    super(app, configurationManager, 3);
-    this.storageServiceManager = storageServiceManager;
+    super(app, configurationManager, storageServiceManager, 3);
     this.statusBar = statusBar;
   }
 
@@ -46,15 +44,29 @@ export class DownloadHandler extends BaseEventHandler {
         this.app,
         url,
         activeView.file.path,
-        (progress) => this.statusBar.updateProgress(item.id, progress)
+        (progress) => this.statusBar.updateProgress(item.id, progress),
       );
 
       if (result.success && result.data) {
-        this.replacePlaceholder(item.id, result.data.localPath, result.data.fileName);
-        new Notice(t("download.success").replace("{fileName}", result.data.fileName));
+        this.replacePlaceholder(
+          item.id,
+          result.data.localPath,
+          result.data.fileName,
+        );
+        new Notice(
+          t("download.success").replace("{fileName}", result.data.fileName),
+        );
       } else {
-        new Notice(t("download.failed").replace("{error}", result.error || "Unknown error"));
-        logger.error("DownloadHandler", "Download failed", { url, error: result.error });
+        new Notice(
+          t("download.failed").replace(
+            "{error}",
+            result.error || "Unknown error",
+          ),
+        );
+        logger.error("DownloadHandler", "Download failed", {
+          url,
+          error: result.error,
+        });
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -66,10 +78,17 @@ export class DownloadHandler extends BaseEventHandler {
   }
 
   private replaceUrlWithDownloading(url: string, id: string): void {
-    this.replaceUrlWithPlaceholder(url, this.getPlaceholderSuffix(id, t("download.progressing")));
+    this.replaceUrlWithPlaceholder(
+      url,
+      this.getPlaceholderSuffix(id, t("download.progressing")),
+    );
   }
 
-  private replacePlaceholder(id: string, localPath: string, fileName: string): void {
+  private replacePlaceholder(
+    id: string,
+    localPath: string,
+    fileName: string,
+  ): void {
     const markdown = `[${fileName}](${localPath})`;
     this.replacePlaceholderWithMarkdown(id, markdown, fileName);
   }

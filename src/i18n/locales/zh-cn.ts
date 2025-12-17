@@ -20,7 +20,9 @@ export default {
   "settings.bucketName": "存储桶",
   "settings.bucketName.desc": "Bucket name",
   "settings.publicUrl": "公共访问域名",
-  "settings.publicUrl.desc": "Public access domain",
+  "settings.publicUrl.desc": "公共访问域名",
+  "settings.publicUrl.webdav.desc":
+    "WebDAV 默认需要身份鉴权，请配置支持公开访问的代理地址（可选）",
   "settings.testConnection": "测试连接",
   "settings.testing": "测试中...",
   "settings.testSuccess": "连接成功！",

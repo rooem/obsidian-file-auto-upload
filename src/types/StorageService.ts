@@ -1,6 +1,20 @@
 /**
- * StorageService related type definitions
+ * Supported storage service types
  */
+export const StorageServiceType = {
+  AMAZON_S3: "amazon-s3",
+  CLOUDFLARE_R2: "cloudflare-r2",
+  ALIYUN_OSS: "aliyun-oss",
+  TENCENT_COS: "tencent-cos",
+  WEBDAV: "webdav",
+} as const;
+
+/**
+ * StorageService class constructor type
+ */
+export type StorageServiceConstructor = new (
+  config: StorageServiceConfig,
+) => IStorageService;
 
 /**
  * Generic result type for operations
@@ -40,12 +54,13 @@ export interface S3Config extends StorageServiceConfig {
 
 /**
  * WebDAV configuration interface
+ * Uses S3 field names for unified storage: access_key_id=username, secret_access_key=password, bucket_name=base_path
  */
 export interface WebdavConfig extends StorageServiceConfig {
   endpoint: string;
-  username: string;
-  password: string;
-  base_path?: string;
+  access_key_id: string; // WebDAV username
+  secret_access_key: string; // WebDAV password
+  bucket_name?: string; // WebDAV base_path
   public_domain?: string;
 }
 

@@ -8,12 +8,15 @@ import {
   TFile,
   normalizePath,
 } from "obsidian";
+import { Extension } from "@codemirror/state";
+import { MarkdownPostProcessorContext } from "obsidian";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { StorageServiceManager } from "../storage/StorageServiceManager";
 import { StatusBar } from "../components/StatusBar";
-import { UploadEventHandler } from "./UploadEventHandler";
-import { DeleteEventHandler } from "./DeleteEventHandler";
-import { DownloadHandler } from "./DownloadHandler";
+import { UploadEventHandler } from "./providers/UploadEventHandler";
+import { DeleteEventHandler } from "./providers/DeleteEventHandler";
+import { DownloadHandler } from "./providers/DownloadHandler";
+import { WebdavImageLoader } from "../components/WebdavImageLoader";
 import { t } from "../i18n";
 import { logger } from "../common/Logger";
 import {
@@ -29,7 +32,7 @@ import {
   TextProcessItem,
   FileProcessItem,
   DownloadProcessItem,
-  Result
+  Result,
 } from "../types/index";
 
 /**
@@ -39,13 +42,13 @@ import {
 export class EventHandlerManager {
   private app: App;
   private configurationManager: ConfigurationManager;
-  private storageServiceManager: StorageServiceManager;
   private statusBar: StatusBar;
 
-
-  private uploadEventHandler: UploadEventHandler;
-  private deleteEventHandler: DeleteEventHandler;
-  private downloadHandler: DownloadHandler;
+  private _storageServiceManager?: StorageServiceManager;
+  private _uploadEventHandler?: UploadEventHandler;
+  private _deleteEventHandler?: DeleteEventHandler;
+  private _downloadHandler?: DownloadHandler;
+  private _webdavImageLoader?: WebdavImageLoader;
 
   constructor(
     app: App,
@@ -55,26 +58,11 @@ export class EventHandlerManager {
     this.app = app;
     this.configurationManager = configurationManager;
     this.statusBar = statusBar;
-    this.storageServiceManager = new StorageServiceManager(configurationManager);
-    this.uploadEventHandler = new UploadEventHandler(
-      app,
-      configurationManager,
-      this.storageServiceManager,
-      statusBar,
-    );
 
-    this.deleteEventHandler = new DeleteEventHandler(
-      app,
-      configurationManager,
-      this.storageServiceManager,
-    );
-
-    this.downloadHandler = new DownloadHandler(
-      app,
-      configurationManager,
-      this.storageServiceManager,
-      statusBar,
-    );
+    // Listen for config changes to update WebdavImageLoader prefixes
+    this.configurationManager.addConfigChangeListener(() => {
+      this._webdavImageLoader?.updatePrefixes();
+    });
   }
 
   /**
@@ -83,7 +71,7 @@ export class EventHandlerManager {
    * @returns Result indicating test success or failure
    */
   async testConnection(): Promise<Result> {
-   return await this.storageServiceManager.testConnection();
+    return await this.storageServiceManager.testConnection();
   }
 
   /**
@@ -188,34 +176,121 @@ export class EventHandlerManager {
   }
 
   /**
+   * Handle editor context menu
+   * Adds upload/download/delete options based on selected content
+   * @param menu - Context menu to add items to
+   * @param editor - Editor instance with selected content
+   * @param view - Markdown view instance
+   */
+  public createEditorExtension(): Extension {
+    return this.webdavImageLoader.createExtension();
+  }
+
+  /**
+   * Create markdown post processor for reading view and PDF export
+   * Uses concurrency limit to avoid loading too many images simultaneously
+   */
+  public createMarkdownPostProcessor() {
+    const MAX_CONCURRENT = 5;
+    return async (el: HTMLElement, _ctx: MarkdownPostProcessorContext) => {
+      const images = Array.from(el.querySelectorAll("img"));
+      for (let i = 0; i < images.length; i += MAX_CONCURRENT) {
+        const batch = images.slice(i, i + MAX_CONCURRENT);
+        await Promise.all(
+          batch.map((img) => this.webdavImageLoader.loadImage(img, true)),
+        );
+      }
+    };
+  }
+
+  /**
    * Dispose of event handler manager and notify about pending operations
    * Shows warning notice if there are operations in progress
    */
   public dispose(): void {
     const handlers = [
-      this.uploadEventHandler,
-      this.deleteEventHandler,
-      this.downloadHandler,
-    ];
-    const statuses = handlers.map((handler) => handler.getQueueStatus());
+      this._uploadEventHandler,
+      this._deleteEventHandler,
+      this._downloadHandler,
+    ].filter(Boolean) as (
+      | UploadEventHandler
+      | DeleteEventHandler
+      | DownloadHandler
+    )[];
 
-    const totalQueueLength = statuses.reduce(
-      (sum, status) => sum + status.queueLength,
-      0,
-    );
-    const isProcessing = statuses.some((status) => status.isProcessing);
-
-    if (totalQueueLength > 0 || isProcessing) {
-      new Notice(
-        t("notice.queueLost").replace("{count}", totalQueueLength.toString()),
-        3000,
+    if (handlers.length > 0) {
+      const statuses = handlers.map((handler) => handler.getQueueStatus());
+      const totalQueueLength = statuses.reduce(
+        (sum, status) => sum + status.queueLength,
+        0,
       );
+      const isProcessing = statuses.some((status) => status.isProcessing);
+
+      if (totalQueueLength > 0 || isProcessing) {
+        new Notice(
+          t("notice.queueLost").replace("{count}", totalQueueLength.toString()),
+          3000,
+        );
+      }
+      handlers.forEach((handler) => handler.dispose());
     }
 
-    handlers.forEach((handler) => handler?.dispose());
-
-    this.storageServiceManager.dispose();
+    this._storageServiceManager?.dispose();
     this.statusBar.dispose();
+    this._webdavImageLoader?.destroy();
+  }
+
+  private get storageServiceManager(): StorageServiceManager {
+    if (!this._storageServiceManager) {
+      this._storageServiceManager = new StorageServiceManager(
+        this.configurationManager,
+      );
+    }
+    return this._storageServiceManager;
+  }
+
+  private get uploadEventHandler(): UploadEventHandler {
+    if (!this._uploadEventHandler) {
+      this._uploadEventHandler = new UploadEventHandler(
+        this.app,
+        this.configurationManager,
+        this.storageServiceManager,
+        this.statusBar,
+      );
+    }
+    return this._uploadEventHandler;
+  }
+
+  private get deleteEventHandler(): DeleteEventHandler {
+    if (!this._deleteEventHandler) {
+      this._deleteEventHandler = new DeleteEventHandler(
+        this.app,
+        this.configurationManager,
+        this.storageServiceManager,
+      );
+    }
+    return this._deleteEventHandler;
+  }
+
+  private get downloadHandler(): DownloadHandler {
+    if (!this._downloadHandler) {
+      this._downloadHandler = new DownloadHandler(
+        this.app,
+        this.configurationManager,
+        this.storageServiceManager,
+        this.statusBar,
+      );
+    }
+    return this._downloadHandler;
+  }
+
+  private get webdavImageLoader(): WebdavImageLoader {
+    if (!this._webdavImageLoader) {
+      this._webdavImageLoader = new WebdavImageLoader(
+        this.configurationManager,
+      );
+    }
+    return this._webdavImageLoader;
   }
 
   /**
@@ -487,12 +562,17 @@ export class EventHandlerManager {
     }
 
     const activeFile = this.app.workspace.getActiveFile();
-    if (!activeFile) return queue;
+    if (!activeFile) {
+      return queue;
+    }
 
     for (const filePath of filePathList) {
       try {
         const decodedPath = normalizePath(decodeURIComponent(filePath));
-        const tfile = this.app.metadataCache.getFirstLinkpathDest(decodedPath, activeFile.path);
+        const tfile = this.app.metadataCache.getFirstLinkpathDest(
+          decodedPath,
+          activeFile.path,
+        );
         let arrayBuffer, file;
         if (tfile instanceof TFile) {
           arrayBuffer = await this.app.vault.readBinary(tfile);

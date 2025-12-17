@@ -1,10 +1,10 @@
 import { App, MarkdownView } from "obsidian";
-import { ConfigurationManager } from "../settings/ConfigurationManager";
-import { logger } from "../common/Logger";
-import { ProcessItem } from "../types/index";
-import { ConcurrencyController } from "../common/ConcurrencyController";
-import { isImageExtension } from "../common/FileUtils";
-
+import { ConfigurationManager } from "../../settings/ConfigurationManager";
+import { logger } from "../../common/Logger";
+import { ProcessItem } from "../../types/index";
+import { ConcurrencyController } from "../../common/ConcurrencyController";
+import { isImageExtension } from "../../common/FileUtils";
+import { StorageServiceManager } from "../../storage/StorageServiceManager";
 
 /**
  * Base class for all event handlers
@@ -13,15 +13,18 @@ import { isImageExtension } from "../common/FileUtils";
 export abstract class BaseEventHandler {
   protected app: App;
   protected configurationManager: ConfigurationManager;
+  protected storageServiceManager: StorageServiceManager;
   protected concurrencyController: ConcurrencyController;
 
   constructor(
     app: App,
     configurationManager: ConfigurationManager,
+    storageServiceManager: StorageServiceManager,
     maxConcurrent: number = 3,
   ) {
     this.app = app;
     this.configurationManager = configurationManager;
+    this.storageServiceManager = storageServiceManager;
     this.concurrencyController = new ConcurrencyController(maxConcurrent);
   }
 
@@ -78,7 +81,7 @@ export abstract class BaseEventHandler {
    * @returns Placeholder suffix string
    */
   protected getPlaceholderSuffix(id: string, statusText: string): string {
-    return `⏳${statusText}<!--${id}-->`;
+    return `🔄${statusText}<!--${id}-->`;
   }
 
   /**
@@ -109,7 +112,7 @@ export abstract class BaseEventHandler {
       editor.replaceRange(
         replacement,
         editor.offsetToPos(startOffset),
-        editor.offsetToPos(endOffset)
+        editor.offsetToPos(endOffset),
       );
       return true;
     }

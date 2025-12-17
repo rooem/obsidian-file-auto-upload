@@ -1,28 +1,27 @@
 import { App, MarkdownView, normalizePath } from "obsidian";
 import { BaseEventHandler } from "./BaseEventHandler";
-import { ConfigurationManager } from "../settings/ConfigurationManager";
-import { StorageServiceManager } from "../storage/StorageServiceManager";
-import { StatusBar } from "../components/StatusBar";
-import { logger } from "../common/Logger";
+import { ConfigurationManager } from "../../settings/ConfigurationManager";
+import { StorageServiceManager } from "../../storage/StorageServiceManager";
+import { StatusBar } from "../../components/StatusBar";
+import { logger } from "../../common/Logger";
 import {
   ProcessItem,
   TextProcessItem,
   FileProcessItem,
   EventType,
-} from "../types/index";
+} from "../../types/index";
 import {
   isFileTypeSupported,
   isImageExtension,
   generateFileKey,
-} from "../common/FileUtils";
+} from "../../common/FileUtils";
 
-import { t } from "../i18n";
+import { t } from "../../i18n";
 
 /**
  * Handles file upload operations with progress tracking
  */
 export class UploadEventHandler extends BaseEventHandler {
-  protected storageServiceManager: StorageServiceManager;
   private statusBarManager: StatusBar;
 
   constructor(
@@ -31,8 +30,7 @@ export class UploadEventHandler extends BaseEventHandler {
     storageServiceManager: StorageServiceManager,
     statusBarManager: StatusBar,
   ) {
-    super(app, configurationManager, 3);
-    this.storageServiceManager = storageServiceManager;
+    super(app, configurationManager, storageServiceManager, 3);
     this.statusBarManager = statusBarManager;
   }
 
@@ -137,7 +135,7 @@ export class UploadEventHandler extends BaseEventHandler {
         ) {
           try {
             const decodedPath = decodeURIComponent(processItem.localPath);
-            const normalizedPath = normalizePath(decodedPath);         
+            const normalizedPath = normalizePath(decodedPath);
             await this.app.vault.adapter.remove(normalizedPath);
           } catch (e) {
             logger.warn("UploadEventHandler", "Failed to delete local file", {

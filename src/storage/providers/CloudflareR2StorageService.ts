@@ -1,7 +1,6 @@
 import { S3Client } from "@aws-sdk/client-s3";
-import { StorageServiceType } from "../StorageServiceRegistry";
 import { AmazonS3StorageService } from "./AmazonS3StorageService";
-import { Result } from "../../types";
+import { Result,StorageServiceType } from "../../types";
 import { t } from "../../i18n";
 
 export class CloudflareR2StorageService extends AmazonS3StorageService {

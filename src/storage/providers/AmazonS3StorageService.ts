@@ -19,12 +19,11 @@ import {
   Result,
   UploadData,
   IStorageService,
-  FileInfo,
   UploadProgressCallback,
   StorageServiceConfig,
+  StorageServiceType,
   S3Config,
 } from "../../types";
-import { StorageServiceType } from "../StorageServiceRegistry";
 import { t } from "../../i18n";
 import { handleError } from "../../common/ErrorHandler";
 import { logger } from "../../common/Logger";

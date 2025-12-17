@@ -1,11 +1,41 @@
-import { IStorageService, Result, UploadData } from "../types";
-import { StorageServiceTypeInfo, StorageServiceConstructor } from "./StorageServiceRegistry";
+import { IStorageService, Result, UploadData, WebdavConfig } from "../types";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { handleError } from "../common/ErrorHandler";
-import type { FileAutoUploadSettings, ConfigChangeListener, FileInfo } from "../types";
+import { ConfigChangeListener,StorageServiceType,StorageServiceConstructor } from "../types";
 import { logger } from "../common/Logger";
 import { requestUrl, RequestUrlParam, App, normalizePath } from "obsidian";
-import { StorageServiceType } from "./StorageServiceRegistry";
+import { AmazonS3StorageService } from "./providers/AmazonS3StorageService";
+import { AliyunOSSStorageService } from "./providers/AliyunOSSStorageService";
+import { TencentCOSStorageService } from "./providers/TencentCOSStorageService";
+import { CloudflareR2StorageService } from "./providers/CloudflareR2StorageService";
+import { WebdavStorageService } from "./providers/WebdavStorageService";
+
+export const StorageServiceTypeInfo: Record<
+  string,
+  { clazz: StorageServiceConstructor; serviceName: string }
+> = {
+  [StorageServiceType.AMAZON_S3]: {
+    clazz: AmazonS3StorageService,
+    serviceName: "Amazon S3",
+  },
+  [StorageServiceType.CLOUDFLARE_R2]: {
+    clazz: CloudflareR2StorageService,
+    serviceName: "Cloudflare R2",
+  },
+  [StorageServiceType.ALIYUN_OSS]: {
+    clazz: AliyunOSSStorageService,
+    serviceName: "Aliyun OSS",
+  },
+  [StorageServiceType.TENCENT_COS]: {
+    clazz: TencentCOSStorageService,
+    serviceName: "Tencent COS",
+  },
+  [StorageServiceType.WEBDAV]: {
+    clazz: WebdavStorageService,
+    serviceName: "WebDAV",
+  },
+};
+
 
 /**
  * Manages upload service instances and operations
@@ -26,33 +56,11 @@ export class StorageServiceManager {
    * Clears cached service instances when configuration changes
    */
   private initializeConfigChangeListener(): void {
-    const configChangeListener: ConfigChangeListener = (
-      changedSettings: Partial<FileAutoUploadSettings>,
-    ) => {
-      this.handleConfigChange(changedSettings);
+    const configChangeListener: ConfigChangeListener = () => {
+      this.dispose();
     };
 
     this.configurationManager.addConfigChangeListener(configChangeListener);
-  }
-
-  /**
-   * Handle configuration changes by clearing cached service instances
-   * Ensures fresh instances are created with updated configuration
-   */
-  private handleConfigChange(
-    _changedSettings: Partial<FileAutoUploadSettings>,
-  ): void {
-    // Dispose of existing service instances before clearing
-    this.serviceInstances.forEach((service) => {
-      if (service.dispose) {
-        service.dispose();
-      }
-    });
-    this.serviceInstances.clear();
-    logger.debug(
-      "ServiceManager",
-      "All service instance caches cleared, will be recreated on next use",
-    );
   }
 
   /**
@@ -76,7 +84,8 @@ export class StorageServiceManager {
     if (!storageServiceTypeInfo) {
       throw new Error(`Unknown service type: ${serviceType}`);
     }
-    const ServiceClass: StorageServiceConstructor = storageServiceTypeInfo.clazz;
+    const ServiceClass: StorageServiceConstructor =
+      storageServiceTypeInfo.clazz;
     const service = new ServiceClass(config);
     this.serviceInstances.set(serviceType, service);
     return service;
@@ -93,7 +102,10 @@ export class StorageServiceManager {
       const result = service.checkConnectionConfig();
 
       if (result.success) {
-        logger.debug("StorageServiceManager", "Check Connection config successful");
+        logger.debug(
+          "StorageServiceManager",
+          "Check Connection config successful",
+        );
       } else {
         logger.error(
           "StorageServiceManager",
@@ -123,7 +135,11 @@ export class StorageServiceManager {
       if (result.success) {
         logger.debug("StorageServiceManager", "Connection test successful");
       } else {
-        logger.error("StorageServiceManager", "Connection test failed", result.error);
+        logger.error(
+          "StorageServiceManager",
+          "Connection test failed",
+          result.error,
+        );
       }
 
       return result;
@@ -153,7 +169,10 @@ export class StorageServiceManager {
     if (this.configurationManager.isSkipDuplicateFiles()) {
       const result = await service.fileExistsByPrefix(key);
       if (result && result.success && result.data) {
-        logger.debug("StorageServiceManager", "uploadFile file exists, skipping");
+        logger.debug(
+          "StorageServiceManager",
+          "uploadFile file exists, skipping",
+        );
         if (onProgress) {
           onProgress(100);
         }
@@ -174,7 +193,10 @@ export class StorageServiceManager {
       const service = this.getService();
       return await service.deleteFile(key);
     } catch (error) {
-      logger.error("StorageServiceManager", "File deletion error", { key, error });
+      logger.error("StorageServiceManager", "File deletion error", {
+        key,
+        error,
+      });
       return handleError(error, "error.fileDeletionFailed");
     }
   }
@@ -195,15 +217,21 @@ export class StorageServiceManager {
   ): Promise<Result<{ localPath: string; fileName: string }>> {
     try {
       const decodedUrl = decodeURIComponent(url);
-      const fileName = decodeURIComponent(decodedUrl.split("/").pop() || "file");
+      const fileName = decodeURIComponent(
+        decodedUrl.split("/").pop() || "file",
+      );
 
-      const currentServiceType = this.configurationManager.getCurrentStorageService();
+      const currentServiceType =
+        this.configurationManager.getCurrentStorageService();
       const requestOptions: RequestUrlParam = { url };
-      
+
       if (currentServiceType === StorageServiceType.WEBDAV) {
-        const config = this.configurationManager.getCurrentStorageConfig();
+        const config =
+          this.configurationManager.getCurrentStorageConfig() as WebdavConfig;
         requestOptions.headers = {
-          Authorization: "Basic " + btoa(`${config.username}:${config.password}`),
+          Authorization:
+            "Basic " +
+            btoa(`${config.access_key_id}:${config.secret_access_key}`),
         };
       }
 
@@ -213,21 +241,38 @@ export class StorageServiceManager {
       }
 
       const firstUnderscoreIndex = fileName.indexOf("_");
-      const secondUnderscoreIndex = fileName.indexOf('_', firstUnderscoreIndex + 1);
-      const actualFileName = secondUnderscoreIndex > 0 ? fileName.substring(secondUnderscoreIndex + 1) : fileName;
+      const secondUnderscoreIndex = fileName.indexOf(
+        "_",
+        firstUnderscoreIndex + 1,
+      );
+      const actualFileName =
+        secondUnderscoreIndex > 0
+          ? fileName.substring(secondUnderscoreIndex + 1)
+          : fileName;
       const fullPath = normalizePath(
         await app.fileManager.getAvailablePathForAttachment(
           actualFileName,
           currentFilePath,
-        )
+        ),
       );
-      const created = await app.vault.createBinary(fullPath, response.arrayBuffer);
-      const localPath = created.path.replace(created.name, encodeURIComponent(created.name));
+      const created = await app.vault.createBinary(
+        fullPath,
+        response.arrayBuffer,
+      );
+      const localPath = created.path.replace(
+        created.name,
+        encodeURIComponent(created.name),
+      );
 
       return { success: true, data: { localPath, fileName: actualFileName } };
     } catch (error) {
-      const errorMessage = `Download failed: ${error instanceof Error ? error.message : String(error)}`;
-      logger.error("StorageServiceManager", errorMessage, { url });
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      logger.error(
+        "StorageServiceManager",
+        `Download failed: ${errorMessage}`,
+        { url },
+      );
       return { success: false, error: errorMessage };
     }
   }

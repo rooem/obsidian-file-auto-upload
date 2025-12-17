@@ -54,6 +54,8 @@ class Logger {
       "token",
       "apiKey",
       "api_key",
+      "authorization",
+      "bearer",
     ];
 
     for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {

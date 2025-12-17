@@ -1,11 +1,10 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import FileAutoUploadPlugin from "../main";
-import { StorageServiceType } from "../storage/StorageServiceRegistry";
 import { AutoUploadSettings } from "./AutoUploadSettings";
 import { StorageServiceSettings } from "./StorageServiceSettings";
 import { DeveloperSettings } from "./DeveloperSettings";
 import { t } from "../i18n";
-import type { FileAutoUploadSettings } from "../types";
+import { FileAutoUploadSettings,StorageServiceType } from "../types";
 
 // Re-export for backward compatibility
 export type { FileAutoUploadSettings } from "../types";

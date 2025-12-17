@@ -1,6 +1,5 @@
 import { AmazonS3StorageService } from "./AmazonS3StorageService";
-import { StorageServiceType } from "../StorageServiceRegistry";
-import { Result } from "../../types";
+import { Result, StorageServiceType } from "../../types";
 
 export class TencentCOSStorageService extends AmazonS3StorageService {
   protected type = StorageServiceType.TENCENT_COS;

@@ -30,10 +30,14 @@ export class ConfigurationManager {
    */
   public async loadSettings(): Promise<void> {
     try {
-      const loadedData = await this.load();
+      const loadedData = (await this.load()) as Partial<FileAutoUploadSettings>;
       this.settings = {
         ...DEFAULT_SETTINGS,
-        ...(loadedData !== null ? loadedData : {}),
+        ...loadedData,
+        storageServiceConfig: {
+          ...DEFAULT_SETTINGS.storageServiceConfig,
+          ...(loadedData?.storageServiceConfig || {}),
+        },
       };
     } catch (error) {
       logger.error("ConfigurationManager", "Failed to load settings", error);
@@ -62,7 +66,7 @@ export class ConfigurationManager {
    */
   public removeAllListener(): void {
     this.configChangeListeners.clear();
-    logger.debug("ConfigurationManager", "Config change listener all removed");;
+    logger.debug("ConfigurationManager", "Config change listener all removed");
   }
 
   /**
@@ -84,7 +88,20 @@ export class ConfigurationManager {
     newSettings: Partial<FileAutoUploadSettings>,
     needNotify?: boolean,
   ): Promise<void> {
-    this.settings = { ...this.settings, ...newSettings } as FileAutoUploadSettings;
+    // Deep merge storageServiceConfig to preserve all fields
+    if (newSettings.storageServiceConfig) {
+      newSettings = {
+        ...newSettings,
+        storageServiceConfig: {
+          ...this.settings.storageServiceConfig,
+          ...newSettings.storageServiceConfig,
+        },
+      };
+    }
+    this.settings = {
+      ...this.settings,
+      ...newSettings,
+    } as FileAutoUploadSettings;
 
     await this.saveData(this.settings);
 
@@ -114,7 +131,7 @@ export class ConfigurationManager {
    * @returns Public domain URL
    */
   public getPublicDomain(): string {
-    if(this.getCurrentStorageConfig().public_domain){
+    if (this.getCurrentStorageConfig().public_domain) {
       return this.getCurrentStorageConfig().public_domain as string;
     }
     return this.getCurrentStorageConfig().endpoint as string;
@@ -183,12 +200,11 @@ export class ConfigurationManager {
     const encryptedData = loadedData as EncryptedData;
 
     try {
-      const adapter = this.plugin.app.vault.adapter as { basePath?: string };
-      const vaultPath = adapter.basePath || this.plugin.app.vault.getName();
+      const vaultName =  this.plugin.app.vault.getName();
       const decrypted = await EncryptionHelper.decrypt(
         encryptedData.data,
         this.plugin.manifest.id,
-        vaultPath,
+        vaultName,
         this.plugin,
         encryptedData.salt,
       );
@@ -210,15 +226,12 @@ export class ConfigurationManager {
    */
   private async saveData(data: unknown): Promise<void> {
     const jsonString = JSON.stringify(data);
-    const adapter = this.plugin.app.vault.adapter as { basePath?: string };
-    const vaultPath = adapter.basePath || this.plugin.app.vault.getName();
-
-    // Generate a new salt for each encryption
+    const vaultName = this.plugin.app.vault.getName();
     const salt = this.generateSalt();
     const encrypted = await EncryptionHelper.encrypt(
       jsonString,
       this.plugin.manifest.id,
-      vaultPath,
+      vaultName,
       this.plugin,
       salt,
     );

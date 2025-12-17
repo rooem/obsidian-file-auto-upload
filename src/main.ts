@@ -3,7 +3,6 @@ import { FileAutoUploadSettingTab } from "./settings/FileAutoUploadSettingTab";
 import { ConfigurationManager } from "./settings/ConfigurationManager";
 import { EventHandlerManager } from "./handler/EventHandlerManager";
 import { StatusBar } from "./components/StatusBar";
-import { createWebdavImageExtension, WebdavImageLoaderService } from "./components/WebdavImageLoader";
 import { logger } from "./common/Logger";
 
 /**
@@ -13,7 +12,6 @@ import { logger } from "./common/Logger";
 export default class FileAutoUploadPlugin extends Plugin {
   public configurationManager!: ConfigurationManager;
   public eventHandlerManager!: EventHandlerManager;
-  private webdavImageLoader?: WebdavImageLoaderService;
 
   /**
    * Plugin initialization - called when plugin is loaded
@@ -35,7 +33,6 @@ export default class FileAutoUploadPlugin extends Plugin {
     logger.debug("FileAutoUploadPlugin", "Plugin unloading started");
     this.configurationManager.removeAllListener();
     this.eventHandlerManager.dispose();
-    this.webdavImageLoader?.destroy();
     logger.debug("FileAutoUploadPlugin", "Plugin unloaded successfully");
   }
 
@@ -51,13 +48,8 @@ export default class FileAutoUploadPlugin extends Plugin {
     this.eventHandlerManager = new EventHandlerManager(
       this.app,
       this.configurationManager,
-      statusBar
+      statusBar,
     );
-
-    // Register WebDAV image loader extension
-    const { extension, loader } = createWebdavImageExtension(this.configurationManager);
-    this.webdavImageLoader = loader;
-    this.registerEditorExtension(extension);
   }
 
   /**
@@ -70,8 +62,11 @@ export default class FileAutoUploadPlugin extends Plugin {
       this.app.workspace.on(
         "editor-paste",
         (event: ClipboardEvent, editor: Editor, view: MarkdownView) => {
-          this.eventHandlerManager.handleClipboardPaste(event, editor, view)
-            .catch((e) => logger.error("FileAutoUploadPlugin", "Paste handler error", e));
+          this.eventHandlerManager
+            .handleClipboardPaste(event, editor, view)
+            .catch((e) =>
+              logger.error("FileAutoUploadPlugin", "Paste handler error", e),
+            );
         },
       ),
     );
@@ -80,8 +75,11 @@ export default class FileAutoUploadPlugin extends Plugin {
       this.app.workspace.on(
         "editor-drop",
         (event: DragEvent, editor: Editor, view: MarkdownView) => {
-          this.eventHandlerManager.handleFileDrop(event, editor, view)
-            .catch((e) => logger.error("FileAutoUploadPlugin", "Drop handler error", e));
+          this.eventHandlerManager
+            .handleFileDrop(event, editor, view)
+            .catch((e) =>
+              logger.error("FileAutoUploadPlugin", "Drop handler error", e),
+            );
         },
       ),
     );
@@ -99,6 +97,16 @@ export default class FileAutoUploadPlugin extends Plugin {
       this.app.workspace.on("file-menu", (menu: Menu, file: TFile) => {
         this.eventHandlerManager.handleFileMenu(menu, file);
       }),
+    );
+
+    // Register WebDAV image loader extension
+    this.registerEditorExtension(
+      this.eventHandlerManager.createEditorExtension(),
+    );
+
+    // Register markdown post processor for reading view and PDF export
+    this.registerMarkdownPostProcessor(
+      this.eventHandlerManager.createMarkdownPostProcessor(),
     );
   }
 }
