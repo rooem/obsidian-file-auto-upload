@@ -123,6 +123,12 @@ export default {
   "upload.localFile": "Upload file(file auto upload)",
   "upload.allLocalFiles": "Upload all files(file auto upload)",
   "upload.noFiles": "No uploadable files found",
+  "upload.folderFiles": "Upload files(file auto upload)",
+  "upload.folderScanTitle": "Folder Scan Result",
+  "upload.folderScanResult": "Found {docs} documents, {files} uploadable files",
+  "upload.folderUploadBtn": "Upload",
+  "upload.folderScanClose": "Close",
+  "upload.scanning": "Scanning",
 
   // Download
   "download.menuTitle": "Download file(file auto upload)",

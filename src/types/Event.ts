@@ -20,6 +20,7 @@ export interface FileProcessItem extends BaseProcessItem {
   value: File;
   extension: string;
   localPath?: string;
+  docPath?: string;
 }
 
 export interface DeleteProcessItem extends BaseProcessItem {

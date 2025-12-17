@@ -1,4 +1,4 @@
-import { Plugin, MarkdownView, Menu, Editor, TFile } from "obsidian";
+import { Plugin, MarkdownView, Menu, Editor, TFile, TFolder } from "obsidian";
 import { FileAutoUploadSettingTab } from "./settings/FileAutoUploadSettingTab";
 import { ConfigurationManager } from "./settings/ConfigurationManager";
 import { EventHandlerManager } from "./handler/EventHandlerManager";
@@ -94,8 +94,12 @@ export default class FileAutoUploadPlugin extends Plugin {
     );
 
     this.registerEvent(
-      this.app.workspace.on("file-menu", (menu: Menu, file: TFile) => {
-        this.eventHandlerManager.handleFileMenu(menu, file);
+      this.app.workspace.on("file-menu", (menu: Menu, file: TFile | TFolder) => {
+        if (file instanceof TFolder) {
+          this.eventHandlerManager.handleFolderMenu(menu, file);
+        } else {
+          this.eventHandlerManager.handleFileMenu(menu, file);
+        }
       }),
     );
 

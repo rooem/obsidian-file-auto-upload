@@ -6,6 +6,7 @@ import {
   MenuItem,
   Editor,
   TFile,
+  TFolder,
   normalizePath,
 } from "obsidian";
 import { Extension } from "@codemirror/state";
@@ -16,6 +17,7 @@ import { StatusBar } from "../components/StatusBar";
 import { UploadEventHandler } from "./providers/UploadEventHandler";
 import { DeleteEventHandler } from "./providers/DeleteEventHandler";
 import { DownloadHandler } from "./providers/DownloadHandler";
+import { FolderUploadHandler } from "./providers/FolderUploadHandler";
 import { WebdavImageLoader } from "../components/WebdavImageLoader";
 import { t } from "../i18n";
 import { logger } from "../common/Logger";
@@ -48,6 +50,7 @@ export class EventHandlerManager {
   private _uploadEventHandler?: UploadEventHandler;
   private _deleteEventHandler?: DeleteEventHandler;
   private _downloadHandler?: DownloadHandler;
+  private _folderUploadHandler?: FolderUploadHandler;
   private _webdavImageLoader?: WebdavImageLoader;
 
   constructor(
@@ -145,6 +148,20 @@ export class EventHandlerManager {
     }
     this.handleDownloadAllFilesFromFile(menu, file);
     this.handleUploadAllFilesFromFile(menu, file);
+  }
+
+  /**
+   * Handle folder context menu in file explorer
+   * Adds upload option for all files in folder
+   * @param menu - Context menu to add items to
+   * @param folder - Target folder for the context menu
+   */
+  public handleFolderMenu(menu: Menu, folder: TFolder): void {
+    menu.addItem((item) => {
+      item.setTitle(t("upload.folderFiles")).setIcon("upload").onClick(async () => {
+        await this.folderUploadHandler.scanAndShowFolderFiles(folder);
+      });
+    });
   }
 
   /**
@@ -277,6 +294,17 @@ export class EventHandlerManager {
       );
     }
     return this._downloadHandler;
+  }
+
+  private get folderUploadHandler(): FolderUploadHandler {
+    if (!this._folderUploadHandler) {
+      this._folderUploadHandler = new FolderUploadHandler(
+        this.app,
+        this.configurationManager,
+        this.storageServiceManager,
+      );
+    }
+    return this._folderUploadHandler;
   }
 
   private get webdavImageLoader(): WebdavImageLoader {
