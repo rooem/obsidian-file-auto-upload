@@ -48,11 +48,24 @@ export abstract class BaseStorageService implements IStorageService {
       const testFile = new File([`Connection test - ${new Date().toISOString()}`], "test.txt", { type: "text/plain" });
       const result = await this.uploadFile(testFile, "test/connection-test.txt");
 
-      if (result.success && result.data?.key) {
-        await this.deleteFile(result.data.key, result.data.sha);
-        return { success: true };
+      if (!result.success || !result.data?.key) {
+        return { success: false, error: result.error || "Upload test failed" };
       }
-      return { success: false, error: result.error || "Connection test failed" };
+
+      const publicUrl = this.getPublicUrl(result.data.key);
+      try {
+        const response = await requestUrl({ url: publicUrl });
+        if (response.status < 200 || response.status >= 300) {
+          await this.deleteFile(result.data.key, result.data.sha);
+          return { success: false, error: `Public domain access failed: HTTP ${response.status}` };
+        }
+      } catch (error) {
+        await this.deleteFile(result.data.key, result.data.sha);
+        return { success: false, error: `Public domain access failed: ${error instanceof Error ? error.message : String(error)}` };
+      }
+
+      await this.deleteFile(result.data.key, result.data.sha);
+      return { success: true };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
@@ -81,13 +94,13 @@ export abstract class BaseStorageService implements IStorageService {
     const startTime = Date.now();
     // Estimate: ~500KB/s for small files, slower for larger files
     const estimatedDuration = Math.max(500, Math.min(fileSize / 500, 10000));
-    
+
     return setInterval(() => {
       const elapsed = Date.now() - startTime;
       // Use logarithmic curve for more realistic progress simulation
       // Fast at start, slows down as it approaches completion
       const targetProgress = Math.min(95, (Math.log(elapsed + 100) / Math.log(estimatedDuration + 100)) * 95);
-      
+
       // Smooth transition: move 20% of the remaining distance each tick
       progress = progress + (targetProgress - progress) * 0.2;
       onProgress(Math.round(progress));

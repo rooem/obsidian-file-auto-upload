@@ -1,9 +1,8 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import { AmazonS3StorageService } from "./AmazonS3StorageService";
-import { Result, StorageServiceType } from "../../types";
+import { Result } from "../../types";
 
 export class AliyunOSSStorageService extends AmazonS3StorageService {
-  protected type = StorageServiceType.ALIYUN_OSS;
 
   protected createS3Client(): S3Client {
     return new S3Client({

@@ -1,8 +1,7 @@
 import { AmazonS3StorageService } from "./AmazonS3StorageService";
-import { Result, StorageServiceType } from "../../types";
+import { Result } from "../../types";
 
 export class TencentCOSStorageService extends AmazonS3StorageService {
-  protected type = StorageServiceType.TENCENT_COS;
 
   public checkConnectionConfig(): Result {
     return this.validateCommonConfig();

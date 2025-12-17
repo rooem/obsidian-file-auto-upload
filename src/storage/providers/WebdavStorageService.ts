@@ -7,13 +7,14 @@ import { LruCache } from "../../common/LruCache";
 import { requestUrl, RequestUrlParam } from "obsidian";
 import { BaseStorageService } from "./BaseStorageService";
 
-const HTTP_STATUS = { OK: 200, CREATED: 201, NO_CONTENT: 204, NOT_FOUND: 404, METHOD_NOT_ALLOWED: 405 } as const;
+const HTTP_STATUS = { OK: 200, CREATED: 201, NO_CONTENT: 204, NOT_FOUND: 404, METHOD_NOT_ALLOWED: 405, MULTI_STATUS: 207 } as const;
+const HREF_TAGS = ["d:href", "D:href", "href"] as const;
 
 export class WebdavStorageService extends BaseStorageService {
   protected serviceName = "WebdavStorageService";
   private config: WebdavConfig;
-  // 1000 entries max, 10 minutes TTL per entry
-  private prefixCache = new LruCache<string>(1000, 10 * 60 * 1000);
+  private prefixCache = new LruCache<string>(500, 10 * 60 * 1000);
+  private createdDirs = new Set<string>();
 
   constructor(config: StorageServiceConfig) {
     super();
@@ -152,41 +153,16 @@ export class WebdavStorageService extends BaseStorageService {
         headers: { Depth: "1" },
       });
 
-      if (response.status === HTTP_STATUS.OK || response.status === 207) {
-        logger.debug("WebdavUploader", "PROPFIND response", {
-          status: response.status,
-          textLength: response.text?.length,
-          textPreview: response.text?.substring(0, 500),
-        });
-
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(response.text, "text/xml");
-
-        // Try different namespace prefixes
-        let hrefs = xmlDoc.getElementsByTagName("d:href");
-        if (hrefs.length === 0) {
-          hrefs = xmlDoc.getElementsByTagName("D:href");
-        }
-        if (hrefs.length === 0) {
-          hrefs = xmlDoc.getElementsByTagName("href");
-        }
-
-        logger.debug("WebdavUploader", "Found hrefs", { count: hrefs.length });
-
-        for (let i = 0; i < hrefs.length; i++) {
-          const href = decodeURIComponent(hrefs[i].textContent || "");
+      if (response.status === HTTP_STATUS.OK || response.status === HTTP_STATUS.MULTI_STATUS) {
+        const hrefs = this.parseHrefsFromXml(response.text);
+        for (const href of hrefs) {
           const fileName = href.substring(href.lastIndexOf("/") + 1);
           const pre = fileName.substring(0, fileName.indexOf("_"));
-          if (!pre) {
-            continue;
-          }
+          if (!pre) continue;
 
           this.prefixCache.set(pre, fileName);
           if (prefix === pre) {
-            return {
-              success: true,
-              data: { url: this.getPublicUrl(fileName), key: fileName },
-            };
+            return { success: true, data: { url: this.getPublicUrl(fileName), key: fileName } };
           }
         }
       }
@@ -207,6 +183,7 @@ export class WebdavStorageService extends BaseStorageService {
 
   public override dispose(): void {
     this.prefixCache.clear();
+    this.createdDirs.clear();
     super.dispose();
   }
 
@@ -215,7 +192,6 @@ export class WebdavStorageService extends BaseStorageService {
   }
 
   // ==================== Private Helpers ====================
-
   private async request(
     params: Omit<RequestUrlParam, "headers"> & {
       headers?: Record<string, string>;
@@ -245,27 +221,20 @@ export class WebdavStorageService extends BaseStorageService {
 
   private async ensureDirectoryExists(key: string): Promise<void> {
     const parts = key.split("/").slice(0, -1);
-    if (parts.length === 0) {
-      return;
-    }
+    if (parts.length === 0) return;
 
     let currentPath = "";
     for (const part of parts) {
       currentPath = currentPath ? `${currentPath}/${part}` : part;
+      if (this.createdDirs.has(currentPath)) continue;
 
       const response = await this.request({
         url: this.buildUrl(currentPath) + "/",
         method: "MKCOL",
       });
 
-      if (
-        response.status !== HTTP_STATUS.CREATED &&
-        response.status !== HTTP_STATUS.METHOD_NOT_ALLOWED
-      ) {
-        logger.debug("WebdavUploader", "MKCOL response", {
-          path: currentPath,
-          status: response.status,
-        });
+      if (response.status === HTTP_STATUS.CREATED || response.status === HTTP_STATUS.METHOD_NOT_ALLOWED) {
+        this.createdDirs.add(currentPath);
       }
     }
   }
@@ -300,10 +269,14 @@ export class WebdavStorageService extends BaseStorageService {
     );
   }
 
-  private formatError(error: unknown): Result {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
+  private parseHrefsFromXml(xml: string): string[] {
+    const doc = new DOMParser().parseFromString(xml, "text/xml");
+    for (const tag of HREF_TAGS) {
+      const elements = doc.getElementsByTagName(tag);
+      if (elements.length > 0) {
+        return Array.from(elements).map((el) => decodeURIComponent(el.textContent || ""));
+      }
+    }
+    return [];
   }
 }

@@ -11,7 +11,6 @@ export class AmazonS3StorageService extends BaseStorageService {
   protected serviceName = "AmazonS3StorageService";
   protected config: S3Config;
   protected s3Client: S3Client;
-  protected type: string = StorageServiceType.AMAZON_S3;
 
   constructor(config: StorageServiceConfig) {
     super();
@@ -281,4 +280,5 @@ export class AmazonS3StorageService extends BaseStorageService {
     }
     return (endpoint = endpoint.replace(/\/+$/, ""));
   }
+
 }
