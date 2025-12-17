@@ -1,36 +1,13 @@
-export const IMAGE_EXTENSIONS = [
-  "jpg",
-  "jpeg",
-  "png",
-  "gif",
-  "bmp",
-  "webp",
-  "svg",
-] as const;
-export const VIDEO_EXTENSIONS = [
-  "mp4",
-  "avi",
-  "mov",
-  "wmv",
-  "flv",
-  "webm",
-] as const;
-export const AUDIO_EXTENSIONS = ["mp3", "wav", "flac", "aac", "ogg"] as const;
+import { Constants, ImageExtension, VideoExtension, AudioExtension, MediaExtension } from "./Constants";
 
-export const MEDIA_EXTENSIONS = [
-  ...IMAGE_EXTENSIONS,
-  ...VIDEO_EXTENSIONS,
-  ...AUDIO_EXTENSIONS,
-] as const;
-
-export type ImageExtension = (typeof IMAGE_EXTENSIONS)[number];
-export type VideoExtension = (typeof VIDEO_EXTENSIONS)[number];
-export type AudioExtension = (typeof AUDIO_EXTENSIONS)[number];
-export type MediaExtension = (typeof MEDIA_EXTENSIONS)[number];
-
-export const RANDOM_STRING_LENGTH = 7;
-export const RANDOM_STRING_START_INDEX = 2;
-export const MULTIPART_UPLOAD_THRESHOLD = 5 * 1024 * 1024; // 5MB
+export { ImageExtension, VideoExtension, AudioExtension, MediaExtension };
+export const IMAGE_EXTENSIONS = Constants.IMAGE_EXTENSIONS;
+export const VIDEO_EXTENSIONS = Constants.VIDEO_EXTENSIONS;
+export const AUDIO_EXTENSIONS = Constants.AUDIO_EXTENSIONS;
+export const MEDIA_EXTENSIONS = Constants.MEDIA_EXTENSIONS;
+export const RANDOM_STRING_LENGTH = Constants.RANDOM_STRING_LENGTH;
+export const RANDOM_STRING_START_INDEX = Constants.RANDOM_STRING_START_INDEX;
+export const MULTIPART_UPLOAD_THRESHOLD = Constants.MULTIPART_UPLOAD_THRESHOLD;
 
 /**
  * Check if extension belongs to a specific media type

@@ -3,11 +3,12 @@ import { t } from "../../i18n";
 import { handleError } from "../../common/ErrorHandler";
 import { logger } from "../../common/Logger";
 import { generateFileKey } from "../../common/FileUtils";
+import { Constants } from "../../common/Constants";
 import { LruCache } from "../../common/LruCache";
 import { requestUrl, RequestUrlParam } from "obsidian";
 import { BaseStorageService } from "./BaseStorageService";
 
-const HTTP_STATUS = { OK: 200, CREATED: 201, NO_CONTENT: 204, NOT_FOUND: 404, METHOD_NOT_ALLOWED: 405, MULTI_STATUS: 207 } as const;
+const HTTP_STATUS = Constants.HTTP_STATUS;
 const HREF_TAGS = ["d:href", "D:href", "href"] as const;
 
 export class WebdavStorageService extends BaseStorageService {

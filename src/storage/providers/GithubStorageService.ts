@@ -4,10 +4,12 @@ import { t } from "../../i18n";
 import { handleError } from "../../common/ErrorHandler";
 import { logger } from "../../common/Logger";
 import { generateFileKey } from "../../common/FileUtils";
+import { Constants } from "../../common/Constants";
 import { BaseStorageService } from "./BaseStorageService";
 import { GITHUB_CDN_OPTIONS } from "../../settings/StorageServiceSettings";
 
 const GITHUB_API_BASE = "https://api.github.com";
+const HTTP_STATUS = Constants.HTTP_STATUS;
 
 interface GithubContentResponse {
   sha?: string;
@@ -82,7 +84,7 @@ export class GithubStorageService extends BaseStorageService {
 
       if (progressInterval) clearInterval(progressInterval);
 
-      if (response.status >= 400) {
+      if (response.status >= HTTP_STATUS.NOT_FOUND) {
         return { success: false, error: `Upload failed: ${response.text}` };
       }
 
@@ -129,7 +131,7 @@ export class GithubStorageService extends BaseStorageService {
         throw: false,
       });
 
-      if (response.status < 400) {
+      if (response.status < HTTP_STATUS.NOT_FOUND) {
         logger.debug("GithubStorageService", "Delete successful", { key });
         return { success: true };
       }
@@ -182,7 +184,7 @@ export class GithubStorageService extends BaseStorageService {
         headers: this.headers as Record<string, string>,
         throw: false,
       });
-      if (response.status < 400) {
+      if (response.status < HTTP_STATUS.NOT_FOUND) {
         return (response.json as GithubContentResponse).sha || null;
       }
       return null;

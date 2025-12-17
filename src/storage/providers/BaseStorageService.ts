@@ -1,6 +1,9 @@
 import { Result, UploadData, IStorageService, UploadProgressCallback } from "../../types";
 import { logger } from "../../common/Logger";
+import { Constants } from "../../common/Constants";
 import { requestUrl, RequestUrlParam } from "obsidian";
+
+const HTTP_STATUS = Constants.HTTP_STATUS;
 
 export abstract class BaseStorageService implements IStorageService {
   protected abstract serviceName: string;
@@ -54,8 +57,11 @@ export abstract class BaseStorageService implements IStorageService {
 
       const publicUrl = this.getPublicUrl(result.data.key);
       try {
-        const response = await requestUrl({ url: publicUrl });
-        if (response.status < 200 || response.status >= 300) {
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Request timeout")), 5000),
+        );
+        const response = await Promise.race([requestUrl({ url: publicUrl, throw: false }), timeoutPromise]);
+        if (response.status < HTTP_STATUS.OK || response.status >= 300) {
           await this.deleteFile(result.data.key, result.data.sha);
           return { success: false, error: `Public domain access failed: HTTP ${response.status}` };
         }

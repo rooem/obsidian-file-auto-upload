@@ -19,6 +19,7 @@ import { DownloadHandler } from "./providers/DownloadHandler";
 import { WebdavImageLoader } from "../components/WebdavImageLoader";
 import { t } from "../i18n";
 import { logger } from "../common/Logger";
+import { Constants } from "../common/Constants";
 import { extractFileKeyFromUrl, generateUniqueId } from "../common/FileUtils";
 import {
   findSupportedFilePath,
@@ -186,11 +187,10 @@ export class EventHandlerManager {
    * Uses concurrency limit to avoid loading too many images simultaneously
    */
   public createMarkdownPostProcessor() {
-    const MAX_CONCURRENT = 5;
     return async (el: HTMLElement, _ctx: MarkdownPostProcessorContext) => {
       const images = Array.from(el.querySelectorAll("img"));
-      for (let i = 0; i < images.length; i += MAX_CONCURRENT) {
-        const batch = images.slice(i, i + MAX_CONCURRENT);
+      for (let i = 0; i < images.length; i += Constants.MAX_CONCURRENT) {
+        const batch = images.slice(i, i + Constants.MAX_CONCURRENT);
         await Promise.all(
           batch.map((img) => this.webdavImageLoader.loadImage(img, true)),
         );
