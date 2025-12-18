@@ -100,7 +100,8 @@ export function generateFileKey(fileName: string, uniqueId?: string): string {
 
   const extension = fileName.split(".").pop();
   const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf("."));
-  return `${timestamp}_${nameWithoutExt}.${extension}`;
+  const encodedName = encodeURIComponent(nameWithoutExt);
+  return `${timestamp}_${encodedName}.${extension}`;
 }
 
 /**

@@ -126,6 +126,11 @@ export class EventHandlerManager {
       return;
     }
 
+    // Check if any file has supported type before preventing default
+    if (!this.hasSupportedFile(evt.dataTransfer.items)) {
+      return;
+    }
+
     if (this.canHandle(evt.dataTransfer.items)) {
       evt.preventDefault();
       const processItems = await this.getProcessItemList(
@@ -411,6 +416,26 @@ export class EventHandlerManager {
   }
 
   /**
+   * Check if any file in the list has a supported type for upload
+   */
+  private hasSupportedFile(items: DataTransferItemList): boolean {
+    const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === "file") {
+        const file = item.getAsFile();
+        if (file) {
+          const ext = file.name.split(".").pop()?.toLowerCase();
+          if (ext && supportedTypes.includes(ext)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * Check if items can be handled for processing
    * Validates connection configuration before proceeding
    */
@@ -507,7 +532,12 @@ export class EventHandlerManager {
 
     for (const filePath of filePathList) {
       try {
-        const decodedPath = normalizePath(decodeURIComponent(filePath));
+        let decodedPath: string;
+        try {
+          decodedPath = normalizePath(decodeURIComponent(filePath));
+        } catch {
+          decodedPath = normalizePath(filePath);
+        }
         const tfile = this.app.metadataCache.getFirstLinkpathDest(
           decodedPath,
           activeFile.path,

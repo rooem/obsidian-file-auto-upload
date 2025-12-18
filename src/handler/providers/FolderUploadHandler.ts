@@ -9,6 +9,17 @@ import { BaseEventHandler } from "./BaseEventHandler";
 import { ProcessItem } from "../../types/index";
 
 /**
+ * Normalize and decode file path safely
+ */
+function normalizeFilePath(filePath: string): string {
+  try {
+    return normalizePath(decodeURIComponent(filePath));
+  } catch {
+    return normalizePath(filePath);
+  }
+}
+
+/**
  * Handles folder scanning and batch file upload operations
  */
 export class FolderUploadHandler extends BaseEventHandler {
@@ -22,7 +33,7 @@ export class FolderUploadHandler extends BaseEventHandler {
   }
 
   protected async processItem(_processItem: ProcessItem): Promise<void> {
-    // Not used for folder upload, implemented for abstract requirement
+    // Not used - upload logic is in uploadFolderFiles
   }
 
   /**
@@ -70,75 +81,78 @@ export class FolderUploadHandler extends BaseEventHandler {
     files: Array<{ filePath: string; docPath: string }>,
     onProgress: (current: number, total: number) => void
   ): Promise<void> {
-    const filesByDoc = new Map<string, Array<{ filePath: string; file: File }>>();
-
-    for (const { filePath, docPath } of files) {
-      try {
-        const decodedPath = normalizePath(decodeURIComponent(filePath));
-        const tfile = this.app.metadataCache.getFirstLinkpathDest(decodedPath, docPath);
-        let arrayBuffer: ArrayBuffer;
-        let file: File;
-        if (tfile instanceof TFile) {
-          arrayBuffer = await this.app.vault.readBinary(tfile);
-          file = new File([new Blob([arrayBuffer])], tfile.name);
-        } else {
-          arrayBuffer = await this.app.vault.adapter.readBinary(decodedPath);
-          file = new File([new Blob([arrayBuffer])], decodedPath.split("/").pop() || "file");
-        }
-
-        if (!filesByDoc.has(docPath)) {
-          filesByDoc.set(docPath, []);
-        }
-        filesByDoc.get(docPath)!.push({ filePath, file });
-      } catch (error) {
-        logger.error("FolderUploadHandler", "Failed to read file", { filePath, error });
-      }
-    }
-
     let uploadedCount = 0;
     const totalFiles = files.length;
 
+    // Group files by document
+    const filesByDoc = new Map<string, Array<{ filePath: string; docPath: string }>>();
+    for (const item of files) {
+      if (!filesByDoc.has(item.docPath)) {
+        filesByDoc.set(item.docPath, []);
+      }
+      filesByDoc.get(item.docPath)!.push(item);
+    }
+
+    // Process each document sequentially to avoid concurrent modification
     for (const [docPath, docFiles] of filesByDoc) {
-      const docFile = this.app.vault.getAbstractFileByPath(docPath);
-      if (!(docFile instanceof TFile)) continue;
-
-      const replacements: Array<{ localPath: string; url: string }> = [];
-
-      const uploadPromises = docFiles.map(({ filePath, file }) =>
+      // Upload files concurrently using concurrencyController
+      const uploadPromises = docFiles.map(({ filePath }) =>
         this.concurrencyController.run(async () => {
-          const uploadResult = await this.uploadSingleFile(file);
-          uploadedCount++;
-          onProgress(uploadedCount, totalFiles);
-          if (uploadResult) {
-            replacements.push({ localPath: filePath, url: uploadResult });
+          try {
+            const decodedPath = normalizeFilePath(filePath);
+            const tfile = this.app.metadataCache.getFirstLinkpathDest(decodedPath, docPath);
+            let file: File;
+            if (tfile instanceof TFile) {
+              const arrayBuffer = await this.app.vault.readBinary(tfile);
+              file = new File([new Blob([arrayBuffer])], tfile.name);
+            } else {
+              const arrayBuffer = await this.app.vault.adapter.readBinary(decodedPath);
+              file = new File([new Blob([arrayBuffer])], decodedPath.split("/").pop() || "file");
+            }
+
+            const id = generateUniqueId("u", file);
+            const key = generateFileKey(file.name, id);
+            const result = await this.storageServiceManager.uploadFile(file, key);
+
+            uploadedCount++;
+            onProgress(uploadedCount, totalFiles);
+
+            return {
+              filePath,
+              url: result.success && result.data ? result.data.url : null,
+            };
+          } catch (error) {
+            uploadedCount++;
+            onProgress(uploadedCount, totalFiles);
+            logger.error("FolderUploadHandler", "Failed to upload file", { filePath, error });
+            return { filePath, url: null };
           }
         })
       );
-      await Promise.all(uploadPromises);
 
-      if (replacements.length > 0) {
-        let content = await this.app.vault.read(docFile);
-        for (const { localPath, url } of replacements) {
-          content = content.split(localPath).join(url);
+      const results = await Promise.all(uploadPromises);
+
+      // Apply all replacements for this document
+      const successfulResults = results.filter((r) => r.url !== null);
+      if (successfulResults.length > 0) {
+        const docFile = this.app.vault.getAbstractFileByPath(docPath);
+        if (docFile instanceof TFile) {
+          let content = await this.app.vault.read(docFile);
+          for (const { filePath, url } of successfulResults) {
+            // Try both encoded and decoded versions for replacement
+            content = content.split(filePath).join(url!);
+            try {
+              const decoded = decodeURIComponent(filePath);
+              if (decoded !== filePath) {
+                content = content.split(decoded).join(url!);
+              }
+            } catch {
+              // Ignore decode errors
+            }
+          }
+          await this.app.vault.modify(docFile, content);
         }
-        await this.app.vault.modify(docFile, content);
       }
-    }
-  }
-
-  private async uploadSingleFile(file: File): Promise<string | null> {
-    const id = generateUniqueId("u", file);
-
-    try {
-      const key = generateFileKey(file.name, id);
-      const result = await this.storageServiceManager.uploadFile(file, key);
-
-      if (result.success && result.data) {
-        return result.data.url;
-      }
-      return null;
-    } catch {
-      return null;
     }
   }
 }

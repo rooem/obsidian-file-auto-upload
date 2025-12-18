@@ -173,9 +173,10 @@ export class UploadEventHandler extends BaseEventHandler {
         await file.arrayBuffer(),
       );
 
+      const encodedPath = encodeURI(created.path);
       const markdown = isImageExtension(processItem.extension)
-        ? `![${file.name}](${created.path})`
-        : `[${file.name}](${created.path})`;
+        ? `![${file.name}](${encodedPath})`
+        : `[${file.name}](${encodedPath})`;
       this.replacePlaceholder(processItem.id, markdown);
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
