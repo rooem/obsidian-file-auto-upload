@@ -116,7 +116,7 @@ export default {
   "upload.allLocalFiles": "上传所有文件（file auto upload）",
   "upload.noFiles": "未发现可上传的文件",
   "upload.folderFiles": "上传文件（file auto upload）",
-  "upload.folderScanTitle": "文件夹扫描结果",
+  "upload.folderScanTitle": "文件扫描结果",
   "upload.folderScanResult": "共 {docs} 个文档，发现 {files} 个可上传文件",
   "upload.folderUploadBtn": "上传",
   "upload.folderScanClose": "关闭",

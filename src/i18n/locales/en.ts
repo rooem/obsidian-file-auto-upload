@@ -124,7 +124,7 @@ export default {
   "upload.allLocalFiles": "Upload all files(file auto upload)",
   "upload.noFiles": "No uploadable files found",
   "upload.folderFiles": "Upload files(file auto upload)",
-  "upload.folderScanTitle": "Folder Scan Result",
+  "upload.folderScanTitle": "File Scan Result",
   "upload.folderScanResult": "Found {docs} documents, {files} uploadable files",
   "upload.folderUploadBtn": "Upload",
   "upload.folderScanClose": "Close",
