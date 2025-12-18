@@ -84,8 +84,19 @@ export class GithubStorageService extends BaseStorageService {
 
       if (progressInterval) clearInterval(progressInterval);
 
-      if (response.status >= HTTP_STATUS.NOT_FOUND) {
-        return { success: false, error: `Upload failed: ${response.text}` };
+      // GitHub API returns 200 (update) or 201 (create) on success
+      if (response.status !== HTTP_STATUS.OK && response.status !== HTTP_STATUS.CREATED) {
+        // If upload failed due to conflict (409/422), try to get existing file URL
+        if (response.status === 409 || response.status === 422) {
+          const sha = await this.getFileSha(filePath);
+          if (sha) {
+            const publicUrl = this.getPublicUrl(filePath);
+            logger.debug("GithubStorageService", "File conflict, returning existing URL", { fileName: file.name, url: publicUrl });
+            return { success: true, data: { url: publicUrl, key: filePath, sha } };
+          }
+        }
+        logger.error("GithubStorageService", "Upload failed", { fileName: file.name, status: response.status, text: response.text });
+        return { success: false, error: `Upload failed (${response.status}): ${response.text}` };
       }
 
       onProgress?.(100);

@@ -1,4 +1,15 @@
+import { App, TFile, TFolder } from "obsidian";
 import { isFileTypeSupported } from "./FileUtils";
+
+export interface UploadableFile {
+  filePath: string;
+  docPath: string;
+}
+
+export interface FolderScanResult {
+  totalDocs: number;
+  uploadableFiles: UploadableFile[];
+}
 
 interface MarkdownLink {
   fullMatch: string;
@@ -141,4 +152,48 @@ function isUploadedFileLink(url: string, publicDomain: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Scan folder or file for uploadable files
+ */
+export async function scanFolderForUploadableFiles(
+  app: App,
+  target: TFile | TFolder,
+  supportedTypes: string[],
+  onProgress?: (current: number, total: number) => void
+): Promise<FolderScanResult> {
+  const result: FolderScanResult = { totalDocs: 0, uploadableFiles: [] };
+
+  const allFiles: TFile[] = [];
+  
+  if (target instanceof TFile) {
+    if (target.extension === "md") {
+      allFiles.push(target);
+    }
+  } else {
+    const collectFiles = (f: TFolder) => {
+      for (const child of f.children) {
+        if (child instanceof TFolder) {
+          collectFiles(child);
+        } else if (child instanceof TFile && child.extension === "md") {
+          allFiles.push(child);
+        }
+      }
+    };
+    collectFiles(target);
+  }
+
+  for (let i = 0; i < allFiles.length; i++) {
+    const file = allFiles[i];
+    result.totalDocs++;
+    onProgress?.(i + 1, allFiles.length);
+    const content = await app.vault.cachedRead(file);
+    const localFiles = findSupportedFilePath(content, supportedTypes);
+    localFiles.forEach((filePath) => {
+      result.uploadableFiles.push({ filePath, docPath: file.path });
+    });
+  }
+
+  return result;
 }

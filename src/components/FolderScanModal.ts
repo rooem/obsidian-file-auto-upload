@@ -1,10 +1,6 @@
 import { App, Modal, Setting } from "obsidian";
 import { t } from "../i18n";
-
-export interface FolderScanResult {
-  totalDocs: number;
-  uploadableFiles: Array<{ filePath: string; docPath: string }>;
-}
+import { FolderScanResult } from "../common/MarkdownLinkFinder";
 
 /**
  * Modal dialog for folder scan results with progress

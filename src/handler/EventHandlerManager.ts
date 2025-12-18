@@ -26,7 +26,10 @@ import { extractFileKeyFromUrl, generateUniqueId } from "../common/FileUtils";
 import {
   findSupportedFilePath,
   findUploadedFileLinks,
+  scanFolderForUploadableFiles,
+  FolderScanResult,
 } from "../common/MarkdownLinkFinder";
+import { FolderScanModal } from "../components/FolderScanModal";
 import {
   EventType,
   ProcessItem,
@@ -152,7 +155,7 @@ export class EventHandlerManager {
       return;
     }
     this.handleDownloadAllFilesFromFile(menu, file);
-    this.handleUploadAllFilesFromFile(menu, file);
+    this.addUploadAllLocalFilesMenu(menu, file);
   }
 
   /**
@@ -162,9 +165,38 @@ export class EventHandlerManager {
    * @param folder - Target folder for the context menu
    */
   public handleFolderMenu(menu: Menu, folder: TFolder): void {
+    this.addUploadAllLocalFilesMenu(menu, folder);
+  }
+
+  /**
+   * Add upload all local files menu item
+   * Works for both single file and folder
+   */
+  private addUploadAllLocalFilesMenu(menu: Menu, target: TFile | TFolder): void {
     menu.addItem((item) => {
-      item.setTitle(t("upload.folderFiles")).setIcon("upload").onClick(async () => {
-        await this.folderUploadHandler.scanAndShowFolderFiles(folder);
+      item.setTitle(t("upload.allLocalFiles")).setIcon("upload").onClick(async () => {
+        const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
+        const result: FolderScanResult = { totalDocs: 0, uploadableFiles: [] };
+        
+        const modal = new FolderScanModal(
+          this.app,
+          result,
+          (onProgress) => this.folderUploadHandler.handleUploadFiles(result.uploadableFiles, onProgress)
+        );
+        modal.open();
+
+        const scanResult = await scanFolderForUploadableFiles(
+          this.app,
+          target,
+          supportedTypes,
+          (current, total) => modal.updateScanProgress(current, total)
+        );
+        
+        result.totalDocs = scanResult.totalDocs;
+        result.uploadableFiles = scanResult.uploadableFiles;
+        
+        modal.contentEl.empty();
+        modal.onOpen();
       });
     });
   }
@@ -365,19 +397,6 @@ export class EventHandlerManager {
       type: "download",
       url,
     }));
-  }
-
-  private handleUploadAllFilesFromFile(menu: Menu, file: TFile): void {
-    menu.addItem((item) => {
-      item.setTitle(t("upload.allLocalFiles")).setIcon("upload").onClick(async () => {
-        const localFiles = this.getLocalFiles(await this.app.vault.read(file));
-        if (!localFiles.length) {
-          new Notice(t("upload.noFiles"), 1000);
-          return;
-        }
-        await this.uploadLocalFiles(localFiles);
-      });
-    });
   }
 
   private getLocalFiles(content: string): string[] {
