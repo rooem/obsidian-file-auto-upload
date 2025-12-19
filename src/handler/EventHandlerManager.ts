@@ -14,8 +14,8 @@ import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { StorageServiceManager } from "../storage/StorageServiceManager";
 import { StatusBar } from "../components/StatusBar";
 import { DeleteEventHandler } from "./providers/DeleteHandler";
-import { UploadManager } from "./UploadHandlerManager";
-import { DownloadManager } from "./DownloadHandlerManager";
+import { UploadHandlerManager } from "./UploadHandlerManager";
+import { DownloadHandlerManager } from "./DownloadHandlerManager";
 import { WebdavImageLoader } from "../components/WebdavImageLoader";
 import { t } from "../i18n";
 import { Constants } from "../common/Constants";
@@ -29,8 +29,8 @@ export class EventHandlerManager {
   private statusBar: StatusBar;
 
   private _storageServiceManager?: StorageServiceManager;
-  private _uploadManager?: UploadManager;
-  private _downloadManager?: DownloadManager;
+  private _uploadHandlerManager?: UploadHandlerManager;
+  private _downloadHandlerManager?: DownloadHandlerManager;
   private _deleteEventHandler?: DeleteEventHandler;
   private _webdavImageLoader?: WebdavImageLoader;
 
@@ -57,7 +57,7 @@ export class EventHandlerManager {
     editor: Editor,
     view: MarkdownView,
   ): Promise<void> {
-    return this.uploadManager.handleDataTransfer(evt, editor, view);
+    return this.uploadHandlerManager.handleDataTransfer(evt, editor, view);
   }
 
   public async handleFileDrop(
@@ -65,20 +65,20 @@ export class EventHandlerManager {
     editor: Editor,
     view: MarkdownView,
   ): Promise<void> {
-    return this.uploadManager.handleDataTransfer(evt, editor, view);
+    return this.uploadHandlerManager.handleDataTransfer(evt, editor, view);
   }
 
   public handleFileMenu(menu: Menu, file: TFile): void {
     if (file.extension !== "md") {
       return;
     }
-    this.downloadManager.addDownloadAllFilesMenu(menu, file);
-    this.uploadManager.addUploadAllLocalFilesMenu(menu, file);
+    this.downloadHandlerManager.addDownloadAllFilesMenu(menu, file);
+    this.uploadHandlerManager.addUploadAllLocalFilesMenu(menu, file);
   }
 
   public handleFolderMenu(menu: Menu, folder: TFolder): void {
-    this.downloadManager.addDownloadAllFilesMenu(menu, folder);
-    this.uploadManager.addUploadAllLocalFilesMenu(menu, folder);
+    this.downloadHandlerManager.addDownloadAllFilesMenu(menu, folder);
+    this.uploadHandlerManager.addUploadAllLocalFilesMenu(menu, folder);
   }
 
   public handleEditorContextMenu(
@@ -91,8 +91,8 @@ export class EventHandlerManager {
       return;
     }
 
-    this.uploadManager.handleUploadViewFile(menu, editor);
-    this.downloadManager.handleDownloadFile(menu, editor);
+    this.uploadHandlerManager.handleUploadViewFile(menu, editor);
+    this.downloadHandlerManager.handleDownloadFile(menu, editor);
     this.handleDeleteFile(menu, editor);
   }
 
@@ -114,8 +114,8 @@ export class EventHandlerManager {
 
   public dispose(): void {
     const statuses = [
-      this._uploadManager?.getQueueStatus(),
-      this._downloadManager?.getQueueStatus(),
+      this._uploadHandlerManager?.getQueueStatus(),
+      this._downloadHandlerManager?.getQueueStatus(),
       this._deleteEventHandler?.getQueueStatus(),
     ].filter(Boolean);
 
@@ -132,66 +132,15 @@ export class EventHandlerManager {
       );
     }
 
-    this._uploadManager?.dispose();
-    this._downloadManager?.dispose();
+    this._uploadHandlerManager?.dispose();
+    this._downloadHandlerManager?.dispose();
     this._deleteEventHandler?.dispose();
     this._storageServiceManager?.dispose();
     this.statusBar.dispose();
     this._webdavImageLoader?.destroy();
   }
 
-  private get storageServiceManager(): StorageServiceManager {
-    if (!this._storageServiceManager) {
-      this._storageServiceManager = new StorageServiceManager(
-        this.configurationManager,
-      );
-    }
-    return this._storageServiceManager;
-  }
 
-  private get uploadManager(): UploadManager {
-    if (!this._uploadManager) {
-      this._uploadManager = new UploadManager(
-        this.app,
-        this.configurationManager,
-        this.storageServiceManager,
-        this.statusBar,
-      );
-    }
-    return this._uploadManager;
-  }
-
-  private get downloadManager(): DownloadManager {
-    if (!this._downloadManager) {
-      this._downloadManager = new DownloadManager(
-        this.app,
-        this.configurationManager,
-        this.storageServiceManager,
-        this.statusBar,
-      );
-    }
-    return this._downloadManager;
-  }
-
-  private get deleteEventHandler(): DeleteEventHandler {
-    if (!this._deleteEventHandler) {
-      this._deleteEventHandler = new DeleteEventHandler(
-        this.app,
-        this.configurationManager,
-        this.storageServiceManager,
-      );
-    }
-    return this._deleteEventHandler;
-  }
-
-  private get webdavImageLoader(): WebdavImageLoader {
-    if (!this._webdavImageLoader) {
-      this._webdavImageLoader = new WebdavImageLoader(
-        this.configurationManager,
-      );
-    }
-    return this._webdavImageLoader;
-  }
 
   private handleDeleteFile(menu: Menu, editor: Editor): void {
     const selection = editor.getSelection();
@@ -215,5 +164,58 @@ export class EventHandlerManager {
         });
       });
     }
+  }
+
+    private get storageServiceManager(): StorageServiceManager {
+    if (!this._storageServiceManager) {
+      this._storageServiceManager = new StorageServiceManager(
+        this.configurationManager,
+      );
+    }
+    return this._storageServiceManager;
+  }
+
+  private get uploadHandlerManager(): UploadHandlerManager {
+    if (!this._uploadHandlerManager) {
+      this._uploadHandlerManager = new UploadHandlerManager(
+        this.app,
+        this.configurationManager,
+        this.storageServiceManager,
+        this.statusBar,
+      );
+    }
+    return this._uploadHandlerManager;
+  }
+
+  private get downloadHandlerManager(): DownloadHandlerManager {
+    if (!this._downloadHandlerManager) {
+      this._downloadHandlerManager = new DownloadHandlerManager(
+        this.app,
+        this.configurationManager,
+        this.storageServiceManager,
+        this.statusBar,
+      );
+    }
+    return this._downloadHandlerManager;
+  }
+
+  private get deleteEventHandler(): DeleteEventHandler {
+    if (!this._deleteEventHandler) {
+      this._deleteEventHandler = new DeleteEventHandler(
+        this.app,
+        this.configurationManager,
+        this.storageServiceManager,
+      );
+    }
+    return this._deleteEventHandler;
+  }
+
+  private get webdavImageLoader(): WebdavImageLoader {
+    if (!this._webdavImageLoader) {
+      this._webdavImageLoader = new WebdavImageLoader(
+        this.configurationManager,
+      );
+    }
+    return this._webdavImageLoader;
   }
 }

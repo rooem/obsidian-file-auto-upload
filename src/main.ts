@@ -52,11 +52,6 @@ export default class FileAutoUploadPlugin extends Plugin {
     );
   }
 
-  /**
-   * Register Obsidian workspace events
-   * Handles paste, drop, and context menu events
-   * These events trigger the file handling workflow
-   */
   private registerEvents(): void {
     this.registerEvent(
       this.app.workspace.on(

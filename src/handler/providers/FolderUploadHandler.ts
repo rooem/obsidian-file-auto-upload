@@ -45,19 +45,13 @@ export class FolderUploadHandler extends BaseEventHandler {
   ): Promise<void> {
     let uploadedCount = 0;
     const totalFiles = files.length;
-
-    // Cache for uploaded files: normalizedPath -> url (to avoid duplicate uploads)
-    const uploadedCache = new Map<string, string | null>();
     const uploadingPromises = new Map<string, Promise<string | null>>();
 
     // Helper to upload a file with deduplication
     const uploadFile = async (filePath: string, docPath: string): Promise<string | null> => {
       const decodedPath = normalizeFilePath(filePath);
       
-      // Check cache first
-      if (uploadedCache.has(decodedPath)) {
-        return uploadedCache.get(decodedPath)!;
-      }
+
       
       // Check if already uploading
       if (uploadingPromises.has(decodedPath)) {
@@ -90,11 +84,9 @@ export class FolderUploadHandler extends BaseEventHandler {
               dataUrl: result.data?.url 
             });
           }
-          uploadedCache.set(decodedPath, url);
           return url;
         } catch (error) {
           logger.error("FolderUploadHandler", "Failed to upload file", { filePath, error });
-          uploadedCache.set(decodedPath, null);
           return null;
         }
       })();

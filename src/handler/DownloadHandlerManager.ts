@@ -17,22 +17,21 @@ import { findUploadedFileLinks, scanFolderForDownloadableFiles, DownloadableFile
 import { FolderActionModal, FolderActionResult, FolderActionConfig } from "../components/FolderActionModal";
 import { EventType, DownloadProcessItem } from "../types/index";
 
-export class DownloadManager {
+export class DownloadHandlerManager {
   private app: App;
   private configurationManager: ConfigurationManager;
   private storageServiceManager: StorageServiceManager;
   private statusBar: StatusBar;
+  private downloadHandler: DownloadHandler;
+  private folderDownloadHandler: FolderDownloadHandler;
   private DOWNLOAD_CONFIG: FolderActionConfig = {
-  titleKey: "download.folderScanTitle",
-  resultKey: "download.folderScanResult",
-  actionBtnKey: "download.folderDownloadBtn",
-  progressKey: "download.progressing",
-  scanningKey: "download.scanning",
-  closeKey: "download.folderScanClose",
-};
-
-  private _downloadHandler?: DownloadHandler;
-  private _folderDownloadHandler?: FolderDownloadHandler;
+    titleKey: "download.folderScanTitle",
+    resultKey: "download.folderScanResult",
+    actionBtnKey: "download.folderDownloadBtn",
+    progressKey: "download.progressing",
+    scanningKey: "download.scanning",
+    closeKey: "download.folderScanClose",
+  };
 
   constructor(
     app: App,
@@ -44,15 +43,32 @@ export class DownloadManager {
     this.configurationManager = configurationManager;
     this.storageServiceManager = storageServiceManager;
     this.statusBar = statusBar;
+    this.downloadHandler = new DownloadHandler(
+      this.app,
+      this.configurationManager,
+      this.storageServiceManager,
+      this.statusBar,
+    );
+    this.folderDownloadHandler = new FolderDownloadHandler(
+      this.app,
+      this.configurationManager,
+      this.storageServiceManager,
+    );
   }
 
   public handleDownloadFile(menu: Menu, editor: Editor): void {
-    const links = this.getUploadedLinks(editor.getSelection());
+    const links = findUploadedFileLinks(editor.getSelection(), this.configurationManager.getPublicDomain()) || [];
     if (!links.length) return;
 
     menu.addItem((item: MenuItem) => {
       item.setTitle(t("download.menuTitle")).setIcon("download").onClick(() => {
-        this.downloadHandler.handleDownloadFiles(this.createDownloadItems(links));
+        const processItems: DownloadProcessItem[] = links.map((url) => ({
+          id: generateUniqueId("dl"),
+          eventType: EventType.DOWNLOAD,
+          type: "download",
+          url,
+        }));
+        this.downloadHandler.handleDownloadFiles(processItems);
       });
     });
   }
@@ -61,12 +77,12 @@ export class DownloadManager {
     menu.addItem((item: MenuItem) => {
       item.setTitle(t("download.allMenuTitle")).setIcon("download").onClick(async () => {
         const domain = this.configurationManager.getPublicDomain();
-        const result: FolderActionResult & { downloadableFiles: DownloadableFile[] } = { 
-          totalDocs: 0, 
-          fileCount: 0, 
-          downloadableFiles: [] 
+        const result: FolderActionResult & { downloadableFiles: DownloadableFile[] } = {
+          totalDocs: 0,
+          fileCount: 0,
+          downloadableFiles: []
         };
-        
+
         const modal = new FolderActionModal(
           this.app,
           result,
@@ -86,11 +102,11 @@ export class DownloadManager {
           domain,
           (current, total) => modal.updateScanProgress(current, total)
         );
-        
+
         result.totalDocs = scanResult.totalDocs;
         result.fileCount = scanResult.downloadableFiles.length;
         result.downloadableFiles = scanResult.downloadableFiles;
-        
+
         modal.contentEl.empty();
         modal.onOpen();
       });
@@ -98,47 +114,11 @@ export class DownloadManager {
   }
 
   public getQueueStatus() {
-    return this._downloadHandler?.getQueueStatus();
+    return this.downloadHandler.getQueueStatus();
   }
 
   public dispose(): void {
-    this._downloadHandler?.dispose();
-  }
-
-  private get downloadHandler(): DownloadHandler {
-    if (!this._downloadHandler) {
-      this._downloadHandler = new DownloadHandler(
-        this.app,
-        this.configurationManager,
-        this.storageServiceManager,
-        this.statusBar,
-      );
-    }
-    return this._downloadHandler;
-  }
-
-  private get folderDownloadHandler(): FolderDownloadHandler {
-    if (!this._folderDownloadHandler) {
-      this._folderDownloadHandler = new FolderDownloadHandler(
-        this.app,
-        this.configurationManager,
-        this.storageServiceManager,
-      );
-    }
-    return this._folderDownloadHandler;
-  }
-
-  private getUploadedLinks(content: string): string[] {
-    return findUploadedFileLinks(content, this.configurationManager.getPublicDomain()) || [];
-  }
-
-  private createDownloadItems(urls: string[]): DownloadProcessItem[] {
-    return urls.map((url) => ({
-      id: generateUniqueId("dl"),
-      eventType: EventType.DOWNLOAD,
-      type: "download",
-      url,
-    }));
+    this.downloadHandler.dispose();
   }
 
   private async replaceLinksInDocs(downloadableFiles: DownloadableFile[], urlToLocalPath: Map<string, string>): Promise<void> {
@@ -168,4 +148,5 @@ export class DownloadManager {
       }
     }
   }
+
 }

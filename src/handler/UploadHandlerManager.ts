@@ -20,7 +20,7 @@ import {
   findSupportedFilePath,
   scanFolderForUploadableFiles,
 } from "../common/MarkdownLinkFinder";
-import { FolderActionModal, FolderActionResult,FolderActionConfig} from "../components/FolderActionModal";
+import { FolderActionModal, FolderActionResult, FolderActionConfig } from "../components/FolderActionModal";
 import {
   EventType,
   ProcessItem,
@@ -28,22 +28,22 @@ import {
   FileProcessItem,
 } from "../types/index";
 
-export class UploadManager {
+export class UploadHandlerManager {
   private app: App;
   private configurationManager: ConfigurationManager;
   private storageServiceManager: StorageServiceManager;
   private statusBar: StatusBar;
-  private  UPLOAD_CONFIG: FolderActionConfig= {
-  titleKey: "upload.folderScanTitle",
-  resultKey: "upload.folderScanResult",
-  actionBtnKey: "upload.folderUploadBtn",
-  progressKey: "upload.uploading",
-  scanningKey: "upload.scanning",
-  closeKey: "upload.folderScanClose",
-};
+  private uploadEventHandler: UploadEventHandler;
+  private folderUploadHandler: FolderUploadHandler;
 
-  private _uploadEventHandler?: UploadEventHandler;
-  private _folderUploadHandler?: FolderUploadHandler;
+  private UPLOAD_CONFIG: FolderActionConfig = {
+    titleKey: "upload.folderScanTitle",
+    resultKey: "upload.folderScanResult",
+    actionBtnKey: "upload.folderUploadBtn",
+    progressKey: "upload.uploading",
+    scanningKey: "upload.scanning",
+    closeKey: "upload.folderScanClose",
+  };
 
   constructor(
     app: App,
@@ -55,6 +55,17 @@ export class UploadManager {
     this.configurationManager = configurationManager;
     this.storageServiceManager = storageServiceManager;
     this.statusBar = statusBar;
+    this.uploadEventHandler = new UploadEventHandler(
+      this.app,
+      this.configurationManager,
+      this.storageServiceManager,
+      this.statusBar,
+    );
+    this.folderUploadHandler = new FolderUploadHandler(
+      this.app,
+      this.configurationManager,
+      this.storageServiceManager,
+    );
   }
 
   public async handleDataTransfer(
@@ -63,18 +74,18 @@ export class UploadManager {
     _view: MarkdownView,
   ): Promise<void> {
     const isClipboard = evt instanceof ClipboardEvent;
-    const items = isClipboard 
-      ? (evt as ClipboardEvent).clipboardData?.items 
+    const items = isClipboard
+      ? (evt as ClipboardEvent).clipboardData?.items
       : (evt as DragEvent).dataTransfer?.items;
-    
+
     if (!items) return;
-    
-    const autoUploadEnabled = isClipboard 
+
+    const autoUploadEnabled = isClipboard
       ? this.configurationManager.isClipboardAutoUpload()
       : this.configurationManager.isDragAutoUpload();
-    
+
     if (!autoUploadEnabled) return;
-    
+
     if (!isClipboard && !this.hasSupportedFile(items)) return;
 
     if (this.canHandle(items)) {
@@ -88,12 +99,12 @@ export class UploadManager {
     menu.addItem((item) => {
       item.setTitle(t("upload.allLocalFiles")).setIcon("upload").onClick(async () => {
         const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
-        const result: FolderActionResult & { uploadableFiles: { filePath: string; docPaths: string[] }[] } = { 
-          totalDocs: 0, 
-          fileCount: 0, 
-          uploadableFiles: [] 
+        const result: FolderActionResult & { uploadableFiles: { filePath: string; docPaths: string[] }[] } = {
+          totalDocs: 0,
+          fileCount: 0,
+          uploadableFiles: []
         };
-        
+
         const modal = new FolderActionModal(
           this.app,
           result,
@@ -108,11 +119,11 @@ export class UploadManager {
           supportedTypes,
           (current, total) => modal.updateScanProgress(current, total)
         );
-        
+
         result.totalDocs = scanResult.totalDocs;
         result.fileCount = scanResult.uploadableFiles.length;
         result.uploadableFiles = scanResult.uploadableFiles;
-        
+
         modal.contentEl.empty();
         modal.onOpen();
       });
@@ -129,34 +140,11 @@ export class UploadManager {
   }
 
   public getQueueStatus() {
-    return this._uploadEventHandler?.getQueueStatus();
+    return this.uploadEventHandler.getQueueStatus();
   }
 
   public dispose(): void {
-    this._uploadEventHandler?.dispose();
-  }
-
-  private get uploadEventHandler(): UploadEventHandler {
-    if (!this._uploadEventHandler) {
-      this._uploadEventHandler = new UploadEventHandler(
-        this.app,
-        this.configurationManager,
-        this.storageServiceManager,
-        this.statusBar,
-      );
-    }
-    return this._uploadEventHandler;
-  }
-
-  private get folderUploadHandler(): FolderUploadHandler {
-    if (!this._folderUploadHandler) {
-      this._folderUploadHandler = new FolderUploadHandler(
-        this.app,
-        this.configurationManager,
-        this.storageServiceManager,
-      );
-    }
-    return this._folderUploadHandler;
+    this.uploadEventHandler.dispose();
   }
 
   private getLocalFiles(content: string): string[] {
