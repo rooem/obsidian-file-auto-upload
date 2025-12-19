@@ -7,53 +7,31 @@ import {
   Editor,
   TFile,
   TFolder,
-  normalizePath,
 } from "obsidian";
 import { Extension } from "@codemirror/state";
 import { MarkdownPostProcessorContext } from "obsidian";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { StorageServiceManager } from "../storage/StorageServiceManager";
 import { StatusBar } from "../components/StatusBar";
-import { UploadEventHandler } from "./providers/UploadEventHandler";
-import { DeleteEventHandler } from "./providers/DeleteEventHandler";
-import { DownloadHandler } from "./providers/DownloadHandler";
-import { FolderUploadHandler } from "./providers/FolderUploadHandler";
+import { DeleteEventHandler } from "./providers/DeleteHandler";
+import { UploadManager } from "./UploadHandlerManager";
+import { DownloadManager } from "./DownloadHandlerManager";
 import { WebdavImageLoader } from "../components/WebdavImageLoader";
 import { t } from "../i18n";
-import { logger } from "../common/Logger";
 import { Constants } from "../common/Constants";
 import { extractFileKeyFromUrl, generateUniqueId } from "../common/FileUtils";
-import {
-  findSupportedFilePath,
-  findUploadedFileLinks,
-  scanFolderForUploadableFiles,
-  FolderScanResult,
-} from "../common/MarkdownLinkFinder";
-import { FolderScanModal } from "../components/FolderScanModal";
-import {
-  EventType,
-  ProcessItem,
-  DeleteProcessItem,
-  TextProcessItem,
-  FileProcessItem,
-  DownloadProcessItem,
-  Result,
-} from "../types/index";
+import { findUploadedFileLinks } from "../common/MarkdownLinkFinder";
+import { EventType, DeleteProcessItem, Result } from "../types/index";
 
-/**
- * Central manager for handling various Obsidian events
- * Coordinates upload, download, and delete operations based on user interactions
- */
 export class EventHandlerManager {
   private app: App;
   private configurationManager: ConfigurationManager;
   private statusBar: StatusBar;
 
   private _storageServiceManager?: StorageServiceManager;
-  private _uploadEventHandler?: UploadEventHandler;
+  private _uploadManager?: UploadManager;
+  private _downloadManager?: DownloadManager;
   private _deleteEventHandler?: DeleteEventHandler;
-  private _downloadHandler?: DownloadHandler;
-  private _folderUploadHandler?: FolderUploadHandler;
   private _webdavImageLoader?: WebdavImageLoader;
 
   constructor(
@@ -65,181 +43,63 @@ export class EventHandlerManager {
     this.configurationManager = configurationManager;
     this.statusBar = statusBar;
 
-    // Listen for config changes to update WebdavImageLoader prefixes
     this.configurationManager.addConfigChangeListener(() => {
       this._webdavImageLoader?.updatePrefixes();
     });
   }
 
-  /**
-   * Test connection to storage service
-   * Performs actual connection test by uploading and deleting a test file
-   * @returns Result indicating test success or failure
-   */
   async testConnection(): Promise<Result> {
     return await this.storageServiceManager.testConnection();
   }
 
-  /**
-   * Handle clipboard paste events
-   * Triggers file upload workflow for pasted files
-   * @param evt - Clipboard event containing pasted data
-   * @param _editor - Editor instance (unused)
-   * @param _view - Markdown view instance (unused)
-   */
   public async handleClipboardPaste(
     evt: ClipboardEvent,
-    _editor: Editor,
-    _view: MarkdownView,
+    editor: Editor,
+    view: MarkdownView,
   ): Promise<void> {
-    if (
-      !this.configurationManager.isClipboardAutoUpload() ||
-      !evt.clipboardData ||
-      !evt.clipboardData.items
-    ) {
-      return;
-    }
-
-    if (this.canHandle(evt.clipboardData.items)) {
-      evt.preventDefault();
-      const processItems = await this.getProcessItemList(
-        evt.clipboardData.items,
-      );
-      void this.uploadEventHandler.handleFileUploadEvent(processItems);
-    }
+    return this.uploadManager.handleDataTransfer(evt, editor, view);
   }
 
-  /**
-   * Handle file drop events
-   * Triggers file upload workflow for dropped files
-   * @param evt - Drag event containing dropped files
-   * @param _editor - Editor instance (unused)
-   * @param _view - Markdown view instance (unused)
-   */
   public async handleFileDrop(
     evt: DragEvent,
-    _editor: Editor,
-    _view: MarkdownView,
+    editor: Editor,
+    view: MarkdownView,
   ): Promise<void> {
-    if (
-      !this.configurationManager.isDragAutoUpload() ||
-      !evt.dataTransfer ||
-      !evt.dataTransfer.items
-    ) {
-      return;
-    }
-
-    // Check if any file has supported type before preventing default
-    if (!this.hasSupportedFile(evt.dataTransfer.items)) {
-      return;
-    }
-
-    if (this.canHandle(evt.dataTransfer.items)) {
-      evt.preventDefault();
-      const processItems = await this.getProcessItemList(
-        evt.dataTransfer.items,
-      );
-      void this.uploadEventHandler.handleFileUploadEvent(processItems);
-    }
+    return this.uploadManager.handleDataTransfer(evt, editor, view);
   }
 
-  /**
-   * Handle file context menu in file explorer
-   * Adds upload/download options for markdown files
-   * @param menu - Context menu to add items to
-   * @param file - Target file for the context menu
-   */
   public handleFileMenu(menu: Menu, file: TFile): void {
-    // Only handle markdown files
     if (file.extension !== "md") {
       return;
     }
-    this.handleDownloadAllFilesFromFile(menu, file);
-    this.addUploadAllLocalFilesMenu(menu, file);
+    this.downloadManager.addDownloadAllFilesMenu(menu, file);
+    this.uploadManager.addUploadAllLocalFilesMenu(menu, file);
   }
 
-  /**
-   * Handle folder context menu in file explorer
-   * Adds upload option for all files in folder
-   * @param menu - Context menu to add items to
-   * @param folder - Target folder for the context menu
-   */
   public handleFolderMenu(menu: Menu, folder: TFolder): void {
-    this.addUploadAllLocalFilesMenu(menu, folder);
+    this.downloadManager.addDownloadAllFilesMenu(menu, folder);
+    this.uploadManager.addUploadAllLocalFilesMenu(menu, folder);
   }
 
-  /**
-   * Add upload all local files menu item
-   * Works for both single file and folder
-   */
-  private addUploadAllLocalFilesMenu(menu: Menu, target: TFile | TFolder): void {
-    menu.addItem((item) => {
-      item.setTitle(t("upload.allLocalFiles")).setIcon("upload").onClick(async () => {
-        const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
-        const result: FolderScanResult = { totalDocs: 0, uploadableFiles: [] };
-        
-        const modal = new FolderScanModal(
-          this.app,
-          result,
-          (onProgress) => this.folderUploadHandler.handleUploadFiles(result.uploadableFiles, onProgress)
-        );
-        modal.open();
-
-        const scanResult = await scanFolderForUploadableFiles(
-          this.app,
-          target,
-          supportedTypes,
-          (current, total) => modal.updateScanProgress(current, total)
-        );
-        
-        result.totalDocs = scanResult.totalDocs;
-        result.uploadableFiles = scanResult.uploadableFiles;
-        
-        modal.contentEl.empty();
-        modal.onOpen();
-      });
-    });
-  }
-
-  /**
-   * Handle editor context menu
-   * Adds upload/download/delete options based on selected content
-   * @param menu - Context menu to add items to
-   * @param editor - Editor instance with selected content
-   * @param view - Markdown view instance
-   */
   public handleEditorContextMenu(
     menu: Menu,
     editor: Editor,
-    view: MarkdownView,
+    _view: MarkdownView,
   ): void {
     const selectedText = editor.getSelection();
     if (!selectedText) {
       return;
     }
 
-    this.handleUploadViewFile(menu, editor, view);
-
-    this.handleDownloadFile(menu, editor, view);
-
-    this.handleDeleteFile(menu, editor, view);
+    this.uploadManager.handleUploadViewFile(menu, editor);
+    this.downloadManager.handleDownloadFile(menu, editor);
+    this.handleDeleteFile(menu, editor);
   }
 
-  /**
-   * Handle editor context menu
-   * Adds upload/download/delete options based on selected content
-   * @param menu - Context menu to add items to
-   * @param editor - Editor instance with selected content
-   * @param view - Markdown view instance
-   */
   public createEditorExtension(): Extension {
     return this.webdavImageLoader.createExtension();
   }
 
-  /**
-   * Create markdown post processor for reading view and PDF export
-   * Uses concurrency limit to avoid loading too many images simultaneously
-   */
   public createMarkdownPostProcessor() {
     return async (el: HTMLElement, _ctx: MarkdownPostProcessorContext) => {
       const images = Array.from(el.querySelectorAll("img"));
@@ -252,38 +112,29 @@ export class EventHandlerManager {
     };
   }
 
-  /**
-   * Dispose of event handler manager and notify about pending operations
-   * Shows warning notice if there are operations in progress
-   */
   public dispose(): void {
-    const handlers = [
-      this._uploadEventHandler,
-      this._deleteEventHandler,
-      this._downloadHandler,
-    ].filter(Boolean) as (
-      | UploadEventHandler
-      | DeleteEventHandler
-      | DownloadHandler
-    )[];
+    const statuses = [
+      this._uploadManager?.getQueueStatus(),
+      this._downloadManager?.getQueueStatus(),
+      this._deleteEventHandler?.getQueueStatus(),
+    ].filter(Boolean);
 
-    if (handlers.length > 0) {
-      const statuses = handlers.map((handler) => handler.getQueueStatus());
-      const totalQueueLength = statuses.reduce(
-        (sum, status) => sum + status.queueLength,
-        0,
+    const totalQueueLength = statuses.reduce(
+      (sum, status) => sum + (status?.queueLength || 0),
+      0,
+    );
+    const isProcessing = statuses.some((status) => status?.isProcessing);
+
+    if (totalQueueLength > 0 || isProcessing) {
+      new Notice(
+        t("notice.queueLost").replace("{count}", totalQueueLength.toString()),
+        3000,
       );
-      const isProcessing = statuses.some((status) => status.isProcessing);
-
-      if (totalQueueLength > 0 || isProcessing) {
-        new Notice(
-          t("notice.queueLost").replace("{count}", totalQueueLength.toString()),
-          3000,
-        );
-      }
-      handlers.forEach((handler) => handler.dispose());
     }
 
+    this._uploadManager?.dispose();
+    this._downloadManager?.dispose();
+    this._deleteEventHandler?.dispose();
     this._storageServiceManager?.dispose();
     this.statusBar.dispose();
     this._webdavImageLoader?.destroy();
@@ -298,16 +149,28 @@ export class EventHandlerManager {
     return this._storageServiceManager;
   }
 
-  private get uploadEventHandler(): UploadEventHandler {
-    if (!this._uploadEventHandler) {
-      this._uploadEventHandler = new UploadEventHandler(
+  private get uploadManager(): UploadManager {
+    if (!this._uploadManager) {
+      this._uploadManager = new UploadManager(
         this.app,
         this.configurationManager,
         this.storageServiceManager,
         this.statusBar,
       );
     }
-    return this._uploadEventHandler;
+    return this._uploadManager;
+  }
+
+  private get downloadManager(): DownloadManager {
+    if (!this._downloadManager) {
+      this._downloadManager = new DownloadManager(
+        this.app,
+        this.configurationManager,
+        this.storageServiceManager,
+        this.statusBar,
+      );
+    }
+    return this._downloadManager;
   }
 
   private get deleteEventHandler(): DeleteEventHandler {
@@ -321,29 +184,6 @@ export class EventHandlerManager {
     return this._deleteEventHandler;
   }
 
-  private get downloadHandler(): DownloadHandler {
-    if (!this._downloadHandler) {
-      this._downloadHandler = new DownloadHandler(
-        this.app,
-        this.configurationManager,
-        this.storageServiceManager,
-        this.statusBar,
-      );
-    }
-    return this._downloadHandler;
-  }
-
-  private get folderUploadHandler(): FolderUploadHandler {
-    if (!this._folderUploadHandler) {
-      this._folderUploadHandler = new FolderUploadHandler(
-        this.app,
-        this.configurationManager,
-        this.storageServiceManager,
-      );
-    }
-    return this._folderUploadHandler;
-  }
-
   private get webdavImageLoader(): WebdavImageLoader {
     if (!this._webdavImageLoader) {
       this._webdavImageLoader = new WebdavImageLoader(
@@ -353,66 +193,9 @@ export class EventHandlerManager {
     return this._webdavImageLoader;
   }
 
-  private handleUploadViewFile(menu: Menu, editor: Editor, _view: MarkdownView): void {
-    const localFiles = this.getLocalFiles(editor.getSelection());
-    if (!localFiles.length) return;
-
-    menu.addItem((item) => {
-      item.setTitle(t("upload.localFile")).setIcon("upload").onClick(() => this.uploadLocalFiles(localFiles));
-    });
-  }
-
-  private handleDownloadFile(menu: Menu, editor: Editor, _view: MarkdownView): void {
-    const links = this.getUploadedLinks(editor.getSelection());
-    if (!links.length) return;
-
-    menu.addItem((item: MenuItem) => {
-      item.setTitle(t("download.menuTitle")).setIcon("download").onClick(() => {
-        this.downloadHandler.handleDownloadFiles(this.createDownloadItems(links));
-      });
-    });
-  }
-
-  private handleDownloadAllFilesFromFile(menu: Menu, file: TFile): void {
-    menu.addItem((item: MenuItem) => {
-      item.setTitle(t("download.allMenuTitle")).setIcon("download").onClick(async () => {
-        const links = this.getUploadedLinks(await this.app.vault.read(file));
-        if (!links.length) {
-          new Notice(t("download.noFiles"), 1000);
-          return;
-        }
-        this.downloadHandler.handleDownloadFiles(this.createDownloadItems(links));
-      });
-    });
-  }
-
-  private getUploadedLinks(content: string): string[] {
-    return findUploadedFileLinks(content, this.configurationManager.getPublicDomain()) || [];
-  }
-
-  private createDownloadItems(urls: string[]): DownloadProcessItem[] {
-    return urls.map((url) => ({
-      id: generateUniqueId("dl"),
-      eventType: EventType.DOWNLOAD,
-      type: "download",
-      url,
-    }));
-  }
-
-  private getLocalFiles(content: string): string[] {
-    return findSupportedFilePath(content, this.configurationManager.getAutoUploadFileTypes()) || [];
-  }
-
-  private async uploadLocalFiles(localFiles: string[]): Promise<void> {
-    const processItems = await this.getProcessItemListFromView(localFiles);
-    if (this.canHandle(processItems)) {
-      void this.uploadEventHandler.handleFileUploadEvent(processItems);
-    }
-  }
-
-  private handleDeleteFile(menu: Menu, editor: Editor, _view: MarkdownView): void {
-    const links = this.getUploadedLinks(editor.getSelection());
+  private handleDeleteFile(menu: Menu, editor: Editor): void {
     const selection = editor.getSelection();
+    const links = findUploadedFileLinks(selection, this.configurationManager.getPublicDomain()) || [];
     if (!links.length || !selection) return;
 
     const publicDomain = this.configurationManager.getPublicDomain();
@@ -425,170 +208,12 @@ export class EventHandlerManager {
       originalSelection: selection,
     }));
 
-    if (this.canHandle(processItems)) {
+    if (processItems.length > 0) {
       menu.addItem((item: MenuItem) => {
         item.setTitle(t("delete.menuTitle")).setIcon("trash").setWarning(true).onClick(() => {
           void this.deleteEventHandler.handleDeleteUploadedFiles(processItems);
         });
       });
     }
-  }
-
-  /**
-   * Check if any file in the list has a supported type for upload
-   */
-  private hasSupportedFile(items: DataTransferItemList): boolean {
-    const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.kind === "file") {
-        const file = item.getAsFile();
-        if (file) {
-          const ext = file.name.split(".").pop()?.toLowerCase();
-          if (ext && supportedTypes.includes(ext)) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Check if items can be handled for processing
-   * Validates connection configuration before proceeding
-   */
-  private canHandle(items: ProcessItem[] | DataTransferItemList): boolean {
-    if (items && items.length === 0) {
-      return false;
-    }
-
-    logger.debug("EventHandlerManager", "File upload event triggered", {
-      itemCount: items.length,
-    });
-
-    const result = this.storageServiceManager.checkConnectionConfig();
-    if (!result.success) {
-      logger.warn(
-        "EventHandlerManager",
-        "Connection config invalid, showing config modal",
-      );
-      this.configurationManager.showStorageConfigModal();
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Convert DataTransferItemList to ProcessItem array
-   * Extracts files and text from clipboard/drag data
-   */
-  private async getProcessItemList(
-    items: DataTransferItemList,
-  ): Promise<Array<TextProcessItem | FileProcessItem>> {
-    const queue: Array<TextProcessItem | FileProcessItem> = [];
-
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      // Handle text content
-      if (item.kind === "string" && item.type === "text/plain") {
-        const text = await new Promise<string>((resolve) =>
-          item.getAsString(resolve),
-        );
-        queue.push({
-          id: generateUniqueId("u"),
-          eventType: EventType.UPLOAD,
-          type: "text",
-          value: text,
-        } as TextProcessItem);
-        continue;
-      }
-
-      // Handle file content
-      if (item.kind === "file") {
-        const entry = item.webkitGetAsEntry();
-        if (entry?.isDirectory) {
-          logger.debug("EventHandlerManager", "Skipping directory", {
-            name: entry.name,
-          });
-          continue;
-        }
-        const file = item.getAsFile();
-        if (!file) {
-          continue;
-        }
-        const uploadId = generateUniqueId("u", file);
-        const extension = file.name.split(".").pop()?.toLowerCase();
-        queue.push({
-          id: uploadId,
-          eventType: EventType.UPLOAD,
-          type: "file",
-          value: file,
-          extension: extension,
-        } as FileProcessItem);
-      }
-    }
-    return queue;
-  }
-
-  /**
-   * Create ProcessItem array from local file paths
-   * Reads file content from the vault for upload
-   */
-  private async getProcessItemListFromView(
-    filePathList: string[],
-  ): Promise<FileProcessItem[]> {
-    const queue: FileProcessItem[] = [];
-    if (!filePathList || filePathList.length === 0) {
-      return queue;
-    }
-
-    const activeFile = this.app.workspace.getActiveFile();
-    if (!activeFile) {
-      return queue;
-    }
-
-    for (const filePath of filePathList) {
-      try {
-        let decodedPath: string;
-        try {
-          decodedPath = normalizePath(decodeURIComponent(filePath));
-        } catch {
-          decodedPath = normalizePath(filePath);
-        }
-        const tfile = this.app.metadataCache.getFirstLinkpathDest(
-          decodedPath,
-          activeFile.path,
-        );
-        let arrayBuffer, file;
-        if (tfile instanceof TFile) {
-          arrayBuffer = await this.app.vault.readBinary(tfile);
-          const fileName = tfile.name || "file";
-          file = new File([new Blob([arrayBuffer])], fileName);
-        } else {
-          arrayBuffer = await this.app.vault.adapter.readBinary(decodedPath);
-          const fileName = decodedPath.split("/").pop() || "file";
-          file = new File([new Blob([arrayBuffer])], fileName);
-        }
-
-        queue.push({
-          id: generateUniqueId("u", file),
-          eventType: EventType.UPLOAD,
-          type: "file",
-          value: file,
-          extension: file.name.split(".").pop()?.toLowerCase(),
-          localPath: filePath,
-        } as FileProcessItem);
-      } catch (error) {
-        logger.error("EventHandlerManager", "Failed to read local file", {
-          filePath,
-          error,
-        });
-        new Notice(t("upload.readFileFailed").replace("{path}", filePath), 3000);
-      }
-    }
-
-    return queue;
   }
 }

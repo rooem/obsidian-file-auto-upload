@@ -1,5 +1,5 @@
 import { MarkdownView, Notice, App } from "obsidian";
-import { BaseEventHandler } from "./BaseEventHandler";
+import { BaseEventHandler } from "./BaseHandler";
 import { StatusBar } from "../../components/StatusBar";
 import { t } from "../../i18n";
 import { logger } from "../../common/Logger";

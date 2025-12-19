@@ -125,10 +125,17 @@ export default {
   // Download
   "download.menuTitle": "下载文件（file auto upload）",
   "download.allMenuTitle": "下载所有文件（file auto upload）",
+  "download.allFromFolder": "下载文件夹所有文件（file auto upload）",
   "download.progressing": "下载中",
   "download.noFiles": "未发现可下载的文件",
+  "download.foundFiles": "发现 {count} 个可下载文件",
   "download.success": "文件已下载：{fileName}",
   "download.failed": "下载失败：{error}",
+  "download.folderScanTitle": "文件扫描结果",
+  "download.folderScanResult": "共 {docs} 个文档，发现 {files} 个可下载文件",
+  "download.folderDownloadBtn": "下载",
+  "download.folderScanClose": "关闭",
+  "download.scanning": "扫描中",
 
   // Status Bar
   "statusBar.uploading": "{uploaded}/{total}: {progress}%",

@@ -3,7 +3,7 @@ import { ConfigurationManager } from "../../settings/ConfigurationManager";
 import { StorageServiceManager } from "../../storage/StorageServiceManager";
 import { generateUniqueId, generateFileKey } from "../../common/FileUtils";
 import { logger } from "../../common/Logger";
-import { BaseEventHandler } from "./BaseEventHandler";
+import { BaseEventHandler } from "./BaseHandler";
 import { ProcessItem } from "../../types/index";
 import { UploadableFile } from "../../common/MarkdownLinkFinder";
 
@@ -103,72 +103,62 @@ export class FolderUploadHandler extends BaseEventHandler {
       return uploadPromise;
     };
 
-    // Group files by document
-    const filesByDoc = new Map<string, UploadableFile[]>();
-    for (const item of files) {
-      if (!filesByDoc.has(item.docPath)) {
-        filesByDoc.set(item.docPath, []);
-      }
-      filesByDoc.get(item.docPath)!.push(item);
+    // Upload files and collect results
+    const uploadResults: Array<{ filePath: string; url: string | null; docPaths: string[] }> = [];
+    
+    for (const { filePath, docPaths } of files) {
+      const url = await uploadFile(filePath, docPaths[0]);
+      uploadResults.push({ filePath, url, docPaths });
+      uploadedCount++;
+      onProgress(uploadedCount, totalFiles);
     }
 
-    // Process documents concurrently, files within each document sequentially
-    const docPromises = Array.from(filesByDoc.entries()).map(([docPath, docFiles]) =>
-      this.concurrencyController.run(async () => {
-        const results: Array<{ filePath: string; url: string | null }> = [];
-
-        // Upload files sequentially within each document
-        for (const { filePath } of docFiles) {
-          const url = await uploadFile(filePath, docPath);
-          results.push({ filePath, url });
-          uploadedCount++;
-          onProgress(uploadedCount, totalFiles);
+    // Group successful results by document for replacement
+    const docReplacements = new Map<string, Array<{ filePath: string; url: string }>>();
+    for (const { filePath, url, docPaths } of uploadResults) {
+      if (url) {
+        for (const docPath of docPaths) {
+          if (!docReplacements.has(docPath)) {
+            docReplacements.set(docPath, []);
+          }
+          docReplacements.get(docPath)!.push({ filePath, url });
         }
+      }
+    }
 
-        // Apply replacements immediately after all files in this document are uploaded
-        const successfulResults = results.filter((r) => r.url !== null);
-        if (successfulResults.length > 0) {
-          const docFile = this.app.vault.getAbstractFileByPath(docPath);
-          if (docFile instanceof TFile) {
-            let content = await this.app.vault.read(docFile);
-            for (const { filePath, url } of successfulResults) {
-              const pathVariants = [filePath];
-              try {
-                const decoded = decodeURIComponent(filePath);
-                if (decoded !== filePath) pathVariants.push(decoded);
-              } catch { /* ignore */ }
-              try {
-                const encoded = encodeURI(filePath);
-                if (encoded !== filePath) pathVariants.push(encoded);
-              } catch { /* ignore */ }
+    // Apply replacements to all documents
+    for (const [docPath, replacements] of docReplacements) {
+      const docFile = this.app.vault.getAbstractFileByPath(docPath);
+      if (docFile instanceof TFile) {
+        let content = await this.app.vault.read(docFile);
+        for (const { filePath, url } of replacements) {
+          const pathVariants = [filePath];
+          try {
+            const decoded = decodeURIComponent(filePath);
+            if (decoded !== filePath) pathVariants.push(decoded);
+          } catch { /* ignore */ }
+          try {
+            const encoded = encodeURI(filePath);
+            if (encoded !== filePath) pathVariants.push(encoded);
+          } catch { /* ignore */ }
 
-              let replaced = false;
-              for (const path of pathVariants) {
-                const escaped = path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-                // Match Markdown link: ![...](path) or Wiki link: ![[path]]
-                const mdPattern = `(!\\[[^\\]]*\\]\\()${escaped}(\\))`;
-                const wikiPattern = `(!\\[\\[)${escaped}(\\]\\])`;
-                
-                const newContent = content
-                  .replace(new RegExp(mdPattern, "g"), `$1${url}$2`)
-                  .replace(new RegExp(wikiPattern, "g"), url!);
-                
-                if (newContent !== content) {
-                  content = newContent;
-                  replaced = true;
-                  break;
-                }
-              }
-              if (!replaced) {
-                logger.warn("FolderUploadHandler", "Link not found in content", { filePath, docPath });
-              }
+          for (const path of pathVariants) {
+            const escaped = path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const mdPattern = `(!\\[[^\\]]*\\]\\()${escaped}(\\))`;
+            const wikiPattern = `(!\\[\\[)${escaped}(\\]\\])`;
+            
+            const newContent = content
+              .replace(new RegExp(mdPattern, "g"), `$1${url}$2`)
+              .replace(new RegExp(wikiPattern, "g"), url);
+            
+            if (newContent !== content) {
+              content = newContent;
+              break;
             }
-            await this.app.vault.modify(docFile, content);
           }
         }
-      })
-    );
-
-    await Promise.all(docPromises);
+        await this.app.vault.modify(docFile, content);
+      }
+    }
   }
 }

@@ -1,5 +1,5 @@
 import { App, MarkdownView, normalizePath } from "obsidian";
-import { BaseEventHandler } from "./BaseEventHandler";
+import { BaseEventHandler } from "./BaseHandler";
 import { ConfigurationManager } from "../../settings/ConfigurationManager";
 import { StorageServiceManager } from "../../storage/StorageServiceManager";
 import { StatusBar } from "../../components/StatusBar";

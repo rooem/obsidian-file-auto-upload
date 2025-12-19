@@ -133,10 +133,17 @@ export default {
   // Download
   "download.menuTitle": "Download file(file auto upload)",
   "download.allMenuTitle": "Download all files(file auto upload)",
+  "download.allFromFolder": "Download all files from folder(file auto upload)",
   "download.progressing": "Downloading",
   "download.noFiles": "No downloadable files found",
+  "download.foundFiles": "Found {count} downloadable files",
   "download.success": "File downloaded: {fileName}",
   "download.failed": "Download failed: {error}",
+  "download.folderScanTitle": "File Scan Result",
+  "download.folderScanResult": "Found {docs} documents, {files} downloadable files",
+  "download.folderDownloadBtn": "Download",
+  "download.folderScanClose": "Close",
+  "download.scanning": "Scanning",
 
   // Status Bar
   "statusBar.uploading": "{uploaded}/{total}: {progress}%",

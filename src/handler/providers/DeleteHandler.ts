@@ -1,7 +1,7 @@
 import { App, Notice } from "obsidian";
 import { ConfigurationManager } from "../../settings/ConfigurationManager";
 import { StorageServiceManager } from "../../storage/StorageServiceManager";
-import { BaseEventHandler } from "./BaseEventHandler";
+import { BaseEventHandler } from "./BaseHandler";
 import { EventType, ProcessItem, DeleteProcessItem } from "../../types/index";
 import { t } from "../../i18n";
 import { logger } from "../../common/Logger";

@@ -3,12 +3,22 @@ import { isFileTypeSupported } from "./FileUtils";
 
 export interface UploadableFile {
   filePath: string;
-  docPath: string;
+  docPaths: string[];
+}
+
+export interface DownloadableFile {
+  url: string;
+  docPaths: string[];
 }
 
 export interface FolderScanResult {
   totalDocs: number;
   uploadableFiles: UploadableFile[];
+}
+
+export interface FolderDownloadScanResult {
+  totalDocs: number;
+  downloadableFiles: DownloadableFile[];
 }
 
 interface MarkdownLink {
@@ -184,6 +194,8 @@ export async function scanFolderForUploadableFiles(
     collectFiles(target);
   }
 
+  const fileToDocsMap = new Map<string, string[]>();
+  
   for (let i = 0; i < allFiles.length; i++) {
     const file = allFiles[i];
     result.totalDocs++;
@@ -191,8 +203,66 @@ export async function scanFolderForUploadableFiles(
     const content = await app.vault.cachedRead(file);
     const localFiles = findSupportedFilePath(content, supportedTypes);
     localFiles.forEach((filePath) => {
-      result.uploadableFiles.push({ filePath, docPath: file.path });
+      const docs = fileToDocsMap.get(filePath) || [];
+      docs.push(file.path);
+      fileToDocsMap.set(filePath, docs);
     });
+  }
+  
+  for (const [filePath, docPaths] of fileToDocsMap) {
+    result.uploadableFiles.push({ filePath, docPaths });
+  }
+
+  return result;
+}
+
+/**
+ * Scan folder or file for downloadable files (remote URLs)
+ */
+export async function scanFolderForDownloadableFiles(
+  app: App,
+  target: TFile | TFolder,
+  domain: string,
+  onProgress?: (current: number, total: number) => void
+): Promise<FolderDownloadScanResult> {
+  const result: FolderDownloadScanResult = { totalDocs: 0, downloadableFiles: [] };
+
+  const allFiles: TFile[] = [];
+  
+  if (target instanceof TFile) {
+    if (target.extension === "md") {
+      allFiles.push(target);
+    }
+  } else {
+    const collectFiles = (f: TFolder) => {
+      for (const child of f.children) {
+        if (child instanceof TFolder) {
+          collectFiles(child);
+        } else if (child instanceof TFile && child.extension === "md") {
+          allFiles.push(child);
+        }
+      }
+    };
+    collectFiles(target);
+  }
+
+  const urlToDocsMap = new Map<string, string[]>();
+  
+  for (let i = 0; i < allFiles.length; i++) {
+    const file = allFiles[i];
+    result.totalDocs++;
+    onProgress?.(i + 1, allFiles.length);
+    const content = await app.vault.cachedRead(file);
+    const urls = findUploadedFileLinks(content, domain);
+    urls.forEach((url) => {
+      const docs = urlToDocsMap.get(url) || [];
+      docs.push(file.path);
+      urlToDocsMap.set(url, docs);
+    });
+  }
+  
+  for (const [url, docPaths] of urlToDocsMap) {
+    result.downloadableFiles.push({ url, docPaths });
   }
 
   return result;

@@ -1,39 +1,55 @@
 import { App, Modal, Setting } from "obsidian";
 import { t } from "../i18n";
-import { FolderScanResult } from "../common/MarkdownLinkFinder";
 
-/**
- * Modal dialog for folder scan results with progress
- */
-export class FolderScanModal extends Modal {
-  private result: FolderScanResult;
-  private onUpload: (onProgress: (current: number, total: number) => void) => Promise<void>;
+export interface FolderActionConfig {
+  titleKey: string;
+  resultKey: string;
+  actionBtnKey: string;
+  progressKey: string;
+  scanningKey: string;
+  closeKey: string;
+}
+
+export interface FolderActionResult {
+  totalDocs: number;
+  fileCount: number;
+}
+
+export class FolderActionModal extends Modal {
+  private result: FolderActionResult;
+  private config: FolderActionConfig;
+  private onAction: (onProgress: (current: number, total: number) => void) => Promise<unknown>;
   private progressEl?: HTMLElement;
-  private uploadBtn?: HTMLButtonElement;
-  private isUploading = false;
+  private actionBtn?: HTMLButtonElement;
+  private isProcessing = false;
 
-  constructor(app: App, result: FolderScanResult, onUpload: (onProgress: (current: number, total: number) => void) => Promise<void>) {
+  constructor(
+    app: App,
+    result: FolderActionResult,
+    config: FolderActionConfig,
+    onAction: (onProgress: (current: number, total: number) => void) => Promise<unknown>
+  ) {
     super(app);
     this.result = result;
-    this.onUpload = onUpload;
+    this.config = config;
+    this.onAction = onAction;
   }
 
   onOpen() {
     const { contentEl } = this;
-    new Setting(contentEl).setName(t("upload.folderScanTitle")).setHeading();
+    new Setting(contentEl).setName(t(this.config.titleKey)).setHeading();
 
     const messageDiv = contentEl.createDiv();
     messageDiv.createEl("p", {
-      text: t("upload.folderScanResult")
+      text: t(this.config.resultKey)
         .replace("{docs}", this.result.totalDocs.toString())
-        .replace("{files}", this.result.uploadableFiles.length.toString()),
+        .replace("{files}", this.result.fileCount.toString()),
     });
 
-    this.progressEl = contentEl.createDiv({ cls: "folder-upload-progress" });
+    this.progressEl = contentEl.createDiv({ cls: "folder-action-progress" });
     this.progressEl.style.display = "none";
     this.progressEl.style.marginBottom = "10px";
     
-    // Create progress bar container
     const progressBarContainer = this.progressEl.createDiv();
     progressBarContainer.setCssStyles({
       width: "100%",
@@ -61,19 +77,19 @@ export class FolderScanModal extends Modal {
     const buttonDiv = contentEl.createDiv();
     buttonDiv.setCssStyles({ textAlign: "center", marginTop: "20px", display: "flex", gap: "10px", justifyContent: "center" });
 
-    if (this.result.uploadableFiles.length > 0) {
-      this.uploadBtn = buttonDiv.createEl("button", {
-        text: t("upload.folderUploadBtn"),
+    if (this.result.fileCount > 0) {
+      this.actionBtn = buttonDiv.createEl("button", {
+        text: t(this.config.actionBtnKey),
         cls: "mod-cta",
       });
-      this.uploadBtn.onclick = async () => {
-        if (this.isUploading) return;
-        this.isUploading = true;
-        this.uploadBtn!.disabled = true;
-        this.uploadBtn!.setText(t("upload.uploading"));
+      this.actionBtn.onclick = async () => {
+        if (this.isProcessing) return;
+        this.isProcessing = true;
+        this.actionBtn!.disabled = true;
+        this.actionBtn!.setText(t(this.config.progressKey));
         this.progressEl!.style.display = "block";
         
-        await this.onUpload((current, total) => {
+        await this.onAction((current, total) => {
           const percent = Math.round((current / total) * 100);
           const bar = this.progressEl!.querySelector(".progress-bar-fill") as HTMLElement;
           const text = this.progressEl!.querySelector(".progress-text") as HTMLElement;
@@ -81,15 +97,15 @@ export class FolderScanModal extends Modal {
           if (text) text.setText(`${current}/${total}`);
         });
         
-        this.uploadBtn!.setText(t("upload.folderUploadBtn"));
-        this.uploadBtn!.disabled = false;
-        this.isUploading = false;
+        this.actionBtn!.setText(t(this.config.actionBtnKey));
+        this.actionBtn!.disabled = false;
+        this.isProcessing = false;
         this.progressEl!.style.display = "none";
       };
     }
 
     const closeBtn = buttonDiv.createEl("button", {
-      text: t("upload.folderScanClose"),
+      text: t(this.config.closeKey),
     });
     closeBtn.onclick = () => this.close();
   }
@@ -105,7 +121,32 @@ export class FolderScanModal extends Modal {
       const bar = this.progressEl.querySelector(".progress-bar-fill") as HTMLElement;
       const text = this.progressEl.querySelector(".progress-text") as HTMLElement;
       if (bar) bar.style.width = `${percent}%`;
-      if (text) text.setText(`${t("upload.scanning")} ${current}/${total}`);
+      if (text) text.setText(`${t(this.config.scanningKey)} ${current}/${total}`);
     }
   }
+
+  updateResult(totalDocs: number, fileCount: number) {
+    this.result.totalDocs = totalDocs;
+    this.result.fileCount = fileCount;
+  }
 }
+
+// Upload config
+export const UPLOAD_CONFIG: FolderActionConfig = {
+  titleKey: "upload.folderScanTitle",
+  resultKey: "upload.folderScanResult",
+  actionBtnKey: "upload.folderUploadBtn",
+  progressKey: "upload.uploading",
+  scanningKey: "upload.scanning",
+  closeKey: "upload.folderScanClose",
+};
+
+// Download config
+export const DOWNLOAD_CONFIG: FolderActionConfig = {
+  titleKey: "download.folderScanTitle",
+  resultKey: "download.folderScanResult",
+  actionBtnKey: "download.folderDownloadBtn",
+  progressKey: "download.progressing",
+  scanningKey: "download.scanning",
+  closeKey: "download.folderScanClose",
+};
