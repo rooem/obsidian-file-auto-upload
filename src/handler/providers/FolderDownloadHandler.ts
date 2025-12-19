@@ -95,13 +95,8 @@ export class FolderDownloadHandler extends BaseEventHandler {
     const successCount = results.filter((r) => r.success).length;
     const failCount = results.length - successCount;
 
-    if (failCount === 0) {
-      new Notice(
-        t("download.success").replace("{fileName}", `${successCount} files`),
-        3000
-      );
-    } else {
-      new Notice(
+    if (failCount !== 0) {
+       new Notice(
         `${t("download.success").replace("{fileName}", `${successCount} files`)}\n${failCount} ${t("download.failed").replace("{error}", "files failed")}`,
         5000
       );

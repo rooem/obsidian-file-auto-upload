@@ -131,22 +131,5 @@ export class FolderActionModal extends Modal {
   }
 }
 
-// Upload config
-export const UPLOAD_CONFIG: FolderActionConfig = {
-  titleKey: "upload.folderScanTitle",
-  resultKey: "upload.folderScanResult",
-  actionBtnKey: "upload.folderUploadBtn",
-  progressKey: "upload.uploading",
-  scanningKey: "upload.scanning",
-  closeKey: "upload.folderScanClose",
-};
 
-// Download config
-export const DOWNLOAD_CONFIG: FolderActionConfig = {
-  titleKey: "download.folderScanTitle",
-  resultKey: "download.folderScanResult",
-  actionBtnKey: "download.folderDownloadBtn",
-  progressKey: "download.progressing",
-  scanningKey: "download.scanning",
-  closeKey: "download.folderScanClose",
-};
+

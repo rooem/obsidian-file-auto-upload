@@ -20,7 +20,7 @@ import {
   findSupportedFilePath,
   scanFolderForUploadableFiles,
 } from "../common/MarkdownLinkFinder";
-import { FolderActionModal, FolderActionResult, UPLOAD_CONFIG } from "../components/FolderActionModal";
+import { FolderActionModal, FolderActionResult,FolderActionConfig} from "../components/FolderActionModal";
 import {
   EventType,
   ProcessItem,
@@ -33,6 +33,14 @@ export class UploadManager {
   private configurationManager: ConfigurationManager;
   private storageServiceManager: StorageServiceManager;
   private statusBar: StatusBar;
+  private  UPLOAD_CONFIG: FolderActionConfig= {
+  titleKey: "upload.folderScanTitle",
+  resultKey: "upload.folderScanResult",
+  actionBtnKey: "upload.folderUploadBtn",
+  progressKey: "upload.uploading",
+  scanningKey: "upload.scanning",
+  closeKey: "upload.folderScanClose",
+};
 
   private _uploadEventHandler?: UploadEventHandler;
   private _folderUploadHandler?: FolderUploadHandler;
@@ -89,7 +97,7 @@ export class UploadManager {
         const modal = new FolderActionModal(
           this.app,
           result,
-          UPLOAD_CONFIG,
+          this.UPLOAD_CONFIG,
           (onProgress) => this.folderUploadHandler.handleUploadFiles(result.uploadableFiles, onProgress)
         );
         modal.open();

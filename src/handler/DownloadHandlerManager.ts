@@ -14,7 +14,7 @@ import { FolderDownloadHandler } from "./providers/FolderDownloadHandler";
 import { t } from "../i18n";
 import { generateUniqueId } from "../common/FileUtils";
 import { findUploadedFileLinks, scanFolderForDownloadableFiles, DownloadableFile } from "../common/MarkdownLinkFinder";
-import { FolderActionModal, FolderActionResult, DOWNLOAD_CONFIG } from "../components/FolderActionModal";
+import { FolderActionModal, FolderActionResult, FolderActionConfig } from "../components/FolderActionModal";
 import { EventType, DownloadProcessItem } from "../types/index";
 
 export class DownloadManager {
@@ -22,6 +22,14 @@ export class DownloadManager {
   private configurationManager: ConfigurationManager;
   private storageServiceManager: StorageServiceManager;
   private statusBar: StatusBar;
+  private DOWNLOAD_CONFIG: FolderActionConfig = {
+  titleKey: "download.folderScanTitle",
+  resultKey: "download.folderScanResult",
+  actionBtnKey: "download.folderDownloadBtn",
+  progressKey: "download.progressing",
+  scanningKey: "download.scanning",
+  closeKey: "download.folderScanClose",
+};
 
   private _downloadHandler?: DownloadHandler;
   private _folderDownloadHandler?: FolderDownloadHandler;
@@ -62,7 +70,7 @@ export class DownloadManager {
         const modal = new FolderActionModal(
           this.app,
           result,
-          DOWNLOAD_CONFIG,
+          this.DOWNLOAD_CONFIG,
           async (onProgress) => {
             const urls = result.downloadableFiles.map((f: DownloadableFile) => f.url);
             const urlToLocalPath = await this.folderDownloadHandler.handleDownloadFiles(urls, onProgress);
