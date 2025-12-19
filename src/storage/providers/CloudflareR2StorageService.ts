@@ -4,7 +4,6 @@ import { Result } from "../../types";
 import { t } from "../../i18n";
 
 export class CloudflareR2StorageService extends AmazonS3StorageService {
-
   protected createS3Client(): S3Client {
     return new S3Client({
       region: "auto",

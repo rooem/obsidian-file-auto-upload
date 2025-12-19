@@ -1,10 +1,25 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, ListObjectsV2CommandOutput } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+  ListObjectsV2CommandOutput,
+} from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
-import { Result, UploadData, UploadProgressCallback, StorageServiceConfig, StorageServiceType, S3Config } from "../../types";
+import {
+  Result,
+  UploadData,
+  UploadProgressCallback,
+  StorageServiceConfig,
+  S3Config,
+} from "../../types";
 import { t } from "../../i18n";
 import { handleError } from "../../common/ErrorHandler";
 import { logger } from "../../common/Logger";
-import { MULTIPART_UPLOAD_THRESHOLD, generateFileKey } from "../../common/FileUtils";
+import {
+  MULTIPART_UPLOAD_THRESHOLD,
+  generateFileKey,
+} from "../../common/FileUtils";
 import { BaseStorageService } from "./BaseStorageService";
 
 export class AmazonS3StorageService extends BaseStorageService {
@@ -280,5 +295,4 @@ export class AmazonS3StorageService extends BaseStorageService {
     }
     return (endpoint = endpoint.replace(/\/+$/, ""));
   }
-
 }

@@ -24,14 +24,16 @@ export default {
   "settings.publicUrl.webdav.desc":
     "Requires authentication by default. Configure a proxy URL for public access (optional)",
   "settings.github.token": "Personal Access Token",
-  "settings.github.token.desc": "GitHub personal access token with repo permissions",
+  "settings.github.token.desc":
+    "GitHub personal access token with repo permissions",
   "settings.github.repo": "Repository",
   "settings.github.repo.desc": "Repository path (format: owner/repo)",
   "settings.github.branch": "Branch",
   "settings.github.branch.desc": "Branch name (default: main)",
   "settings.github.path": "Upload Path",
   "settings.github.path.desc": "Path in repository for uploads (optional)",
-  "settings.github.publicUrl.desc": "Custom domain or use github raw url by default (optional)",
+  "settings.github.publicUrl.desc":
+    "Custom domain or use github raw url by default (optional)",
   "settings.github.useCdn": "Use cdn acceleration",
   "settings.github.useCdn.desc": "Enable cdn acceleration for github files",
   "settings.github.cdnType": "CDN service",
@@ -140,7 +142,8 @@ export default {
   "download.success": "File downloaded: {fileName}",
   "download.failed": "Download failed: {error}",
   "download.folderScanTitle": "File Scan Result",
-  "download.folderScanResult": "Found {docs} documents, {files} downloadable files",
+  "download.folderScanResult":
+    "Found {docs} documents, {files} downloadable files",
   "download.folderDownloadBtn": "Download",
   "download.folderScanClose": "Close",
   "download.scanning": "Scanning",

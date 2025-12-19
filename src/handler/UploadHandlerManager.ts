@@ -20,7 +20,11 @@ import {
   findSupportedFilePath,
   scanFolderForUploadableFiles,
 } from "../common/MarkdownLinkFinder";
-import { FolderActionModal, FolderActionResult, FolderActionConfig } from "../components/FolderActionModal";
+import {
+  FolderActionModal,
+  FolderActionResult,
+  FolderActionConfig,
+} from "../components/FolderActionModal";
 import {
   EventType,
   ProcessItem,
@@ -75,18 +79,24 @@ export class UploadHandlerManager {
   ): Promise<void> {
     const isClipboard = evt instanceof ClipboardEvent;
     const items = isClipboard
-      ? (evt as ClipboardEvent).clipboardData?.items
-      : (evt as DragEvent).dataTransfer?.items;
+      ? evt.clipboardData?.items
+      : evt.dataTransfer?.items;
 
-    if (!items) return;
+    if (!items) {
+      return;
+    }
 
     const autoUploadEnabled = isClipboard
       ? this.configurationManager.isClipboardAutoUpload()
       : this.configurationManager.isDragAutoUpload();
 
-    if (!autoUploadEnabled) return;
+    if (!autoUploadEnabled) {
+      return;
+    }
 
-    if (!isClipboard && !this.hasSupportedFile(items)) return;
+    if (!isClipboard && !this.hasSupportedFile(items)) {
+      return;
+    }
 
     if (this.canHandle(items)) {
       evt.preventDefault();
@@ -95,47 +105,66 @@ export class UploadHandlerManager {
     }
   }
 
-  public addUploadAllLocalFilesMenu(menu: Menu, target: TFile | TFolder): void {
+  public handleUploadMenu(menu: Menu, target: TFile | TFolder): void {
     menu.addItem((item) => {
-      item.setTitle(t("upload.allLocalFiles")).setIcon("upload").onClick(async () => {
-        const supportedTypes = this.configurationManager.getAutoUploadFileTypes();
-        const result: FolderActionResult & { uploadableFiles: { filePath: string; docPaths: string[] }[] } = {
-          totalDocs: 0,
-          fileCount: 0,
-          uploadableFiles: []
-        };
+      item
+        .setTitle(t("upload.allLocalFiles"))
+        .setIcon("upload")
+        .onClick(async () => {
+          const supportedTypes =
+            this.configurationManager.getAutoUploadFileTypes();
+          const result: FolderActionResult & {
+            uploadableFiles: { filePath: string; docPaths: string[] }[];
+          } = {
+            totalDocs: 0,
+            fileCount: 0,
+            uploadableFiles: [],
+          };
 
-        const modal = new FolderActionModal(
-          this.app,
-          result,
-          this.UPLOAD_CONFIG,
-          (onProgress) => this.folderUploadHandler.handleUploadFiles(result.uploadableFiles, onProgress)
-        );
-        modal.open();
+          const modal = new FolderActionModal(
+            this.app,
+            result,
+            this.UPLOAD_CONFIG,
+            (onProgress) =>
+              this.folderUploadHandler.handleUploadFiles(
+                result.uploadableFiles,
+                onProgress,
+              ),
+          );
+          modal.open();
 
-        const scanResult = await scanFolderForUploadableFiles(
-          this.app,
-          target,
-          supportedTypes,
-          (current, total) => modal.updateScanProgress(current, total)
-        );
+          const scanResult = await scanFolderForUploadableFiles(
+            this.app,
+            target,
+            supportedTypes,
+            (current, total) => modal.updateScanProgress(current, total),
+          );
 
-        result.totalDocs = scanResult.totalDocs;
-        result.fileCount = scanResult.uploadableFiles.length;
-        result.uploadableFiles = scanResult.uploadableFiles;
+          result.totalDocs = scanResult.totalDocs;
+          result.fileCount = scanResult.uploadableFiles.length;
+          result.uploadableFiles = scanResult.uploadableFiles;
 
-        modal.contentEl.empty();
-        modal.onOpen();
-      });
+          modal.contentEl.empty();
+          modal.onOpen();
+        });
     });
   }
 
-  public handleUploadViewFile(menu: Menu, editor: Editor): void {
-    const localFiles = this.getLocalFiles(editor.getSelection());
-    if (!localFiles.length) return;
+  public handleUploadFile(menu: Menu, editor: Editor): void {
+    const localFiles =
+      findSupportedFilePath(
+        editor.getSelection(),
+        this.configurationManager.getAutoUploadFileTypes(),
+      ) || [];
+    if (!localFiles.length) {
+      return;
+    }
 
     menu.addItem((item) => {
-      item.setTitle(t("upload.localFile")).setIcon("upload").onClick(() => this.uploadLocalFiles(localFiles));
+      item
+        .setTitle(t("upload.localFile"))
+        .setIcon("upload")
+        .onClick(() => this.uploadLocalFiles(localFiles));
     });
   }
 
@@ -145,10 +174,6 @@ export class UploadHandlerManager {
 
   public dispose(): void {
     this.uploadEventHandler.dispose();
-  }
-
-  private getLocalFiles(content: string): string[] {
-    return findSupportedFilePath(content, this.configurationManager.getAutoUploadFileTypes()) || [];
   }
 
   private async uploadLocalFiles(localFiles: string[]): Promise<void> {
@@ -186,7 +211,10 @@ export class UploadHandlerManager {
 
     const result = this.storageServiceManager.checkConnectionConfig();
     if (!result.success) {
-      logger.warn("UploadManager", "Connection config invalid, showing config modal");
+      logger.warn(
+        "UploadManager",
+        "Connection config invalid, showing config modal",
+      );
       this.configurationManager.showStorageConfigModal();
       return false;
     }
@@ -280,8 +308,14 @@ export class UploadHandlerManager {
           localPath: filePath,
         } as FileProcessItem);
       } catch (error) {
-        logger.error("UploadManager", "Failed to read local file", { filePath, error });
-        new Notice(t("upload.readFileFailed").replace("{path}", filePath), 3000);
+        logger.error("UploadManager", "Failed to read local file", {
+          filePath,
+          error,
+        });
+        new Notice(
+          t("upload.readFileFailed").replace("{path}", filePath),
+          3000,
+        );
       }
     }
 

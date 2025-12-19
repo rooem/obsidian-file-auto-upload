@@ -3,7 +3,6 @@ import { AmazonS3StorageService } from "./AmazonS3StorageService";
 import { Result } from "../../types";
 
 export class AliyunOSSStorageService extends AmazonS3StorageService {
-
   protected createS3Client(): S3Client {
     return new S3Client({
       region: this.config.region || "auto",

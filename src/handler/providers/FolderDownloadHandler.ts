@@ -1,4 +1,4 @@
-import { App, TFile, Notice } from "obsidian";
+import { App, Notice } from "obsidian";
 import { ConfigurationManager } from "../../settings/ConfigurationManager";
 import { StorageServiceManager } from "../../storage/StorageServiceManager";
 import { logger } from "../../common/Logger";
@@ -30,11 +30,16 @@ export class FolderDownloadHandler extends BaseEventHandler {
    */
   public async handleDownloadFiles(
     urls: string[],
-    onProgress: (current: number, total: number) => void
+    onProgress: (current: number, total: number) => void,
   ): Promise<Map<string, string>> {
     let downloadedCount = 0;
     const totalFiles = urls.length;
-    const results: { url: string; success: boolean; fileName?: string; error?: string }[] = [];
+    const results: {
+      url: string;
+      success: boolean;
+      fileName?: string;
+      error?: string;
+    }[] = [];
 
     // Get active file for relative path resolution
     const activeFile = this.app.workspace.getActiveFile();
@@ -51,7 +56,7 @@ export class FolderDownloadHandler extends BaseEventHandler {
             this.app,
             url,
             activeFile.path,
-            () => {} // No individual progress tracking for batch downloads
+            () => {}, // No individual progress tracking for batch downloads
           );
 
           downloadedCount++;
@@ -77,16 +82,20 @@ export class FolderDownloadHandler extends BaseEventHandler {
         } catch (error) {
           downloadedCount++;
           onProgress(downloadedCount, totalFiles);
-          
-          const errorMsg = error instanceof Error ? error.message : String(error);
+
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
           results.push({
             url,
             success: false,
             error: errorMsg,
           });
-          logger.error("FolderDownloadHandler", "Download failed", { url, error });
+          logger.error("FolderDownloadHandler", "Download failed", {
+            url,
+            error,
+          });
         }
-      })
+      }),
     );
 
     await Promise.all(downloadPromises);
@@ -96,9 +105,9 @@ export class FolderDownloadHandler extends BaseEventHandler {
     const failCount = results.length - successCount;
 
     if (failCount !== 0) {
-       new Notice(
+      new Notice(
         `${t("download.success").replace("{fileName}", `${successCount} files`)}\n${failCount} ${t("download.failed").replace("{error}", "files failed")}`,
-        5000
+        5000,
       );
     }
 

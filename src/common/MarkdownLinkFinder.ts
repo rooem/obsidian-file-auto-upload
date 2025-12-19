@@ -171,12 +171,12 @@ export async function scanFolderForUploadableFiles(
   app: App,
   target: TFile | TFolder,
   supportedTypes: string[],
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (current: number, total: number) => void,
 ): Promise<FolderScanResult> {
   const result: FolderScanResult = { totalDocs: 0, uploadableFiles: [] };
 
   const allFiles: TFile[] = [];
-  
+
   if (target instanceof TFile) {
     if (target.extension === "md") {
       allFiles.push(target);
@@ -195,7 +195,7 @@ export async function scanFolderForUploadableFiles(
   }
 
   const fileToDocsMap = new Map<string, string[]>();
-  
+
   for (let i = 0; i < allFiles.length; i++) {
     const file = allFiles[i];
     result.totalDocs++;
@@ -208,7 +208,7 @@ export async function scanFolderForUploadableFiles(
       fileToDocsMap.set(filePath, docs);
     });
   }
-  
+
   for (const [filePath, docPaths] of fileToDocsMap) {
     result.uploadableFiles.push({ filePath, docPaths });
   }
@@ -223,12 +223,15 @@ export async function scanFolderForDownloadableFiles(
   app: App,
   target: TFile | TFolder,
   domain: string,
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (current: number, total: number) => void,
 ): Promise<FolderDownloadScanResult> {
-  const result: FolderDownloadScanResult = { totalDocs: 0, downloadableFiles: [] };
+  const result: FolderDownloadScanResult = {
+    totalDocs: 0,
+    downloadableFiles: [],
+  };
 
   const allFiles: TFile[] = [];
-  
+
   if (target instanceof TFile) {
     if (target.extension === "md") {
       allFiles.push(target);
@@ -247,7 +250,7 @@ export async function scanFolderForDownloadableFiles(
   }
 
   const urlToDocsMap = new Map<string, string[]>();
-  
+
   for (let i = 0; i < allFiles.length; i++) {
     const file = allFiles[i];
     result.totalDocs++;
@@ -260,7 +263,7 @@ export async function scanFolderForDownloadableFiles(
       urlToDocsMap.set(url, docs);
     });
   }
-  
+
   for (const [url, docPaths] of urlToDocsMap) {
     result.downloadableFiles.push({ url, docPaths });
   }

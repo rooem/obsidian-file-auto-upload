@@ -1,4 +1,10 @@
-import { Result, UploadData, UploadProgressCallback, StorageServiceConfig, WebdavConfig } from "../../types";
+import {
+  Result,
+  UploadData,
+  UploadProgressCallback,
+  StorageServiceConfig,
+  WebdavConfig,
+} from "../../types";
 import { t } from "../../i18n";
 import { handleError } from "../../common/ErrorHandler";
 import { logger } from "../../common/Logger";
@@ -41,10 +47,14 @@ export class WebdavStorageService extends BaseStorageService {
 
   public override async testConnection(): Promise<Result> {
     const checkResult = this.checkConnectionConfig();
-    if (!checkResult.success) return checkResult;
+    if (!checkResult.success) {
+      return checkResult;
+    }
 
     const isAuthValid = await this.verifyAuthentication();
-    if (!isAuthValid.success) return isAuthValid;
+    if (!isAuthValid.success) {
+      return isAuthValid;
+    }
 
     return super.testConnection();
   }
@@ -154,16 +164,24 @@ export class WebdavStorageService extends BaseStorageService {
         headers: { Depth: "1" },
       });
 
-      if (response.status === HTTP_STATUS.OK || response.status === HTTP_STATUS.MULTI_STATUS) {
+      if (
+        response.status === HTTP_STATUS.OK ||
+        response.status === HTTP_STATUS.MULTI_STATUS
+      ) {
         const hrefs = this.parseHrefsFromXml(response.text);
         for (const href of hrefs) {
           const fileName = href.substring(href.lastIndexOf("/") + 1);
           const pre = fileName.substring(0, fileName.indexOf("_"));
-          if (!pre) continue;
+          if (!pre) {
+            continue;
+          }
 
           this.prefixCache.set(pre, fileName);
           if (prefix === pre) {
-            return { success: true, data: { url: this.getPublicUrl(fileName), key: fileName } };
+            return {
+              success: true,
+              data: { url: this.getPublicUrl(fileName), key: fileName },
+            };
           }
         }
       }
@@ -222,19 +240,26 @@ export class WebdavStorageService extends BaseStorageService {
 
   private async ensureDirectoryExists(key: string): Promise<void> {
     const parts = key.split("/").slice(0, -1);
-    if (parts.length === 0) return;
+    if (parts.length === 0) {
+      return;
+    }
 
     let currentPath = "";
     for (const part of parts) {
       currentPath = currentPath ? `${currentPath}/${part}` : part;
-      if (this.createdDirs.has(currentPath)) continue;
+      if (this.createdDirs.has(currentPath)) {
+        continue;
+      }
 
       const response = await this.request({
         url: this.buildUrl(currentPath) + "/",
         method: "MKCOL",
       });
 
-      if (response.status === HTTP_STATUS.CREATED || response.status === HTTP_STATUS.METHOD_NOT_ALLOWED) {
+      if (
+        response.status === HTTP_STATUS.CREATED ||
+        response.status === HTTP_STATUS.METHOD_NOT_ALLOWED
+      ) {
         this.createdDirs.add(currentPath);
       }
     }
@@ -275,7 +300,9 @@ export class WebdavStorageService extends BaseStorageService {
     for (const tag of HREF_TAGS) {
       const elements = doc.getElementsByTagName(tag);
       if (elements.length > 0) {
-        return Array.from(elements).map((el) => decodeURIComponent(el.textContent || ""));
+        return Array.from(elements).map((el) =>
+          decodeURIComponent(el.textContent || ""),
+        );
       }
     }
     return [];

@@ -108,7 +108,8 @@ export class ContentReplacer {
     }
 
     // Include the `!` prefix for image links
-    const hasImagePrefix = linkStartIndex > 0 && content[linkStartIndex - 1] === "!";
+    const hasImagePrefix =
+      linkStartIndex > 0 && content[linkStartIndex - 1] === "!";
     if (hasImagePrefix) {
       linkStartIndex--;
     }

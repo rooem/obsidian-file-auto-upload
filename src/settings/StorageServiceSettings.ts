@@ -16,10 +16,14 @@ interface FieldConfig {
 }
 
 export const GITHUB_CDN_OPTIONS: Record<string, string> = {
-  ghproxy: "https://gh-proxy.org/https://raw.githubusercontent.com/{repo}/{branch}",
-  hk_ghproxy: "https://hk.gh-proxy.org/https://raw.githubusercontent.com/{repo}/{branch}",
-  cdn_ghproxy: "https://cdn.gh-proxy.org/https://raw.githubusercontent.com/{repo}/{branch}",
-  edgeone_ghproxy: "https://edgeone.gh-proxy.org/https://raw.githubusercontent.com/{repo}/{branch}",
+  ghproxy:
+    "https://gh-proxy.org/https://raw.githubusercontent.com/{repo}/{branch}",
+  hk_ghproxy:
+    "https://hk.gh-proxy.org/https://raw.githubusercontent.com/{repo}/{branch}",
+  cdn_ghproxy:
+    "https://cdn.gh-proxy.org/https://raw.githubusercontent.com/{repo}/{branch}",
+  edgeone_ghproxy:
+    "https://edgeone.gh-proxy.org/https://raw.githubusercontent.com/{repo}/{branch}",
   jsdelivr: "https://cdn.jsdelivr.net/gh/{repo}@{branch}",
 };
 
@@ -152,18 +156,17 @@ export class StorageServiceSettings {
       .setName(t("settings.storage"))
       .setDesc(t("settings.storage.desc"))
       .addDropdown((dropdown) => {
-        Object.entries(StorageServiceTypeInfo).forEach(([key, info]) =>
-          dropdown.addOption(key, info.serviceName),
+        Object.entries(StorageServiceTypeInfo).forEach(
+          ([key, info]) => void dropdown.addOption(key, info.serviceName),
         );
         return dropdown
           .setValue(
             plugin.configurationManager.getSettings().storageServiceType,
           )
           .onChange((value) => {
-            void plugin.configurationManager.saveSettings(
-              { storageServiceType: value },
-              true,
-            ).then(() => onToggle());
+            void plugin.configurationManager
+              .saveSettings({ storageServiceType: value }, true)
+              .then(() => onToggle());
           });
       });
   }
@@ -181,9 +184,11 @@ export class StorageServiceSettings {
     const fields =
       this.FIELD_CONFIGS[serviceType] ||
       this.FIELD_CONFIGS[isWebdav ? StorageServiceType.WEBDAV : "s3"];
-    
+
     for (const field of fields) {
-      if (field.skipWhenCdn && useCdn) continue;
+      if (field.skipWhenCdn && useCdn) {
+        continue;
+      }
       this.addField(containerEl, plugin, settings, field);
       if (field.key === "endpoint" && this.REGION_PROVIDERS.has(serviceType)) {
         this.addField(containerEl, plugin, settings, {
@@ -195,7 +200,13 @@ export class StorageServiceSettings {
     }
 
     if (isGithub) {
-      this.renderGithubCdnSettings(containerEl, plugin, settings, useCdn, onToggle);
+      this.renderGithubCdnSettings(
+        containerEl,
+        plugin,
+        settings,
+        useCdn,
+        onToggle,
+      );
     }
   }
 
@@ -212,20 +223,25 @@ export class StorageServiceSettings {
       .addToggle((toggle) => {
         toggle.setValue(useCdn).onChange((value) => {
           const config = settings.storageServiceConfig;
-          void plugin.configurationManager.saveSettings(
-            { storageServiceConfig: { ...config, use_cdn: value } },
-            true,
-          ).then(() => onToggle());
+          void plugin.configurationManager
+            .saveSettings(
+              { storageServiceConfig: { ...config, use_cdn: value } },
+              true,
+            )
+            .then(() => onToggle());
         });
       });
 
     if (useCdn) {
-      const cdnType = (settings.storageServiceConfig.cdn_type as string) || "jsdelivr";
+      const cdnType =
+        (settings.storageServiceConfig.cdn_type as string) || "jsdelivr";
       new Setting(containerEl)
         .setName(t("settings.github.cdnType"))
         .setDesc(t("settings.github.cdnType.desc"))
         .addDropdown((dropdown) => {
-          Object.keys(GITHUB_CDN_OPTIONS).forEach((key) => dropdown.addOption(key, key));
+          Object.keys(GITHUB_CDN_OPTIONS).forEach((key) =>
+            dropdown.addOption(key, key),
+          );
           dropdown.setValue(cdnType).onChange((value) => {
             const config = settings.storageServiceConfig;
             void plugin.configurationManager.saveSettings(
@@ -297,7 +313,10 @@ export class StorageServiceSettings {
     settings: FileAutoUploadSettings,
     field: FieldConfig,
   ): void {
-    const value = (settings.storageServiceConfig[field.key] as string) || field.defaultValue || "";
+    const value =
+      (settings.storageServiceConfig[field.key] as string) ||
+      field.defaultValue ||
+      "";
     const updater = this.createUpdater(plugin, field.key);
 
     if (field.isPassword) {

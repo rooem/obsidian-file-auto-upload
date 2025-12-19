@@ -134,18 +134,23 @@ export class ConfigurationManager {
    */
   public getPublicDomain(): string {
     const config = this.getCurrentStorageConfig();
-    
+
     // For GitHub with CDN enabled, return the CDN domain
-    if (this.settings.storageServiceType === StorageServiceType.GITHUB && config.use_cdn) {
+    if (
+      this.settings.storageServiceType === StorageServiceType.GITHUB &&
+      config.use_cdn
+    ) {
       const cdnType = (config.cdn_type as string) || "jsdelivr";
       const template = GITHUB_CDN_OPTIONS[cdnType];
       if (template) {
         // Extract domain from template (e.g., "https://cdn.jsdelivr.net/gh/{repo}@{branch}" -> "https://cdn.jsdelivr.net")
         const match = template.match(/^(https?:\/\/[^/]+)/);
-        if (match) return match[1];
+        if (match) {
+          return match[1];
+        }
       }
     }
-    
+
     if (config.public_domain) {
       return config.public_domain as string;
     }

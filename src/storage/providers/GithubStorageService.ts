@@ -1,5 +1,11 @@
 import { requestUrl, Notice } from "obsidian";
-import { Result, UploadData, UploadProgressCallback, StorageServiceConfig, GithubConfig } from "../../types";
+import {
+  Result,
+  UploadData,
+  UploadProgressCallback,
+  StorageServiceConfig,
+  GithubConfig,
+} from "../../types";
 import { t } from "../../i18n";
 import { handleError } from "../../common/ErrorHandler";
 import { logger } from "../../common/Logger";
@@ -63,7 +69,9 @@ export class GithubStorageService extends BaseStorageService {
     key?: string,
     onProgress?: UploadProgressCallback,
   ): Promise<Result<UploadData>> {
-    const progressInterval = onProgress ? this.simulateProgress(file.size, onProgress) : null;
+    const progressInterval = onProgress
+      ? this.simulateProgress(file.size, onProgress)
+      : null;
     try {
       const fileKey = key || generateFileKey(file.name);
       const filePath = this.getFilePath(fileKey);
@@ -82,32 +90,62 @@ export class GithubStorageService extends BaseStorageService {
         throw: false,
       });
 
-      if (progressInterval) clearInterval(progressInterval);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
 
       // GitHub API returns 200 (update) or 201 (create) on success
-      if (response.status !== HTTP_STATUS.OK && response.status !== HTTP_STATUS.CREATED) {
+      if (
+        response.status !== HTTP_STATUS.OK &&
+        response.status !== HTTP_STATUS.CREATED
+      ) {
         // If upload failed due to conflict (409/422), try to get existing file URL
         if (response.status === 409 || response.status === 422) {
           const sha = await this.getFileSha(filePath);
           if (sha) {
             const publicUrl = this.getPublicUrl(filePath);
-            logger.debug("GithubStorageService", "File conflict, returning existing URL", { fileName: file.name, url: publicUrl });
-            return { success: true, data: { url: publicUrl, key: filePath, sha } };
+            logger.debug(
+              "GithubStorageService",
+              "File conflict, returning existing URL",
+              { fileName: file.name, url: publicUrl },
+            );
+            return {
+              success: true,
+              data: { url: publicUrl, key: filePath, sha },
+            };
           }
         }
-        logger.error("GithubStorageService", "Upload failed", { fileName: file.name, status: response.status, text: response.text });
-        return { success: false, error: `Upload failed (${response.status}): ${response.text}` };
+        logger.error("GithubStorageService", "Upload failed", {
+          fileName: file.name,
+          status: response.status,
+          text: response.text,
+        });
+        return {
+          success: false,
+          error: `Upload failed (${response.status}): ${response.text}`,
+        };
       }
 
       onProgress?.(100);
       const res = response.json as GithubContentResponse;
       const publicUrl = this.getPublicUrl(filePath);
-      logger.debug("GithubStorageService", "Upload successful", { fileName: file.name, url: publicUrl });
+      logger.debug("GithubStorageService", "Upload successful", {
+        fileName: file.name,
+        url: publicUrl,
+      });
 
-      return { success: true, data: { url: publicUrl, key: filePath, sha: res.content?.sha } };
+      return {
+        success: true,
+        data: { url: publicUrl, key: filePath, sha: res.content?.sha },
+      };
     } catch (error) {
-      if (progressInterval) clearInterval(progressInterval);
-      logger.error("GithubStorageService", "Upload failed", { fileName: file.name, error });
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+      logger.error("GithubStorageService", "Upload failed", {
+        fileName: file.name,
+        error,
+      });
       return handleError(error, "error.uploadError");
     }
   }
@@ -126,7 +164,7 @@ export class GithubStorageService extends BaseStorageService {
           break;
         }
       }
-      
+
       const sha = providedSha || (await this.getFileSha(key));
       if (!sha) {
         logger.debug("GithubStorageService", "Delete File not found", { key });
@@ -138,7 +176,11 @@ export class GithubStorageService extends BaseStorageService {
         url: `${this.apiBase}/${key}`,
         method: "DELETE",
         headers: this.headers as Record<string, string>,
-        body: JSON.stringify({ message: `Delete ${key}`, sha, branch: this.branch }),
+        body: JSON.stringify({
+          message: `Delete ${key}`,
+          sha,
+          branch: this.branch,
+        }),
         throw: false,
       });
 
@@ -158,7 +200,10 @@ export class GithubStorageService extends BaseStorageService {
       const filePath = this.getFilePath(key);
       const sha = await this.getFileSha(filePath);
       if (sha) {
-        return { success: true, data: { url: this.getPublicUrl(filePath), key: filePath } };
+        return {
+          success: true,
+          data: { url: this.getPublicUrl(filePath), key: filePath },
+        };
       }
       return { success: false };
     } catch (error) {
@@ -213,5 +258,4 @@ export class GithubStorageService extends BaseStorageService {
     }
     return btoa(chunks.join(""));
   }
-
 }

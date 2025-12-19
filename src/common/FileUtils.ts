@@ -1,4 +1,10 @@
-import { Constants, ImageExtension, VideoExtension, AudioExtension, MediaExtension } from "./Constants";
+import {
+  Constants,
+  ImageExtension,
+  VideoExtension,
+  AudioExtension,
+  MediaExtension,
+} from "./Constants";
 
 export { ImageExtension, VideoExtension, AudioExtension, MediaExtension };
 export const IMAGE_EXTENSIONS = Constants.IMAGE_EXTENSIONS;

@@ -72,13 +72,13 @@ export class EventHandlerManager {
     if (file.extension !== "md") {
       return;
     }
-    this.downloadHandlerManager.addDownloadAllFilesMenu(menu, file);
-    this.uploadHandlerManager.addUploadAllLocalFilesMenu(menu, file);
+    this.downloadHandlerManager.handleDownloadMenu(menu, file);
+    this.uploadHandlerManager.handleUploadMenu(menu, file);
   }
 
   public handleFolderMenu(menu: Menu, folder: TFolder): void {
-    this.downloadHandlerManager.addDownloadAllFilesMenu(menu, folder);
-    this.uploadHandlerManager.addUploadAllLocalFilesMenu(menu, folder);
+    this.downloadHandlerManager.handleDownloadMenu(menu, folder);
+    this.uploadHandlerManager.handleUploadMenu(menu, folder);
   }
 
   public handleEditorContextMenu(
@@ -91,7 +91,7 @@ export class EventHandlerManager {
       return;
     }
 
-    this.uploadHandlerManager.handleUploadViewFile(menu, editor);
+    this.uploadHandlerManager.handleUploadFile(menu, editor);
     this.downloadHandlerManager.handleDownloadFile(menu, editor);
     this.handleDeleteFile(menu, editor);
   }
@@ -140,12 +140,16 @@ export class EventHandlerManager {
     this._webdavImageLoader?.destroy();
   }
 
-
-
   private handleDeleteFile(menu: Menu, editor: Editor): void {
     const selection = editor.getSelection();
-    const links = findUploadedFileLinks(selection, this.configurationManager.getPublicDomain()) || [];
-    if (!links.length || !selection) return;
+    const links =
+      findUploadedFileLinks(
+        selection,
+        this.configurationManager.getPublicDomain(),
+      ) || [];
+    if (!links.length || !selection) {
+      return;
+    }
 
     const publicDomain = this.configurationManager.getPublicDomain();
     const processItems: DeleteProcessItem[] = links.map((link) => ({
@@ -159,14 +163,20 @@ export class EventHandlerManager {
 
     if (processItems.length > 0) {
       menu.addItem((item: MenuItem) => {
-        item.setTitle(t("delete.menuTitle")).setIcon("trash").setWarning(true).onClick(() => {
-          void this.deleteEventHandler.handleDeleteUploadedFiles(processItems);
-        });
+        item
+          .setTitle(t("delete.menuTitle"))
+          .setIcon("trash")
+          .setWarning(true)
+          .onClick(() => {
+            void this.deleteEventHandler.handleDeleteUploadedFiles(
+              processItems,
+            );
+          });
       });
     }
   }
 
-    private get storageServiceManager(): StorageServiceManager {
+  private get storageServiceManager(): StorageServiceManager {
     if (!this._storageServiceManager) {
       this._storageServiceManager = new StorageServiceManager(
         this.configurationManager,

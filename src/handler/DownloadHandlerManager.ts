@@ -1,11 +1,4 @@
-import {
-  App,
-  Menu,
-  MenuItem,
-  Editor,
-  TFile,
-  TFolder,
-} from "obsidian";
+import { App, Menu, MenuItem, Editor, TFile, TFolder } from "obsidian";
 import { ConfigurationManager } from "../settings/ConfigurationManager";
 import { StorageServiceManager } from "../storage/StorageServiceManager";
 import { StatusBar } from "../components/StatusBar";
@@ -13,8 +6,16 @@ import { DownloadHandler } from "./providers/DownloadHandler";
 import { FolderDownloadHandler } from "./providers/FolderDownloadHandler";
 import { t } from "../i18n";
 import { generateUniqueId } from "../common/FileUtils";
-import { findUploadedFileLinks, scanFolderForDownloadableFiles, DownloadableFile } from "../common/MarkdownLinkFinder";
-import { FolderActionModal, FolderActionResult, FolderActionConfig } from "../components/FolderActionModal";
+import {
+  findUploadedFileLinks,
+  scanFolderForDownloadableFiles,
+  DownloadableFile,
+} from "../common/MarkdownLinkFinder";
+import {
+  FolderActionModal,
+  FolderActionResult,
+  FolderActionConfig,
+} from "../components/FolderActionModal";
 import { EventType, DownloadProcessItem } from "../types/index";
 
 export class DownloadHandlerManager {
@@ -57,59 +58,82 @@ export class DownloadHandlerManager {
   }
 
   public handleDownloadFile(menu: Menu, editor: Editor): void {
-    const links = findUploadedFileLinks(editor.getSelection(), this.configurationManager.getPublicDomain()) || [];
-    if (!links.length) return;
+    const links =
+      findUploadedFileLinks(
+        editor.getSelection(),
+        this.configurationManager.getPublicDomain(),
+      ) || [];
+    if (!links.length) {
+      return;
+    }
 
     menu.addItem((item: MenuItem) => {
-      item.setTitle(t("download.menuTitle")).setIcon("download").onClick(() => {
-        const processItems: DownloadProcessItem[] = links.map((url) => ({
-          id: generateUniqueId("dl"),
-          eventType: EventType.DOWNLOAD,
-          type: "download",
-          url,
-        }));
-        this.downloadHandler.handleDownloadFiles(processItems);
-      });
+      item
+        .setTitle(t("download.menuTitle"))
+        .setIcon("download")
+        .onClick(() => {
+          const processItems: DownloadProcessItem[] = links.map((url) => ({
+            id: generateUniqueId("dl"),
+            eventType: EventType.DOWNLOAD,
+            type: "download",
+            url,
+          }));
+          this.downloadHandler.handleDownloadFiles(processItems);
+        });
     });
   }
 
-  public addDownloadAllFilesMenu(menu: Menu, target: TFile | TFolder): void {
+  public handleDownloadMenu(menu: Menu, target: TFile | TFolder): void {
     menu.addItem((item: MenuItem) => {
-      item.setTitle(t("download.allMenuTitle")).setIcon("download").onClick(async () => {
-        const domain = this.configurationManager.getPublicDomain();
-        const result: FolderActionResult & { downloadableFiles: DownloadableFile[] } = {
-          totalDocs: 0,
-          fileCount: 0,
-          downloadableFiles: []
-        };
+      item
+        .setTitle(t("download.allMenuTitle"))
+        .setIcon("download")
+        .onClick(async () => {
+          const domain = this.configurationManager.getPublicDomain();
+          const result: FolderActionResult & {
+            downloadableFiles: DownloadableFile[];
+          } = {
+            totalDocs: 0,
+            fileCount: 0,
+            downloadableFiles: [],
+          };
 
-        const modal = new FolderActionModal(
-          this.app,
-          result,
-          this.DOWNLOAD_CONFIG,
-          async (onProgress) => {
-            const urls = result.downloadableFiles.map((f: DownloadableFile) => f.url);
-            const urlToLocalPath = await this.folderDownloadHandler.handleDownloadFiles(urls, onProgress);
-            await this.replaceLinksInDocs(result.downloadableFiles, urlToLocalPath);
-            return urlToLocalPath;
-          }
-        );
-        modal.open();
+          const modal = new FolderActionModal(
+            this.app,
+            result,
+            this.DOWNLOAD_CONFIG,
+            async (onProgress) => {
+              const urls = result.downloadableFiles.map(
+                (f: DownloadableFile) => f.url,
+              );
+              const urlToLocalPath =
+                await this.folderDownloadHandler.handleDownloadFiles(
+                  urls,
+                  onProgress,
+                );
+              await this.replaceLinksInDocs(
+                result.downloadableFiles,
+                urlToLocalPath,
+              );
+              return urlToLocalPath;
+            },
+          );
+          modal.open();
 
-        const scanResult = await scanFolderForDownloadableFiles(
-          this.app,
-          target,
-          domain,
-          (current, total) => modal.updateScanProgress(current, total)
-        );
+          const scanResult = await scanFolderForDownloadableFiles(
+            this.app,
+            target,
+            domain,
+            (current, total) => modal.updateScanProgress(current, total),
+          );
 
-        result.totalDocs = scanResult.totalDocs;
-        result.fileCount = scanResult.downloadableFiles.length;
-        result.downloadableFiles = scanResult.downloadableFiles;
+          result.totalDocs = scanResult.totalDocs;
+          result.fileCount = scanResult.downloadableFiles.length;
+          result.downloadableFiles = scanResult.downloadableFiles;
 
-        modal.contentEl.empty();
-        modal.onOpen();
-      });
+          modal.contentEl.empty();
+          modal.onOpen();
+        });
     });
   }
 
@@ -121,9 +145,15 @@ export class DownloadHandlerManager {
     this.downloadHandler.dispose();
   }
 
-  private async replaceLinksInDocs(downloadableFiles: DownloadableFile[], urlToLocalPath: Map<string, string>): Promise<void> {
+  private async replaceLinksInDocs(
+    downloadableFiles: DownloadableFile[],
+    urlToLocalPath: Map<string, string>,
+  ): Promise<void> {
     // Group by document
-    const docReplacements = new Map<string, Array<{ url: string; localPath: string }>>();
+    const docReplacements = new Map<
+      string,
+      Array<{ url: string; localPath: string }>
+    >();
     for (const { url, docPaths } of downloadableFiles) {
       const localPath = urlToLocalPath.get(url);
       if (localPath) {
@@ -148,5 +178,4 @@ export class DownloadHandlerManager {
       }
     }
   }
-
 }

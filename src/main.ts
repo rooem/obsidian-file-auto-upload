@@ -89,13 +89,16 @@ export default class FileAutoUploadPlugin extends Plugin {
     );
 
     this.registerEvent(
-      this.app.workspace.on("file-menu", (menu: Menu, file: TFile | TFolder) => {
-        if (file instanceof TFolder) {
-          this.eventHandlerManager.handleFolderMenu(menu, file);
-        } else {
-          this.eventHandlerManager.handleFileMenu(menu, file);
-        }
-      }),
+      this.app.workspace.on(
+        "file-menu",
+        (menu: Menu, file: TFile | TFolder) => {
+          if (file instanceof TFolder) {
+            this.eventHandlerManager.handleFolderMenu(menu, file);
+          } else {
+            this.eventHandlerManager.handleFileMenu(menu, file);
+          }
+        },
+      ),
     );
 
     // Register WebDAV image loader extension

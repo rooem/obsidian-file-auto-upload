@@ -183,5 +183,4 @@ export class UploadEventHandler extends BaseEventHandler {
       this.replacePlaceholder(processItem.id, `[${file.name}]❌${errorMsg}`);
     }
   }
-
 }

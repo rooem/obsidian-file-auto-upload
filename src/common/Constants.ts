@@ -3,10 +3,35 @@
  */
 export class Constants {
   // File extensions
-  static readonly IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"] as const;
-  static readonly VIDEO_EXTENSIONS = ["mp4", "avi", "mov", "wmv", "flv", "webm"] as const;
-  static readonly AUDIO_EXTENSIONS = ["mp3", "wav", "flac", "aac", "ogg"] as const;
-  static readonly MEDIA_EXTENSIONS = [...this.IMAGE_EXTENSIONS, ...this.VIDEO_EXTENSIONS, ...this.AUDIO_EXTENSIONS] as const;
+  static readonly IMAGE_EXTENSIONS = [
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "bmp",
+    "webp",
+    "svg",
+  ] as const;
+  static readonly VIDEO_EXTENSIONS = [
+    "mp4",
+    "avi",
+    "mov",
+    "wmv",
+    "flv",
+    "webm",
+  ] as const;
+  static readonly AUDIO_EXTENSIONS = [
+    "mp3",
+    "wav",
+    "flac",
+    "aac",
+    "ogg",
+  ] as const;
+  static readonly MEDIA_EXTENSIONS = [
+    ...this.IMAGE_EXTENSIONS,
+    ...this.VIDEO_EXTENSIONS,
+    ...this.AUDIO_EXTENSIONS,
+  ] as const;
 
   // File utilities
   static readonly RANDOM_STRING_LENGTH = 7;
