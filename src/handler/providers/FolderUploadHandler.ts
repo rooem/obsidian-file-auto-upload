@@ -45,7 +45,7 @@ export class FolderUploadHandler extends BaseEventHandler {
   ): Promise<void> {
     const totalFiles = files.length;
     const uploadingPromises = new Map<string, Promise<string | null>>();
-    
+
     // Track progress
     let completedCount = 0;
     const updateProgress = () => {
@@ -113,11 +113,13 @@ export class FolderUploadHandler extends BaseEventHandler {
     };
 
     // Upload files concurrently with controlled concurrency
-    const uploadPromises: Array<Promise<{ 
-      filePath: string; 
-      url: string | null; 
-      docPaths: string[] 
-    }>> = [];
+    const uploadPromises: Array<
+      Promise<{
+        filePath: string;
+        url: string | null;
+        docPaths: string[];
+      }>
+    > = [];
 
     for (const { filePath, docPaths } of files) {
       const promise = this.concurrencyController.run(async () => {
@@ -152,7 +154,7 @@ export class FolderUploadHandler extends BaseEventHandler {
       if (docFile instanceof TFile) {
         let content = await this.app.vault.read(docFile);
         let contentChanged = false;
-        
+
         for (const { filePath, url } of replacements) {
           const pathVariants = [filePath];
           try {
@@ -188,7 +190,7 @@ export class FolderUploadHandler extends BaseEventHandler {
             }
           }
         }
-        
+
         // Only write to file if content actually changed
         if (contentChanged) {
           await this.app.vault.modify(docFile, content);

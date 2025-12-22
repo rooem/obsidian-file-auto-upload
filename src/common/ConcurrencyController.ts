@@ -9,6 +9,7 @@ export class ConcurrencyController {
   }> = [];
   private running = 0;
   private aborted = false;
+  private abortController: AbortController | null = null;
 
   constructor(private maxConcurrent: number = 3) {}
 
@@ -21,6 +22,11 @@ export class ConcurrencyController {
     // Reject if controller has been aborted
     if (this.aborted) {
       throw new Error("ConcurrencyController has been aborted");
+    }
+
+    // Create abort controller if not exists
+    if (!this.abortController) {
+      this.abortController = new AbortController();
     }
 
     // Wait if we've reached maximum concurrent operations
@@ -54,6 +60,12 @@ export class ConcurrencyController {
    */
   abort(): void {
     this.aborted = true;
+    
+    // Abort all tasks using AbortController if available
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+    
     while (this.queue.length > 0) {
       const error = new Error("ConcurrencyController has been aborted");
       const next = this.queue.shift();
@@ -85,5 +97,23 @@ export class ConcurrencyController {
    */
   isAborted(): boolean {
     return this.aborted;
+  }
+
+  /**
+   * Get AbortSignal for current operations
+   * @returns AbortSignal that will be triggered when abort() is called
+   */
+  getAbortSignal(): AbortSignal | null {
+    return this.abortController?.signal || null;
+  }
+
+  /**
+   * Reset the controller to initial state
+   */
+  reset(): void {
+    this.aborted = false;
+    this.abortController = null;
+    this.queue = [];
+    this.running = 0;
   }
 }

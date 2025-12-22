@@ -8,6 +8,7 @@ export interface FolderActionConfig {
   progressKey: string;
   scanningKey: string;
   closeKey: string;
+  cancelKey?: string; // Added cancel key for translation
 }
 
 export interface FolderActionResult {
@@ -23,7 +24,9 @@ export class FolderActionModal extends Modal {
   ) => Promise<unknown>;
   private progressEl?: HTMLElement;
   private actionBtn?: HTMLButtonElement;
+  private cancelBtn?: HTMLButtonElement; // Added cancel button
   private isProcessing = false;
+  private isCancelled = false; // Added cancellation flag
 
   constructor(
     app: App,
@@ -53,6 +56,7 @@ export class FolderActionModal extends Modal {
     this.progressEl = contentEl.createDiv({ cls: "folder-action-progress" });
     this.progressEl.style.display = "none";
     this.progressEl.style.marginBottom = "10px";
+    this.progressEl.style.position = "relative"; // Added for positioning cancel button
 
     const progressBarContainer = this.progressEl.createDiv();
     progressBarContainer.setCssStyles({
@@ -97,32 +101,69 @@ export class FolderActionModal extends Modal {
           return;
         }
         this.isProcessing = true;
+        this.isCancelled = false; // Reset cancellation flag
         this.actionBtn!.disabled = true;
         this.actionBtn!.setText(t(this.config.progressKey));
         this.progressEl!.style.display = "block";
 
-        await this.onAction((current, total) => {
-          const percent = Math.round((current / total) * 100);
-          const bar = this.progressEl!.querySelector(
-            ".progress-bar-fill",
-          ) as HTMLElement;
-          const text = this.progressEl!.querySelector(
-            ".progress-text",
-          ) as HTMLElement;
-          if (bar) {
-            bar.style.width = `${percent}%`;
-          }
-          if (text) {
-            text.setText(`${current}/${total}`);
-          }
-        });
+        // Show cancel button during processing
+        if (this.cancelBtn) {
+          this.cancelBtn.style.display = "inline-block";
+        }
 
-        this.actionBtn!.setText(t(this.config.actionBtnKey));
-        this.actionBtn!.disabled = false;
-        this.isProcessing = false;
-        this.progressEl!.style.display = "none";
+        try {
+          await this.onAction((current, total) => {
+            // Check if operation was cancelled
+            if (this.isCancelled) {
+              throw new Error("Operation cancelled by user");
+            }
+
+            const percent = Math.round((current / total) * 100);
+            const bar = this.progressEl!.querySelector(
+              ".progress-bar-fill",
+            ) as HTMLElement;
+            const text = this.progressEl!.querySelector(
+              ".progress-text",
+            ) as HTMLElement;
+            if (bar) {
+              bar.style.width = `${percent}%`;
+            }
+            if (text) {
+              text.setText(`${current}/${total}`);
+            }
+          });
+        } catch (error) {
+          if (error instanceof Error && error.message === "Operation cancelled by user") {
+            console.log("Operation was cancelled by user");
+          } else {
+            throw error;
+          }
+        } finally {
+          this.actionBtn!.setText(t(this.config.actionBtnKey));
+          this.actionBtn!.disabled = false;
+          this.isProcessing = false;
+          this.progressEl!.style.display = "none";
+          
+          // Hide cancel button after processing
+          if (this.cancelBtn) {
+            this.cancelBtn.style.display = "none";
+          }
+        }
       };
     }
+
+    // Create cancel button
+    this.cancelBtn = buttonDiv.createEl("button", {
+      text: t(this.config.cancelKey || "Cancel"),
+    });
+    this.cancelBtn.style.display = "none"; // Hidden by default
+    this.cancelBtn.onclick = () => {
+      this.isCancelled = true;
+      if (this.cancelBtn) {
+        this.cancelBtn.disabled = true;
+        this.cancelBtn.setText("Cancelling...");
+      }
+    };
 
     const closeBtn = buttonDiv.createEl("button", {
       text: t(this.config.closeKey),

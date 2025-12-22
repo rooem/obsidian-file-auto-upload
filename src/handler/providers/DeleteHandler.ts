@@ -1,14 +1,13 @@
 import { App, Notice } from "obsidian";
 import { ConfigurationManager } from "../../settings/ConfigurationManager";
 import { StorageServiceManager } from "../../storage/StorageServiceManager";
-import { BaseEventHandler } from "./BaseHandler";
-import { EventType, ProcessItem, DeleteProcessItem } from "../../types/index";
-import { t } from "../../i18n";
 import { logger } from "../../common/Logger";
+import { BaseEventHandler } from "./BaseHandler";
+import { ProcessItem, DeleteProcessItem, EventType } from "../../types/index";
+import { t } from "../../i18n";
 
 /**
- * Handles deletion of uploaded files from storage
- * Adds context menu option to delete files and removes links from editor
+ * Handles file deletion operations from storage services
  */
 export class DeleteEventHandler extends BaseEventHandler {
   constructor(
@@ -16,47 +15,63 @@ export class DeleteEventHandler extends BaseEventHandler {
     configurationManager: ConfigurationManager,
     storageServiceManager: StorageServiceManager,
   ) {
-    super(app, configurationManager, storageServiceManager);
+    super(app, configurationManager, storageServiceManager, 3);
   }
 
-  public handleDeleteUploadedFiles(items: ProcessItem[]): void {
+  public handleDeleteUploadedFiles(items: DeleteProcessItem[]): void {
     logger.debug("DeleteEventHandler", "Files queued for deletion", {
-      queueLength: items.length,
+      itemsLength: items.length,
     });
     void this.processItems(items);
   }
 
-  protected async processItem(item: DeleteProcessItem): Promise<void> {
-    if (item.eventType !== EventType.DELETE) {
+  protected async processItem(processItem: ProcessItem): Promise<void> {
+    if (processItem.eventType !== EventType.DELETE) {
       return;
     }
 
+    const item = processItem as DeleteProcessItem;
     const { fileLink, fileKey, originalSelection } = item;
 
     try {
       const result = await this.storageServiceManager.deleteFile(fileKey);
-
       if (result.success) {
-        new Notice(t("delete.success").replace("{fileLink}", fileLink));
         this.contentReplacer.removeContentByUrl(fileLink, originalSelection);
+        logger.debug("DeleteEventHandler", "File deleted successfully", {
+          fileKey,
+        });
       } else {
         logger.error("DeleteEventHandler", "Delete operation failed", {
-          fileLink,
+          fileKey,
           error: result.error,
         });
-        new Notice(
-          t("delete.failed")
-            .replace("{fileLink}", fileLink)
-            .replace("{error}", result.error || t("delete.unknownError")),
-        );
       }
     } catch (error) {
-      logger.error(
-        "DeleteEventHandler",
-        "Error occurred while deleting file",
+      logger.error("DeleteEventHandler", "Delete operation exception", {
+        fileKey,
         error,
+      });
+    }
+  }
+
+  public async deleteFileFromEditor(
+    fileLink: string,
+    fileKey: string,
+  ): Promise<boolean> {
+    try {
+      const result = await this.storageServiceManager.deleteFile(fileKey);
+      if (result.success) {
+        this.contentReplacer.removeContentByUrl(fileLink);
+        return true;
+      } else {
+        new Notice(`${t("error.deleteFailed")}: ${result.error || ""}`);
+        return false;
+      }
+    } catch (error) {
+      new Notice(
+        `${t("error.deleteError")}: ${error instanceof Error ? error.message : String(error)}`,
       );
-      new Notice(t("delete.error").replace("{fileLink}", fileLink));
+      return false;
     }
   }
 }

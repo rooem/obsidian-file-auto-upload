@@ -203,7 +203,6 @@ export class EventHandlerManager {
         this.app,
         this.configurationManager,
         this.storageServiceManager,
-        this.statusBar,
       );
     }
     return this._downloadHandlerManager;

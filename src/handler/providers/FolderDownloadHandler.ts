@@ -1,9 +1,9 @@
-import { App, Notice } from "obsidian";
+import { App, TFile } from "obsidian";
+import { BaseEventHandler } from "./BaseHandler";
 import { ConfigurationManager } from "../../settings/ConfigurationManager";
 import { StorageServiceManager } from "../../storage/StorageServiceManager";
 import { logger } from "../../common/Logger";
-import { BaseEventHandler } from "./BaseHandler";
-import { ProcessItem } from "../../types/index";
+import { ProcessItem, DownloadProcessItem, EventType } from "../../types/index";
 import { t } from "../../i18n";
 
 /**
@@ -14,9 +14,8 @@ export class FolderDownloadHandler extends BaseEventHandler {
     app: App,
     configurationManager: ConfigurationManager,
     storageServiceManager: StorageServiceManager,
-    maxConcurrent: number = 3,
   ) {
-    super(app, configurationManager, storageServiceManager, maxConcurrent);
+    super(app, configurationManager, storageServiceManager, 3);
   }
 
   protected async processItem(_processItem: ProcessItem): Promise<void> {
@@ -24,100 +23,48 @@ export class FolderDownloadHandler extends BaseEventHandler {
   }
 
   /**
-   * Download files from URLs
-   * Process files with concurrency control
-   * @returns Map of url -> local file path for successful downloads
+   * Download files to local vault
    */
   public async handleDownloadFiles(
-    urls: string[],
-    onProgress: (current: number, total: number) => void,
-  ): Promise<Map<string, string>> {
+    items: DownloadProcessItem[],
+    onProgress: (current: number, total: number, filename: string) => void,
+  ): Promise<void> {
     let downloadedCount = 0;
-    const totalFiles = urls.length;
-    const results: {
-      url: string;
-      success: boolean;
-      fileName?: string;
-      error?: string;
-    }[] = [];
+    const totalCount = items.length;
 
-    // Get active file for relative path resolution
-    const activeFile = this.app.workspace.getActiveFile();
-    if (!activeFile) {
-      new Notice(t("download.failed").replace("{error}", "No active file"));
-      return new Map<string, string>();
-    }
+    for (const item of items) {
+      if (item.eventType !== EventType.DOWNLOAD) {
+        continue;
+      }
 
-    // Process downloads with concurrency control
-    const downloadPromises = urls.map((url) =>
-      this.concurrencyController.run(async () => {
-        try {
+      try {
+        downloadedCount++;
+        onProgress(
+          downloadedCount,
+          totalCount,
+          decodeURIComponent(item.url.split("/").pop() || "file"),
+        );
+
+        await this.concurrencyController.run(async () => {
           const result = await this.storageServiceManager.downloadAndSaveFile(
             this.app,
-            url,
-            activeFile.path,
-            () => {}, // No individual progress tracking for batch downloads
+            item.url,
+            "", // Current file path - empty for downloads
           );
 
-          downloadedCount++;
-          onProgress(downloadedCount, totalFiles);
-
-          if (result.success && result.data) {
-            results.push({
-              url,
-              success: true,
-              fileName: result.data.fileName,
-            });
-          } else {
-            results.push({
-              url,
-              success: false,
-              error: result.error || "Unknown error",
-            });
+          if (!result.success) {
             logger.error("FolderDownloadHandler", "Download failed", {
-              url,
+              url: item.url,
               error: result.error,
             });
           }
-        } catch (error) {
-          downloadedCount++;
-          onProgress(downloadedCount, totalFiles);
-
-          const errorMsg =
-            error instanceof Error ? error.message : String(error);
-          results.push({
-            url,
-            success: false,
-            error: errorMsg,
-          });
-          logger.error("FolderDownloadHandler", "Download failed", {
-            url,
-            error,
-          });
-        }
-      }),
-    );
-
-    await Promise.all(downloadPromises);
-
-    // Show summary
-    const successCount = results.filter((r) => r.success).length;
-    const failCount = results.length - successCount;
-
-    if (failCount !== 0) {
-      new Notice(
-        `${t("download.success").replace("{fileName}", `${successCount} files`)}\n${failCount} ${t("download.failed").replace("{error}", "files failed")}`,
-        5000,
-      );
-    }
-
-    // Return url -> local path mapping
-    const urlToLocalPath = new Map<string, string>();
-    for (const r of results) {
-      if (r.success && r.fileName) {
-        urlToLocalPath.set(r.url, r.fileName);
+        });
+      } catch (error) {
+        logger.error("FolderDownloadHandler", "Download error", {
+          url: item.url,
+          error,
+        });
       }
     }
-    return urlToLocalPath;
   }
 }

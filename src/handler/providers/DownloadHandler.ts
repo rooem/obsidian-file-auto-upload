@@ -1,27 +1,25 @@
-import { MarkdownView, Notice, App } from "obsidian";
+import { App } from "obsidian";
 import { BaseEventHandler } from "./BaseHandler";
-import { StatusBar } from "../../components/StatusBar";
-import { t } from "../../i18n";
-import { logger } from "../../common/Logger";
-import { ProcessItem, DownloadProcessItem, EventType } from "../../types/index";
 import { ConfigurationManager } from "../../settings/ConfigurationManager";
 import { StorageServiceManager } from "../../storage/StorageServiceManager";
+import { logger } from "../../common/Logger";
+import { ProcessItem, DownloadProcessItem, EventType } from "../../types/index";
+import { t } from "../../i18n";
 
+/**
+ * Handles file download operations from storage services to local vault
+ */
 export class DownloadHandler extends BaseEventHandler {
-  private statusBar: StatusBar;
-
   constructor(
     app: App,
     configurationManager: ConfigurationManager,
     storageServiceManager: StorageServiceManager,
-    statusBar: StatusBar,
   ) {
     super(app, configurationManager, storageServiceManager, 3);
-    this.statusBar = statusBar;
   }
 
   public handleDownloadFiles(items: DownloadProcessItem[]): void {
-    this.processItems(items);
+    void this.processItems(items);
   }
 
   protected async processItem(processItem: ProcessItem): Promise<void> {
@@ -30,54 +28,50 @@ export class DownloadHandler extends BaseEventHandler {
     }
 
     const item = processItem as DownloadProcessItem;
-    const url = item.url;
-    try {
-      const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-      if (!activeView?.file) {
-        return;
-      }
+    const { url } = item;
 
-      this.statusBar.startDownload(item.id);
+    try {
       this.contentReplacer.replaceUrlWithPlaceholder(
         url,
         item.id,
         t("download.progressing"),
       );
 
+      // We don't have the file size here, so we'll use 0 as a placeholder
+      // In a real implementation, we'd want to get the file size first
+      // this.statusBarManager?.startDownload(item.id, fileSize);
+
       const result = await this.storageServiceManager.downloadAndSaveFile(
         this.app,
         url,
-        activeView.file.path,
-        (progress) => this.statusBar.updateProgress(item.id, progress),
+        "", // Current file path - empty for downloads
+        (loadedBytes) => {
+          // Update progress with loaded bytes
+          // this.statusBarManager?.updateProgress(item.id, loadedBytes);
+        },
       );
 
       if (result.success && result.data) {
-        const fileName = result.data.fileName;
-        const markdown = `[${fileName}](${result.data.localPath})`;
+        const { localPath, fileName } = result.data;
+        const markdown = `[${fileName}](${encodeURI(localPath)})`;
         this.contentReplacer.replacePlaceholderWithMarkdown(item.id, markdown, {
+          contentType: "file",
           fileName,
         });
-        new Notice(
-          t("download.success").replace("{fileName}", result.data.fileName),
-        );
       } else {
-        new Notice(
-          t("download.failed").replace(
-            "{error}",
-            result.error || "Unknown error",
-          ),
+        this.contentReplacer.replacePlaceholderWithMarkdown(
+          item.id,
+          `❌${result.error || t("error.downloadFailed")}`,
         );
-        logger.error("DownloadHandler", "Download failed", {
-          url,
-          error: result.error,
-        });
       }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      new Notice(t("download.failed").replace("{error}", errorMsg));
       logger.error("DownloadHandler", "Download failed", { url, error });
+      this.contentReplacer.replacePlaceholderWithMarkdown(
+        item.id,
+        `❌${t("error.downloadError")}`,
+      );
     } finally {
-      this.statusBar.finishDownload(item.id);
+      // this.statusBarManager?.finishDownload(item.id);
     }
   }
 }

@@ -151,4 +151,10 @@ export default {
   // Status Bar
   "statusBar.uploading": "{uploaded}/{total}: {progress}%",
   "statusBar.downloading": "{downloaded}/{total}: {progress}%",
+  "statusBar.uploadingDetailed": "{uploaded}/{total}: {progress}% ({speed}, {eta})",
+  "statusBar.downloadingDetailed": "{downloaded}/{total}: {progress}% ({speed}, {eta})",
+  
+  // Cancel
+  "cancel": "Cancel",
+  "cancelling": "Cancelling..."
 };

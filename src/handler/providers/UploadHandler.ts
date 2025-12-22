@@ -15,6 +15,7 @@ import {
   isImageExtension,
   generateFileKey,
 } from "../../common/FileUtils";
+import { ProgressTracker } from "../../common/ProgressTracker";
 
 import { t } from "../../i18n";
 
@@ -107,15 +108,15 @@ export class UploadEventHandler extends BaseEventHandler {
       return;
     }
 
-    this.statusBarManager.startUpload(processItem.id);
+    this.statusBarManager.startUpload(processItem.id, file.size);
 
     try {
       const key = generateFileKey(file.name, processItem.id);
       const result = await this.storageServiceManager.uploadFile(
         file,
         key,
-        (progress) => {
-          this.statusBarManager.updateProgress(processItem.id, progress);
+        (loadedBytes) => {
+          this.statusBarManager.updateProgress(processItem.id, loadedBytes);
         },
       );
 

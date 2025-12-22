@@ -144,7 +144,7 @@ export class StorageServiceSettings {
 
     this.renderStorageDropdown(containerEl, plugin, onToggle);
     this.renderFields(containerEl, plugin, settings, isWebdav, onToggle);
-    this.renderTestButton(containerEl, plugin);
+    this.renderTestConnection(containerEl, plugin);
   }
 
   private static renderStorageDropdown(
@@ -253,7 +253,7 @@ export class StorageServiceSettings {
     }
   }
 
-  private static renderTestButton(
+  private static renderTestConnection(
     containerEl: HTMLElement,
     plugin: FileAutoUploadPlugin,
   ): void {
