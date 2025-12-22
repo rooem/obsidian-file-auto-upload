@@ -25,6 +25,7 @@ Automatically upload files to cloud storage services when pasting or dragging fi
 | Alibaba Cloud OSS | ✅ | ✅ | ✅ |
 | Tencent Cloud COS | ✅ | ✅ | ✅ |
 | WebDAV | N/A | ✅ (required) | ✅ |
+| GitHub | N/A | N/A | ✅ (required) |
 
 ### Amazon S3
 Compatible with Amazon S3 and S3-compatible services (MinIO, DigitalOcean Spaces, etc.). Supports multipart uploads for files larger than 5MB with progress tracking.
@@ -40,6 +41,9 @@ Tencent Cloud Object Storage with bucket subdomain URL support.
 
 ### WebDAV
 WebDAV protocol support for self-hosted storage solutions.
+
+### GitHub
+GitHub support with personal access token authentication. Files are stored in a specified repository with optional CDN acceleration through jsDelivr or other providers.
 
 ## Installation
 
@@ -149,7 +153,7 @@ The plugin follows a modular architecture with clear separation of concerns:
 3. **Storage Layer** (`storage/`): Abstracts cloud storage operations with provider-specific implementations
 4. **Event Handling** (`handler/`): Processes user interactions (paste, drop, context menus)
 5. **UI Components** (`components/`): Status bar and configuration modals
-6. **Utilities** (`utils/`): Shared functionality (logging, encryption, file operations)
+6. **Common Utilities** (`common/`): Shared functionality (logging, encryption, file operations, caching)
 
 **Key Features:**
 - **Encryption**: All credentials encrypted using PBKDF2 with vault-specific keys
