@@ -37,15 +37,21 @@ export class FolderUploadHandler extends BaseEventHandler {
 
   /**
    * Upload files and replace links in documents
-   * Process documents sequentially, files within each document sequentially
+   * Process files concurrently with controlled concurrency
    */
   public async handleUploadFiles(
     files: UploadableFile[],
     onProgress: (current: number, total: number) => void,
   ): Promise<void> {
-    let uploadedCount = 0;
     const totalFiles = files.length;
     const uploadingPromises = new Map<string, Promise<string | null>>();
+    
+    // Track progress
+    let completedCount = 0;
+    const updateProgress = () => {
+      completedCount++;
+      onProgress(completedCount, totalFiles);
+    };
 
     // Helper to upload a file with deduplication
     const uploadFile = async (
@@ -106,19 +112,23 @@ export class FolderUploadHandler extends BaseEventHandler {
       return uploadPromise;
     };
 
-    // Upload files and collect results
-    const uploadResults: Array<{
-      filePath: string;
-      url: string | null;
-      docPaths: string[];
-    }> = [];
+    // Upload files concurrently with controlled concurrency
+    const uploadPromises: Array<Promise<{ 
+      filePath: string; 
+      url: string | null; 
+      docPaths: string[] 
+    }>> = [];
 
     for (const { filePath, docPaths } of files) {
-      const url = await uploadFile(filePath, docPaths[0]);
-      uploadResults.push({ filePath, url, docPaths });
-      uploadedCount++;
-      onProgress(uploadedCount, totalFiles);
+      const promise = this.concurrencyController.run(async () => {
+        const url = await uploadFile(filePath, docPaths[0]);
+        updateProgress();
+        return { filePath, url, docPaths };
+      });
+      uploadPromises.push(promise);
     }
+
+    const uploadResults = await Promise.all(uploadPromises);
 
     // Group successful results by document for replacement
     const docReplacements = new Map<
@@ -136,11 +146,13 @@ export class FolderUploadHandler extends BaseEventHandler {
       }
     }
 
-    // Apply replacements to all documents
+    // Apply replacements to all documents using ContentReplacer
     for (const [docPath, replacements] of docReplacements) {
       const docFile = this.app.vault.getAbstractFileByPath(docPath);
       if (docFile instanceof TFile) {
         let content = await this.app.vault.read(docFile);
+        let contentChanged = false;
+        
         for (const { filePath, url } of replacements) {
           const pathVariants = [filePath];
           try {
@@ -161,21 +173,26 @@ export class FolderUploadHandler extends BaseEventHandler {
           }
 
           for (const path of pathVariants) {
-            const escaped = path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const escaped = this.contentReplacer.escapeRegExp(path);
             const mdPattern = `(!\\[[^\\]]*\\]\\()${escaped}(\\))`;
-            const wikiPattern = `(!\\[\\[)${escaped}(\\]\\])`;
+            const wikiPattern = `(!?\\[\\[)${escaped}(\\]\\])`;
 
             const newContent = content
               .replace(new RegExp(mdPattern, "g"), `$1${url}$2`)
-              .replace(new RegExp(wikiPattern, "g"), url);
+              .replace(new RegExp(wikiPattern, "g"), `$1${url}$2`);
 
             if (newContent !== content) {
               content = newContent;
+              contentChanged = true;
               break;
             }
           }
         }
-        await this.app.vault.modify(docFile, content);
+        
+        // Only write to file if content actually changed
+        if (contentChanged) {
+          await this.app.vault.modify(docFile, content);
+        }
       }
     }
   }
