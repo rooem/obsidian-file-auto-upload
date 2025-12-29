@@ -75,69 +75,29 @@ export class GithubStorageService extends BaseStorageService {
     try {
       const fileKey = key || generateFileKey(file.name);
       const filePath = this.getFilePath(fileKey);
-      const existingSha = await this.getFileSha(filePath);
+      const content = this.arrayBufferToBase64(await file.arrayBuffer());
 
-      const response = await requestUrl({
-        url: `${this.apiBase}/${filePath}`,
-        method: "PUT",
-        headers: this.headers as Record<string, string>,
-        body: JSON.stringify({
-          message: `Upload ${fileKey}`,
-          content: this.arrayBufferToBase64(await file.arrayBuffer()),
-          branch: this.branch,
-          ...(existingSha && { sha: existingSha }),
-        }),
-        throw: false,
-      });
+      const result = await this.uploadWithRetry(filePath, fileKey, content, 3);
 
       if (progressInterval) {
         clearInterval(progressInterval);
       }
 
-      // GitHub API returns 200 (update) or 201 (create) on success
-      if (
-        response.status !== HTTP_STATUS.OK &&
-        response.status !== HTTP_STATUS.CREATED
-      ) {
-        // If upload failed due to conflict (409/422), try to get existing file URL
-        if (response.status === 409 || response.status === 422) {
-          const sha = await this.getFileSha(filePath);
-          if (sha) {
-            const publicUrl = this.getPublicUrl(filePath);
-            logger.debug(
-              "GithubStorageService",
-              "File conflict, returning existing URL",
-              { fileName: file.name, url: publicUrl },
-            );
-            return {
-              success: true,
-              data: { url: publicUrl, key: filePath, sha },
-            };
-          }
-        }
+      if (!result.success) {
         logger.error("GithubStorageService", "Upload failed", {
           fileName: file.name,
-          status: response.status,
-          text: response.text,
+          error: result.error,
         });
-        return {
-          success: false,
-          error: `Upload failed (${response.status}): ${response.text}`,
-        };
+        return result;
       }
 
       onProgress?.(100);
-      const res = response.json as GithubContentResponse;
-      const publicUrl = this.getPublicUrl(filePath);
       logger.debug("GithubStorageService", "Upload successful", {
         fileName: file.name,
-        url: publicUrl,
+        url: result.data?.url,
       });
 
-      return {
-        success: true,
-        data: { url: publicUrl, key: filePath, sha: res.content?.sha },
-      };
+      return result;
     } catch (error) {
       if (progressInterval) {
         clearInterval(progressInterval);
@@ -148,6 +108,62 @@ export class GithubStorageService extends BaseStorageService {
       });
       return handleError(error, "error.uploadError");
     }
+  }
+
+  private async uploadWithRetry(
+    filePath: string,
+    fileKey: string,
+    content: string,
+    maxRetries: number,
+  ): Promise<Result<UploadData>> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const existingSha = await this.getFileSha(filePath);
+
+      const response = await requestUrl({
+        url: `${this.apiBase}/${filePath}`,
+        method: "PUT",
+        headers: this.headers as Record<string, string>,
+        body: JSON.stringify({
+          message: `Upload ${fileKey}`,
+          content,
+          branch: this.branch,
+          ...(existingSha && { sha: existingSha }),
+        }),
+        throw: false,
+      });
+
+      if (
+        response.status === HTTP_STATUS.OK ||
+        response.status === HTTP_STATUS.CREATED
+      ) {
+        const res = response.json as GithubContentResponse;
+        return {
+          success: true,
+          data: {
+            url: this.getPublicUrl(filePath),
+            key: filePath,
+            sha: res.content?.sha,
+          },
+        };
+      }
+
+      // Retry on 409 conflict (SHA mismatch during concurrent uploads)
+      if (response.status === 409 && attempt < maxRetries - 1) {
+        logger.debug("GithubStorageService", "SHA conflict, retrying", {
+          filePath,
+          attempt: attempt + 1,
+        });
+        await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
+        continue;
+      }
+
+      return {
+        success: false,
+        error: `Upload failed (${response.status}): ${response.text}`,
+      };
+    }
+
+    return { success: false, error: "Upload failed after max retries" };
   }
 
   public async deleteFile(key: string, providedSha?: string): Promise<Result> {
